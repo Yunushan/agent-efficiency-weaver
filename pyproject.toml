@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-efficiency-weaver"
+version = "0.1.0"
+description = "Portable AI agent MCP profiles, skills and reproducible efficiency evaluation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "0BSD"
+dependencies = []
+
+[project.scripts]
+agentweaver = "agentweaver.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
