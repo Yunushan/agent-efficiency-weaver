@@ -1,0 +1,4 @@
+{"task_id":"compile-small","run_id":"1","agent":"kilo","variant":"baseline","source":"synthetic","status":"passed","input_tokens":1500,"output_tokens":500,"billed_cost_usd":0.02,"duration_seconds":43,"tool_calls":6}
+{"task_id":"compile-small","run_id":"1","agent":"kilo","variant":"optimized","source":"synthetic","status":"passed","input_tokens":1000,"output_tokens":400,"billed_cost_usd":0.015,"duration_seconds":35,"tool_calls":5}
+{"task_id":"yaml-security","run_id":"1","agent":"kilo","variant":"baseline","source":"synthetic","status":"failed","input_tokens":1600,"output_tokens":300,"billed_cost_usd":0.03,"duration_seconds":60,"tool_calls":8}
+{"task_id":"yaml-security","run_id":"1","agent":"kilo","variant":"optimized","source":"synthetic","status":"passed","input_tokens":1800,"output_tokens":450,"billed_cost_usd":0.035,"duration_seconds":66,"tool_calls":9}
