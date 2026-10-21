@@ -1,0 +1,15 @@
+{
+  "id": "balanced",
+  "description": "Selective retrieval, modest MCP use",
+  "max_mcp_servers": 2,
+  "allowed_mcp": [
+    "context7"
+  ],
+  "retrieval": {
+    "max_snippets": 12,
+    "avoid_full_repo_dumps": true
+  },
+  "policy": {
+    "allow_production_writes": false
+  }
+}
