@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "context7": {
+      "description": "Third-party on-demand documentation retrieval",
+      "kind": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "default_enabled": false
+    }
+  }
+}
