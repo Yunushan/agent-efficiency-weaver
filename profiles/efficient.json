@@ -1,0 +1,15 @@
+{
+  "id": "efficient",
+  "description": "Lean default, minimal MCP context",
+  "max_mcp_servers": 1,
+  "allowed_mcp": [
+    "context7"
+  ],
+  "retrieval": {
+    "max_snippets": 8,
+    "avoid_full_repo_dumps": true
+  },
+  "policy": {
+    "allow_production_writes": false
+  }
+}
