@@ -1,0 +1,13 @@
+{
+  "id": "enterprise-secure",
+  "description": "Least privilege, third-party MCP disabled by default",
+  "max_mcp_servers": 0,
+  "allowed_mcp": [],
+  "retrieval": {
+    "max_snippets": 8,
+    "avoid_full_repo_dumps": true
+  },
+  "policy": {
+    "allow_production_writes": false
+  }
+}
