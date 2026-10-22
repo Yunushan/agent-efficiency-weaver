@@ -1,10 +1,9 @@
-import tempfile
-import json
 import unittest
-from pathlib import Path
-from agentweaver.report import read_runs, summarize
+
 from agentweaver.compare import compare_runs
 from agentweaver.config import WeaverError
+from agentweaver.report import summarize
+
 
 def run(variant, status, rid="0"):
     return {"task_id":"t1", "run_id":rid, "agent":"kilo", "variant":variant,

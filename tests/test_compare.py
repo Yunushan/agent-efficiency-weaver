@@ -1,6 +1,8 @@
 import unittest
+
 from agentweaver.compare import compare_runs
 from agentweaver.config import WeaverError
+
 
 def task(variant, status="passed", task_id="demo"):
     return {"task_id": task_id, "run_id": "1", "agent": "kilo", "variant": variant,

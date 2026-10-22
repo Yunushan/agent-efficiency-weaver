@@ -1,0 +1,1999 @@
+{
+  "schema_version": 1,
+  "integrations": [
+    {
+      "id": "abacus",
+      "name": "Abacus AI Desktop",
+      "kind": "agent",
+      "default_surface": "desktop",
+      "surfaces": [
+        {
+          "id": "desktop",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".abacusai/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://abacus.ai/help/abacusai-desktop/mcp-configuration"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://abacus.ai/help/abacusai-desktop/agents-and-skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "manual",
+              "sources": [
+                "https://abacus.ai/help/abacusai-desktop/agents-and-skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://abacus.ai/help/abacusai-desktop/providers",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "aider",
+      "name": "Aider",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": null,
+          "config_fields": [],
+          "config_scope": "none",
+          "native_path_hint": null,
+          "documented_location": null,
+          "instruction_mode": "read-files",
+          "instruction_paths": [
+            "CONVENTIONS.md"
+          ],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "unsupported",
+              "sources": [
+                "https://aider.chat/docs/usage/conventions.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://aider.chat/docs/config/aider_conf.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unsupported",
+              "sources": [
+                "https://aider.chat/docs/usage/conventions.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://aider.chat/docs/llms/openrouter.html",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "amp",
+      "name": "Amp",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "amp.mcpServers.url",
+          "config_fields": [
+            "amp.mcpServers",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".amp/settings.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "manual"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://ampcode.com/docs/customize/mcp"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://ampcode.com/docs/customize/agents-md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://ampcode.com/manual/agent-skills.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://ampcode.com/docs/customize/model-routing",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://ampcode.com/docs/macos-and-ios"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "antigravity",
+      "name": "Google Antigravity",
+      "kind": "agent",
+      "default_surface": "ide",
+      "surfaces": [
+        {
+          "id": "ide",
+          "mcp_dialect": "mcpServers.serverUrl",
+          "config_fields": [
+            "mcpServers",
+            "serverUrl"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".agents/mcp_config.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".agents/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/mcp.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/rules.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.type-http",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "CLAUDE.md",
+            ".claude/CLAUDE.md"
+          ],
+          "skills_path": ".claude/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "manual",
+            "ios": "manual"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/mcp"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/memory"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://openrouter.ai/docs/cookbook/coding-agents/claude-code-integration",
+                "https://code.claude.com/docs/en/llm-gateway",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://code.claude.com/docs/en/mobile"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "kind": "agent",
+      "default_surface": "ide",
+      "surfaces": [
+        {
+          "id": "ide",
+          "mcp_dialect": "mcpServers.type-streamableHttp",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url",
+            "disabled"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "Cline extension MCP settings (user scope); CLI: ~/.cline/data/settings/cline_mcp_settings.json",
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".clinerules/",
+            ".cline/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/mcp/configuring-mcp-servers"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/customization/cline-rules"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/provider-config/openrouter",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "name": "OpenAI Codex",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcp_servers.toml-url",
+          "config_fields": [
+            "mcp_servers",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".codex/config.toml",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://developers.openai.com/codex/mcp/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://developers.openai.com/codex/config-reference"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://github.com/openai/codex/blob/main/codex-rs/ext/skills/src/host_roots.rs"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "available",
+              "sources": [
+                "https://openrouter.ai/docs/cookbook/coding-agents/codex-cli",
+                "https://developers.openai.com/codex/config-reference",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot",
+      "kind": "agent",
+      "default_surface": "vscode",
+      "surfaces": [
+        {
+          "id": "vscode",
+          "mcp_dialect": "servers.type-http",
+          "config_fields": [
+            "servers",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".vscode/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "instructions",
+          "instruction_paths": [
+            ".github/copilot-instructions.md",
+            ".github/instructions/"
+          ],
+          "skills_path": ".github/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://code.visualstudio.com/docs/agents/reference/mcp-configuration"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://code.visualstudio.com/docs/agent-customization/custom-instructions"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://code.visualstudio.com/docs/agent-customization/agent-skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://code.visualstudio.com/blogs/2026/06/18/byok-vscode",
+                "https://code.visualstudio.com/docs/agent-customization/language-models"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "kind": "agent",
+      "default_surface": "ide",
+      "surfaces": [
+        {
+          "id": "ide",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".cursor/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".cursor/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "manual"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/mcp"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/context/rules"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://openrouter.ai/docs/cookbook/coding-agents/cursor-integration"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://cursor.com/docs/cloud-agent/mobile"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "devin",
+      "name": "Devin Desktop",
+      "kind": "agent",
+      "default_surface": "desktop-local",
+      "surfaces": [
+        {
+          "id": "desktop-local",
+          "mcp_dialect": "mcpServers.transport-http",
+          "config_fields": [
+            "mcpServers",
+            "transport",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".devin/mcp_config.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".devin/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".devin/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://docs.devin.ai/cli/extensibility/mcp/configuration.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": "Devin Local 3.6+ / CLI v3000.3+",
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.devin.ai/desktop/devin-desktop-faq"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.devin.ai/desktop/cascade/skills.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "extensions.uri-streamable_http",
+          "config_fields": [
+            "extensions",
+            "type",
+            "uri"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "~/.config/goose/config.yaml (Windows: %APPDATA%\\Block\\goose\\config\\config.yaml)",
+          "instruction_mode": "hints",
+          "instruction_paths": [
+            ".goosehints"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://goose-docs.ai/docs/guides/config-files"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://goose-docs.ai/docs/guides/context-engineering/using-goosehints"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://goose-docs.ai/docs/guides/context-engineering/using-skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://goose-docs.ai/docs/getting-started/providers",
+                "https://goose-docs.ai/docs/guides/environment-variables/",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "junie",
+      "name": "JetBrains Junie",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.type-http",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".junie/mcp/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            ".junie/AGENTS.md",
+            "AGENTS.md",
+            ".junie/rules/"
+          ],
+          "skills_path": ".junie/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://junie.jetbrains.com/docs/junie-cli.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://junie.jetbrains.com/docs/guidelines-and-memory.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://junie.jetbrains.com/docs/agent-skills.html"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://junie.jetbrains.com/docs/byok-openrouter.html",
+                "https://openrouter.ai/docs/cookbook/coding-agents/junie",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "kilo",
+      "name": "Kilo Code",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcp.type-remote",
+          "config_fields": [
+            "mcp",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".kilo/kilo.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md",
+            ".kilocode/rules/"
+          ],
+          "skills_path": ".kilocode/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/automate/mcp/using-in-cli"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://github.com/kilo-org/kilo/blob/main/packages/kilo-docs/pages/customize/agents-md.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://github.com/kilo-org/kilo/blob/main/packages/kilo-docs/pages/customize/skills.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://kilo.ai/docs/ai-providers/openrouter",
+                "https://kilo.ai/docs/getting-started/setup-authentication",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
+          "id": "ide",
+          "mcp_dialect": "mcp.type-remote",
+          "config_fields": [
+            "mcp",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".kilo/kilo.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md",
+            ".kilocode/rules/"
+          ],
+          "skills_path": ".kilocode/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/automate/mcp/using-in-cli"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://github.com/kilo-org/kilo/blob/main/packages/kilo-docs/pages/customize/agents-md.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://github.com/kilo-org/kilo/blob/main/packages/kilo-docs/pages/customize/skills.md"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://kilo.ai/docs/ai-providers/openrouter",
+                "https://kilo.ai/docs/getting-started/setup-authentication",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro",
+      "kind": "agent",
+      "default_surface": "ide",
+      "surfaces": [
+        {
+          "id": "ide",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".kiro/settings/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "steering",
+          "instruction_paths": [
+            ".kiro/steering/"
+          ],
+          "skills_path": ".kiro/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://kiro.dev/docs/mcp/configuration/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://kiro.dev/docs/steering/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://kiro.dev/docs/skills/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcp.type-remote",
+          "config_fields": [
+            "mcp",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": "opencode.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://opencode.ai/docs/mcp-servers/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://opencode.ai/docs/rules/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://opencode.ai/docs/skills/"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration",
+                "https://opencode.ai/docs/providers/",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "openhands",
+      "name": "OpenHands",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "~/.openhands/mcp.json",
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/settings/mcp-settings"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/overview/skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/settings/mcp-settings"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/llms/openrouter",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "kind": "provider",
+      "default_surface": "gateway",
+      "surfaces": [
+        {
+          "id": "gateway",
+          "mcp_dialect": null,
+          "config_fields": [],
+          "config_scope": "none",
+          "native_path_hint": null,
+          "documented_location": "https://openrouter.ai/api/v1",
+          "instruction_mode": "none",
+          "instruction_paths": [],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "unsupported",
+              "sources": [
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "unsupported",
+              "sources": [
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unsupported",
+              "sources": [
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "available",
+              "sources": [
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          },
+          "provider": {
+            "base_url": "https://openrouter.ai/api/v1",
+            "endpoint": "/chat/completions",
+            "model_selection": "explicit",
+            "model_ids": [],
+            "secret_env": "OPENROUTER_API_KEY",
+            "mcp_service_enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "pi",
+      "name": "Pi Coding Agent",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.url-or-type-http",
+          "config_fields": [
+            "mcpServers",
+            "url",
+            "type"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".pi/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md",
+            ".pi/APPEND_SYSTEM.md"
+          ],
+          "skills_path": ".pi/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "manual",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://pi.dev/docs/latest/mcp"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://pi.dev/docs/latest/configuration"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://pi.dev/docs/latest/skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://pi.dev/docs/latest/providers.md",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://pi.dev/docs/latest/windows",
+                "https://pi.dev/docs/latest/termux"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "qoder",
+      "name": "Qoder",
+      "kind": "agent",
+      "default_surface": "cli",
+      "surfaces": [
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.type-http",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".qoder/settings.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".qoder/rules/"
+          ],
+          "skills_path": ".qoder/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "manual",
+            "ios": "manual"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://docs.qoder.com/cli/mcp-reference"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.qoder.com/user-guide/rules"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.qoder.com/cli/Skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://docs.qoder.com/mobile/app/remote-control"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
+          "id": "ide",
+          "mcp_dialect": null,
+          "config_fields": [],
+          "config_scope": "none",
+          "native_path_hint": null,
+          "documented_location": null,
+          "instruction_mode": "manual",
+          "instruction_paths": [],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.qoder.com/qoder/custom-models",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "zed",
+      "name": "Zed AI",
+      "kind": "agent",
+      "default_surface": "ide",
+      "surfaces": [
+        {
+          "id": "ide",
+          "mcp_dialect": "context_servers.url",
+          "config_fields": [
+            "context_servers",
+            "url"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "Zed user settings.json",
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".rules",
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://zed.dev/docs/ai/mcp"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://zed.dev/docs/ai/instructions"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://zed.dev/docs/ai/skills"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://zed.dev/docs/ai/use-a-gateway",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-10-22",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [],
+              "checked_on": null,
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

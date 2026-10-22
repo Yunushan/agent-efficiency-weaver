@@ -1,8 +1,31 @@
-image: python:3.12-slim
 stages: [test]
-tests:
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_INPUT: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+.python-test:
   stage: test
+  timeout: 30 minutes
+  interruptible: true
   script:
-    - python -m pip install -e .
-    - agentweaver validate
+    - python -m pip install ".[dev]"
+    - python -m agentweaver validate
     - python -m unittest discover -s tests -v
+    - python -m ruff check .
+    - python -m mypy src/agentweaver
+    - python -m build --no-isolation
+    - python scripts/check-distribution.py
+
+test:3.11:
+  extends: .python-test
+  image: python:3.11-slim
+
+test:3.12:
+  extends: .python-test
+  image: python:3.12-slim
+
+test:3.13:
+  extends: .python-test
+  image: python:3.13-slim

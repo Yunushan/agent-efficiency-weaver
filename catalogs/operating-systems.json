@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "operating_systems": [
+    {
+      "id": "windows",
+      "name": "Windows",
+      "family": "windows",
+      "variants": [],
+      "capabilities": {
+        "core_runtime": {
+          "state": "available",
+          "sources": [
+            "https://docs.python.org/3.11/using/windows.html",
+            "https://www.python.org/downloads/"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "macos",
+      "name": "macOS",
+      "family": "macos",
+      "variants": [],
+      "capabilities": {
+        "core_runtime": {
+          "state": "available",
+          "sources": [
+            "https://docs.python.org/3.11/using/mac.html",
+            "https://www.python.org/downloads/"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "linux",
+      "name": "Linux",
+      "family": "linux",
+      "variants": [],
+      "capabilities": {
+        "core_runtime": {
+          "state": "available",
+          "sources": [
+            "https://docs.python.org/3.11/using/unix.html",
+            "https://www.python.org/downloads/"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "bsd",
+      "name": "BSD",
+      "family": "bsd",
+      "variants": [
+        "freebsd",
+        "openbsd",
+        "netbsd",
+        "dragonflybsd"
+      ],
+      "capabilities": {
+        "core_runtime": {
+          "state": "manual",
+          "sources": [
+            "https://docs.python.org/3.11/using/unix.html"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": "Python 3.11+",
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "solaris",
+      "name": "Solaris",
+      "family": "solaris",
+      "variants": [
+        "solaris",
+        "illumos"
+      ],
+      "capabilities": {
+        "core_runtime": {
+          "state": "manual",
+          "sources": [
+            "https://docs.python.org/3.11/using/unix.html"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": "Python 3.11+",
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "unknown",
+          "sources": [],
+          "checked_on": null,
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "android",
+      "name": "Android",
+      "family": "android",
+      "variants": [],
+      "capabilities": {
+        "core_runtime": {
+          "state": "manual",
+          "sources": [
+            "https://pi.dev/docs/latest/termux"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "manual",
+          "sources": [
+            "https://pi.dev/docs/latest/termux"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": "Pi in Termux only; not a general native CLI claim",
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "manual",
+          "sources": [
+            "https://docs.qoder.com/mobile/app/remote-control",
+            "https://cursor.com/docs/cloud-agent/mobile",
+            "https://code.claude.com/docs/en/mobile",
+            "https://ampcode.com/docs/macos-and-ios"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    },
+    {
+      "id": "ios",
+      "name": "iOS",
+      "family": "ios",
+      "variants": [],
+      "capabilities": {
+        "core_runtime": {
+          "state": "unsupported",
+          "sources": [
+            "https://docs.python.org/3.11/using/unix.html"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "native_agent": {
+          "state": "unsupported",
+          "sources": [
+            "https://docs.python.org/3.11/using/unix.html"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        },
+        "manual_remote": {
+          "state": "manual",
+          "sources": [
+            "https://docs.qoder.com/mobile/app/remote-control",
+            "https://cursor.com/docs/cloud-agent/mobile",
+            "https://code.claude.com/docs/en/mobile",
+            "https://ampcode.com/docs/macos-and-ios"
+          ],
+          "checked_on": "2026-10-22",
+          "version_constraint": null,
+          "fixture_tests": [],
+          "runtime_checks": []
+        }
+      }
+    }
+  ]
+}

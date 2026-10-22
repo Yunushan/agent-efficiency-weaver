@@ -1,9 +1,19 @@
 """Paired baseline/candidate comparison, never conflate unmatched tasks."""
+from typing import Any
+
 from .config import WeaverError
 from .report import summarize
 
-def compare_runs(runs, *, agent, source, baseline="baseline", candidate="optimized"):
-    def select(variant):
+
+def compare_runs(
+    runs: list[dict[str, Any]],
+    *,
+    agent: str,
+    source: str,
+    baseline: str = "baseline",
+    candidate: str = "optimized",
+) -> dict[str, Any]:
+    def select(variant: str) -> dict[tuple[Any, Any], dict[str, Any]]:
         return {(r["task_id"], r["run_id"]): r for r in runs
                 if r["agent"] == agent and r["source"] == source and r["variant"] == variant}
     base, trial = select(baseline), select(candidate)
@@ -15,7 +25,7 @@ def compare_runs(runs, *, agent, source, baseline="baseline", candidate="optimiz
     candidate_summary = summarize(list(trial.values()))["groups"][0]
     regressions = [str(k) for k in sorted(base) if base[k]["status"] == "passed" and trial[k]["status"] != "passed"]
     recoveries = [str(k) for k in sorted(base) if base[k]["status"] != "passed" and trial[k]["status"] == "passed"]
-    def improvement(name):
+    def improvement(name: str) -> float | None:
         x, y = baseline_summary[name], candidate_summary[name]
         return (x - y) / x * 100 if x is not None and y is not None and x != 0 else None
     return {"agent": agent, "source": source, "baseline": baseline, "candidate": candidate,

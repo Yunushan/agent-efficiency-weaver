@@ -4,12 +4,15 @@ import math
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
+from typing import Any
+
 from .config import WeaverError
 
 REQUIRED = ("task_id", "run_id", "agent", "variant", "source", "status")
 
-def read_runs(path: Path) -> list[dict]:
-    rows, seen = [], set()
+def read_runs(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
     try:
         stream = path.open(encoding="utf-8")
         with stream:
@@ -17,7 +20,7 @@ def read_runs(path: Path) -> list[dict]:
                 if not line.strip():
                     continue
                 try:
-                    row = json.loads(line)
+                    row: Any = json.loads(line)
                 except json.JSONDecodeError as exc:
                     raise WeaverError(f"Line {lineno}: malformed JSON") from exc
                 if not isinstance(row, dict) or any(not isinstance(row.get(k), str) or not row[k] for k in REQUIRED):
@@ -43,19 +46,19 @@ def read_runs(path: Path) -> list[dict]:
         raise WeaverError("No benchmark rows found")
     return rows
 
-def summarize(runs: list[dict]) -> dict:
-    groups = defaultdict(list)
+def summarize(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    groups: defaultdict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
     for row in runs:
         groups[(row["source"], row["agent"], row["variant"])].append(row)
-    summaries = []
+    summaries: list[dict[str, Any]] = []
     for (source, agent, variant), rows in sorted(groups.items()):
         total = len(rows)
         passed = sum(r["status"] == "passed" for r in rows)
         blocked = sum(r["status"] == "blocked" for r in rows)
         full_tokens = all(r.get("input_tokens") is not None and r.get("output_tokens") is not None for r in rows)
         full_costs = all(r.get("billed_cost_usd") is not None for r in rows)
-        tokens = sum(r["input_tokens"] + r["output_tokens"] for r in rows) if full_tokens else None
-        cost = sum(r["billed_cost_usd"] for r in rows) if full_costs else None
+        tokens: int | None = sum(r["input_tokens"] + r["output_tokens"] for r in rows) if full_tokens else None
+        cost: float | None = sum(r["billed_cost_usd"] for r in rows) if full_costs else None
         duration = sorted(r["duration_seconds"] for r in rows if r.get("duration_seconds") is not None)
         summaries.append({
             "source": source, "agent": agent, "variant": variant,
@@ -71,7 +74,7 @@ def summarize(runs: list[dict]) -> dict:
         })
     return {"disclaimer": "Synthetic data is illustrative. Unknown cost/tokens are null, not zero.", "groups": summaries}
 
-def as_markdown(result: dict) -> str:
+def as_markdown(result: dict[str, Any]) -> str:
     lines = ["# Benchmark report", "", result["disclaimer"], "", "| Source | Agent | Variant | Passed | Token / success | Cost / success (USD) |", "|---|---|---|---:|---:|---:|"]
     for g in result["groups"]:
         tok = "N/A" if g["tokens_per_successful_task"] is None else f"{g['tokens_per_successful_task']:.1f}"
