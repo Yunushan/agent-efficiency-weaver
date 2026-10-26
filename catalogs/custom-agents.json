@@ -470,23 +470,27 @@
     {
       "product_id": "devin",
       "surface_id": "desktop-local",
-      "state": "unknown",
-      "format": null,
-      "path_template": null,
-      "model_field": null,
-      "model_style": "none",
+      "state": "native",
+      "format": "devin-markdown",
+      "path_template": ".devin/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Omitted model uses the configured default subagent model (user override, router or admin-pinned default), not the parent model. An explicit supported host model selector may be pinned; availability remains unknown.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
-      "reserved_names": [],
+      "permission_behavior": "allowed-tools on a custom subagent profile is a true tool restriction; this exporter selects read, grep and glob. Parent policy, workspace trust and managed access still apply. Devin Local and Subagents (Preview) must be enabled manually; no OS sandbox is established by this file.",
+      "reserved_names": [
+        "subagent_explore",
+        "subagent_general"
+      ],
       "evidence": {
         "sources": [
-          "https://docs.devin.ai/llms.txt"
+          "https://docs.devin.ai/desktop/devin-local",
+          "https://docs.devin.ai/cli/subagents"
         ],
         "checked_on": "2026-10-26",
-        "version_constraint": null,
+        "version_constraint": "Experimental custom subagents; Devin Desktop Local agent with Subagents (Preview) enabled by the operator.",
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],
@@ -786,13 +790,15 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed POST /api/v1/chat: model, input, system_prompt and integrations are request controls. No distinct saved agent definition, subagent registry or agent profile schema is established.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "Request integrations and allowed_tools do not establish a separate custom-agent role or discovery mechanism. No native agent definition is exported.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://lmstudio.ai/docs/developer/rest/chat"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -810,13 +816,18 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed Bionic docs and first-party descriptions of vision and reviewer subagents. Built-in delegation and Skill imports are documented; a separate user-authored custom-agent definition or model schema is not established.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "Bionic built-in reviewer/vision subagents and command approval settings do not establish an exportable custom-agent role or permission schema. No local definition path is guessed.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://lmstudio.ai/docs/bionic",
+          "https://lmstudio.ai/docs/bionic/agent/skills",
+          "https://lmstudio.ai/changelog/bionic-v1.1.0",
+          "https://lmstudio.ai/blog/how-auto-review-works"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -834,13 +845,16 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed classic Presets and the documented separation from Bionic. A system-prompt Preset is not established as a distinct custom-agent or subagent definition.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "No native custom-agent role, tool filter or discovery schema is established for LM Studio classic. Bionic agent behavior is not assigned to this surface.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://lmstudio.ai/docs/app/presets",
+          "https://lmstudio.ai/docs/bionic"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -927,13 +941,16 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed CLI and SDK documentation. The SDK documents file-based agents and model profiles, but the reviewed CLI documentation does not establish its discovery or registration contract. No native CLI model field is exported.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "SDK agent tools, MCP and permission_mode are not assigned to the CLI without an explicit CLI binding. No CLI definition discovery path or permission boundary is claimed.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://docs.openhands.dev/openhands/usage/cli/terminal",
+          "https://docs.openhands.dev/sdk/guides/agent-file-based"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -970,20 +987,23 @@
     {
       "product_id": "perplexity",
       "surface_id": "agent-api",
-      "state": "unknown",
+      "state": "manual",
       "format": null,
       "path_template": null,
       "model_field": null,
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "An authorized project admin creates a reusable, versioned Profile in the API Portal with the chosen model or fallback chain, instructions, tools, Skills, connectors and loop budget. No model field is applied by this manual handoff.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "A Profile is reusable configuration, not an authorization boundary. Request settings override defaults, tools merge per tool, and request connectors replace matching Profile connector IDs. Review tool approvals and account permissions; Weaver enables no tools, connectors or services.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://docs.perplexity.ai/docs/agent-api/profiles",
+          "https://docs.perplexity.ai/docs/cookbook/articles/incident-responder/README"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -1001,13 +1021,16 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed Computer Skills and Project settings. Skills can dispatch specialist agents and Projects hold instructions, but a separate user-defined agent role/model schema is not established.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "Skill upload and Project instruction controls do not establish a separate custom-agent tool or permission schema. No native custom-agent definition is exported.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://www.perplexity.ai/help-center/en/articles/13914413-how-to-use-computer-skills",
+          "https://www.perplexity.ai/help-center/en/articles/10352961-what-are-projects"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -1025,13 +1048,16 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "No native custom-agent model schema established.",
+      "model_behavior": "Reviewed direct-model gateway and Responses request documentation. Model, instructions and function tools are per-request controls; no saved custom-agent or subagent definition mechanism is established.",
       "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "permission_behavior": "The gateway request format does not establish a custom-agent discovery path or permission boundary. Agent API Profiles and Computer Skills are distinct surfaces.",
       "reserved_names": [],
       "evidence": {
-        "sources": [],
-        "checked_on": null,
+        "sources": [
+          "https://docs.perplexity.ai/docs/router/quickstart",
+          "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+        ],
+        "checked_on": "2026-10-26",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"

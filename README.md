@@ -9,7 +9,7 @@ Portable, provider-independent **Agent Skills**, **MCP configuration adapters**,
 - A registry of agent products and surfaces in `catalogs/integrations.json`, with documentation URLs, checked dates, version constraints, and independent fixture/runtime evidence fields.
 - Seven OS families in `catalogs/operating-systems.json`, with primary CI targets limited to Windows, macOS, and Linux.
 - Native staged MCP artifacts only where a documented schema is implemented, including remote HTTPS and product-specific stdio command/argument formats. User-scope fragments are staged for manual import; remote-only API request fragments reject stdio. Unknown, unsupported, and unresolved surfaces remain visibly labeled in [docs/compatibility.md](docs/compatibility.md).
-- Portable instructions and six canonical Skills under `.agents/skills/`, copied with canonical LF line endings where a native path is documented; CRLF checkout line endings are normalized without rewriting skill content. Manual surfaces and Abacus receive selected skills as `<agent>/read/<name>.md` read files; Abacus uses only the root `AGENTS.md` and has no native skill directory.
+- Portable instructions and six canonical Skills under `.agents/skills/`, copied with canonical LF line endings where a native path is documented; CRLF checkout line endings are normalized without rewriting skill content. Cline, Cursor, and Qoder IDE use their documented native Skills paths. Perplexity app and LM Studio Bionic receive standard `SKILL.md` files under `<agent>/imports/skills/` for manual vendor import. Other manual read-file routes and Abacus use `<agent>/read/<name>.md`; Abacus has only the root `AGENTS.md` and no native skill directory.
 - An OpenRouter provider handoff per supported surface: `<agent>/provider/provider-setup.md`, plus a credential-free native TOML fragment for Codex. It requires an explicit model and never accepts API-key values.
 - Requested-scope tracking in `catalogs/requested-coverage.json`: 23 requested groups map to 33 distinct registry surfaces. The report shows unknown capabilities, missing documentation, and pending runtime evidence separately. Mapping a requested name does not establish support.
 - Offline model/provider inventory and caller-supplied model snapshots, with explicit model selection and evidence-dependent reasoning controls. Model catalogs change; no exhaustive static model list or account access is promised.
@@ -38,6 +38,8 @@ agentweaver doctor --agent kilo --os windows --format text
 `--platform kilo|abacus` remains a legacy spelling and is mutually exclusive with `--agent`. Generated files are staging artifacts. Review every artifact and merge it manually; no MCP server is enabled by default.
 
 Aliases such as `OpenAIcodex`, `kiloAI`, `FactoryDroid`, and `LMStudio` resolve through the requested-scope catalog. `VSCodeagents` is a group of named extension surfaces; inspect it with `coverage` and select a concrete product before rendering. JetBrains Air and Junie are separate products. ChatGPT Work local/cloud, Perplexity app/API, and LM Studio desktop/Bionic/API are separate surfaces.
+
+Every capability record in the requested scope now has reviewed documentation sources. The report still contains unknown and unsupported states, manual routes, and pending vendor runtime checks. The per-surface OS table in [compatibility.md](docs/compatibility.md#requested-surface-os-workflows) records documented routes and constraints without claiming installed or native-device verification.
 
 `models --provider ID --input snapshot.json` reads a model response captured separately by the operator. It performs no discovery request. `model --agent PRODUCT --provider PROVIDER --model ID` stages model setup; optional reasoning controls are validated for the selected provider, protocol, and documented model or snapshot capabilities. Catalog visibility is not successful inference, installed-version compatibility, or account access. Missing availability, token, or cost data stays unknown.
 
@@ -87,7 +89,7 @@ python scripts/check-distribution.py
 
 For a repeatable score, run `python scripts/check-readiness.py`. It emits a JSON report with a score of 100 only when all six offline release gates pass with the pinned development tools and unchanged source inputs. The score applies to the recorded host, Python version, and architecture. See [docs/readiness.md](docs/readiness.md) for the rubric, rerun instructions, and evidence limits.
 
-The recorded remote CI checkpoint in that guide predates this 31-product expansion. It describes the earlier source commit and cannot verify the expanded candidate.
+The readiness guide preserves separate immutable CI checkpoints for the earlier 20-product release and the initial 31-product expansion at `b2ef30f`. Each describes its own source commit; later changes require their own successful gates and CI run.
 
 `scripts/verify-platform.py` is opt-in, requires an explicit `--output` path, and records local checks only. It records the selected source tree's version and rejects linked report destinations. Native vendor installation and configuration-consumption checks remain a separate manual check.
 

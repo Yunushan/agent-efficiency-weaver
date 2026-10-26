@@ -34,6 +34,7 @@ NATIVE_PATHS = {
     ("qoder", "cli"): ".qoder/agents/reviewer.md",
     ("qoder", "ide"): ".qoder/agents/reviewer.md",
     ("antigravity", "ide"): ".agents/agents/reviewer.md",
+    ("devin", "desktop-local"): ".devin/agents/reviewer.md",
 }
 
 
@@ -100,7 +101,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertIn("No maximum reasoning is selected automatically", handoff)
                 self.assertIn("none recorded", handoff)
 
-    def test_defaults_inherit_models_and_reasoning_without_implicit_maximum(self):
+    def test_defaults_follow_host_without_implicit_model_or_effort_override(self):
         for (product, surface), path in NATIVE_PATHS.items():
             with self.subTest(product=product, surface=surface):
                 parsed, _ = parse_definition(self.render(product, surface)[0].content, path)
@@ -196,6 +197,69 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             self.render("antigravity", "ide", model_id="models/gemini-3.8-flash")
 
+    def test_devin_desktop_binding_uses_profile_tool_restrictions_and_router_default(self):
+        artifacts = self.render("devin", "desktop-local")
+        fields, body = parse_definition(artifacts[0].content, NATIVE_PATHS["devin", "desktop-local"])
+        self.assertEqual(fields, {"name": "reviewer", "description": "Review small changes.",
+                                  "allowed-tools": ["read", "grep", "glob"]})
+        self.assertIn("Inspect the requested code", body)
+        handoff = artifacts[1].content.decode()
+        self.assertIn("Subagents (Preview)", handoff)
+        self.assertIn("experimental", handoff)
+        self.assertIn("does not request the parent model", handoff)
+        self.assertIn("does not change those settings", handoff)
+        self.assertNotIn("The default model and reasoning are inherited", handoff)
+        explicit = self.render("devin", "desktop-local", model_id="sonnet")[0]
+        selected, _ = parse_definition(explicit.content, NATIVE_PATHS["devin", "desktop-local"])
+        self.assertEqual(selected["model"], "sonnet")
+        for options in (dict(model_id="inherit"), dict(effort="high"),
+                        dict(model_id="sonnet", provider_id="anthropic", effort="high"),
+                        dict(name="subagent_explore"), dict(name="subagent_general")):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("devin", "desktop-local", **options)
+        row = next(row for row in agent_inventory(ROOT)["definitions"]
+                   if (row["product_id"], row["surface_id"]) == ("devin", "desktop-local"))
+        self.assertIn("subagent_explore", row["reserved_names"])
+        self.assertIn("https://docs.devin.ai/desktop/devin-local", row["evidence"]["sources"])
+        self.assertIn("https://docs.devin.ai/cli/subagents", row["evidence"]["sources"])
+
+    def test_perplexity_profile_handoff_has_reference_schema_without_native_export(self):
+        artifacts = self.render("perplexity", "agent-api")
+        self.assertEqual(len(artifacts), 1)
+        self.assertEqual(artifacts[0].kind, "agent-handoff")
+        text = artifacts[0].content.decode()
+        self.assertIn("Profiles > Create profile", text)
+        self.assertIn("POST /v1/agent", text)
+        example = json.loads(text.split("```json\n", 1)[1].split("\n```", 1)[0])
+        self.assertEqual(example["profile"], {
+            "type": "custom", "id": "profile_REPLACE_WITH_YOUR_PROFILE_ID",
+            "version": "REPLACE_WITH_SAVED_VERSION",
+        })
+        self.assertEqual(set(example), {"profile", "input"})
+        self.assertIn("either profile or effort, not both", text)
+        self.assertIn("tools merge per tool", text)
+        self.assertIn("not an authorization boundary", text)
+        self.assertIn("not a complete Profile export or upload schema", text)
+        self.assertIn("does not revoke ambient", text)
+        self.assertIn("Inspect the requested code", text)
+        for options in (dict(model_id="a-model"), dict(effort="high"), dict(provider_id="openai")):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("perplexity", "agent-api", **options)
+
+    def test_reviewed_requested_gaps_are_bounded_unknowns_with_first_party_sources(self):
+        expected = {("openhands", "cli"), ("perplexity", "app"), ("perplexity", "orchestrator"),
+                    ("lm-studio", "desktop"), ("lm-studio", "bionic"), ("lm-studio", "api")}
+        rows = {(row["product_id"], row["surface_id"]): row for row in agent_inventory(ROOT)["definitions"]}
+        for key in expected:
+            with self.subTest(product=key[0], surface=key[1]):
+                row = rows[key]
+                self.assertEqual(row["state"], "unknown")
+                self.assertIsNone(row["format"])
+                self.assertIsNone(row["path_template"])
+                self.assertTrue(row["evidence"]["sources"])
+                self.assertEqual(row["evidence"]["checked_on"], "2026-10-26")
+                self.assertEqual(row["evidence"]["runtime_checks"], [])
+
     def test_manual_routes_produce_only_labeled_handoff_and_reject_ignored_overrides(self):
         for product, surface in (("hermes", "cli"), ("jetbrains-air", "desktop"), ("zed", "ide"),
                                  *(("chatgpt", sid) for sid in ("desktop", "web", "work-local", "work-cloud"))):
@@ -259,8 +323,9 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
                 mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
                 mock.patch.object(Path, "home", side_effect=AssertionError("ambient home inspected")):
-            first = self.render()
-            self.assertEqual(first, self.render())
+            first = self.render() + self.render("devin", "desktop-local") + self.render("perplexity", "agent-api")
+            self.assertEqual(first, self.render() + self.render("devin", "desktop-local") +
+                             self.render("perplexity", "agent-api"))
             self.assertTrue(agent_inventory(ROOT)["definitions"])
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             destination = Path(directory).resolve()

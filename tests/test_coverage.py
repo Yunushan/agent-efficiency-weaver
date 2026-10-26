@@ -64,11 +64,11 @@ class RequestedCoverageTests(unittest.TestCase):
             "desktop", "bionic", "api",
         })
 
-    def test_report_exposes_unknown_and_missing_evidence_without_support_score(self):
+    def test_reviewed_documentation_does_not_erase_unknown_support_or_pending_runtime(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["mapped_items"], len(REQUESTED_IDS))
         self.assertGreater(report["summary"]["capability_states"]["unknown"], 0)
-        self.assertGreater(report["summary"]["missing_documentation_capabilities"], 0)
+        self.assertEqual(report["summary"]["missing_documentation_capabilities"], 0)
         rows = [target for item in report["requested_items"] for target in item["targets"]]
         unique = {(row["product_id"], row["surface_id"]) for row in rows}
         self.assertEqual(report["summary"]["referenced_surfaces"], len(unique))
@@ -76,6 +76,8 @@ class RequestedCoverageTests(unittest.TestCase):
         for row in rows:
             self.assertEqual(set(row["capabilities"]), set(CAPABILITY_NAMES))
             for evidence in row["capabilities"].values():
+                self.assertTrue(evidence["sources"])
+                self.assertIsNotNone(evidence["checked_on"])
                 self.assertEqual(evidence["runtime_status"], "pending")
                 self.assertEqual(evidence["runtime_checks"], [])
                 if evidence["state"] == "unknown" and not evidence["sources"]:

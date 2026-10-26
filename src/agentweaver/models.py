@@ -579,6 +579,9 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     chosen = protocol or provider["protocols"][0]
     if chosen not in provider["protocols"]:
         _fail("Protocol is not documented for this provider")
+    if (provider_id == "openrouter" and chosen == "openai-responses" and
+            (budget_tokens is not None or reasoning_enabled is not None or mode is not None)):
+        _fail("OpenRouter Responses budget, toggle and mode mappings are not established; use a documented effort subset")
     cap = _reasoning(None)
     evidence: dict[str, Any] = {"origin": "unknown", "sources": []}
     for known in provider["known_models"]:
@@ -643,8 +646,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     prefix = f"{registered.id}/model"
     chosen = checked["protocol"]
     api_base = provider["base_url"]
-    if provider_id == "lm-studio" and chosen != "lmstudio-chat":
+    if provider_id == "lm-studio" and chosen in {"openai-chat", "openai-responses"}:
         api_base += "/v1"
+    elif chosen == "anthropic-messages":
+        # Anthropic SDK clients append /v1/messages to their configured base URL.
+        api_base = api_base.removesuffix("/v1")
     native = False
     artifacts: list[RenderedArtifact] = []
     native_note = "No native model configuration exporter is documented for this product/surface/provider route."
@@ -716,5 +722,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
     if registered.id == "kimi-code":
         lines.append("- https://moonshotai.github.io/kimi-code/en/configuration/providers.html")
+    if chosen == "anthropic-messages" and provider_id in {"lm-studio", "perplexity-orchestrator"}:
+        lines.extend(["", "The Anthropic SDK appends `/v1/messages` to this protocol base; "
+                      "do not append `/v1` again in its base URL."])
+        lines.append("- https://lmstudio.ai/docs/developer/anthropic-compat" if provider_id == "lm-studio" else
+                     "- https://docs.perplexity.ai/api-reference/gateway-messages-post")
     artifacts.insert(0, RenderedArtifact(PurePosixPath(f"{prefix}/model-setup.md"), ("\n".join(lines) + "\n").encode(), "model-setup"))
     return artifacts

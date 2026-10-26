@@ -132,12 +132,13 @@ ADAPTER_SURFACES = {
     ("devin", "desktop-local"),
     ("abacus", "desktop"),
     ("qoder", "cli"),
+    ("qoder", "ide"),
     ("amp", "cli"),
     ("claude-code", "cli"),
 }
 
 INSTRUCTION_SURFACES = ADAPTER_SURFACES | {("aider", "cli")}
-SKILL_SURFACES = INSTRUCTION_SURFACES - {("cline", "ide"), ("cursor", "ide")}
+SKILL_SURFACES = INSTRUCTION_SURFACES
 
 PROVIDER_ROUTES = {
     ("kilo", "cli"): "manual",
@@ -152,6 +153,14 @@ PROVIDER_ROUTES = {
     ("goose", "cli"): "manual",
     ("pi", "cli"): "manual",
     ("codex", "cli"): "available",
+    ("codex", "desktop"): "available",
+    ("codex", "ide"): "available",
+    ("chatgpt", "desktop"): "manual",
+    ("chatgpt", "work-local"): "manual",
+    ("factory", "cli"): "manual",
+    ("hermes", "cli"): "manual",
+    ("qwen-code", "cli"): "manual",
+    ("kimi-code", "cli"): "manual",
     ("abacus", "desktop"): "manual",
     ("qoder", "ide"): "manual",
     ("amp", "cli"): "manual",
@@ -159,12 +168,18 @@ PROVIDER_ROUTES = {
     ("aider", "cli"): "manual",
 }
 
-PROVIDER_GAPS = {
-    ("kiro", "ide"),
-    ("antigravity", "ide"),
-    ("devin", "desktop-local"),
-    ("qoder", "cli"),
+PROVIDER_GAP_SOURCES = {
+    ("kiro", "ide"): "https://kiro.dev/docs/models/",
+    ("antigravity", "ide"): "https://antigravity.google/docs/models",
+    ("devin", "desktop-local"): "https://docs.devin.ai/desktop/models",
+    ("qoder", "cli"): "https://docs.qoder.com/cli/custom-models",
+    ("chatgpt", "web"): "https://learn.chatgpt.com/docs/auth",
+    ("chatgpt", "work-cloud"): "https://learn.chatgpt.com/docs/auth",
+    ("lm-studio", "desktop"): "https://lmstudio.ai/lmstudio/openai-compat-endpoint",
+    ("lm-studio", "bionic"): "https://lmstudio.ai/docs/bionic",
+    ("perplexity", "app"): "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
 }
+PROVIDER_GAPS = set(PROVIDER_GAP_SOURCES)
 
 
 
@@ -289,10 +304,15 @@ class IntegrationRegistryTests(unittest.TestCase):
             self.integrations["cursor"].surface("ide").os_workflows["ios"],
             "manual",
         )
-        self.assertEqual(
-            self.integrations["kilo"].surface("cli").capabilities["os"].state,
-            "unknown",
-        )
+        kilo_cli = self.integrations["kilo"].surface("cli")
+        self.assertEqual(kilo_cli.capabilities["os"].state, "available")
+        self.assertEqual(kilo_cli.capabilities["os"].sources,
+                         ("https://kilo.ai/docs/code-with-ai/platforms/cli",))
+        self.assertEqual(kilo_cli.capabilities["os"].checked_on, "2026-10-26")
+        self.assertIn("Kilo CLI >=1.0", kilo_cli.capabilities["os"].version_constraint)
+        self.assertEqual(kilo_cli.capabilities["os"].runtime_checks, ())
+        for os_id in ("windows", "macos", "linux"):
+            self.assertEqual(kilo_cli.os_workflows[os_id], "available")
         self.assertEqual(
             self.integrations["aider"].surface("cli").capabilities["os"].state,
             "unknown",
@@ -375,6 +395,7 @@ class IntegrationRegistryTests(unittest.TestCase):
                 }:
                     continue
                 expected = (
+                    ("tests/test_capability_expansion.py",) if (integration.id, surface.id) == ("qoder", "ide") else
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
                     else ()
@@ -398,6 +419,10 @@ class IntegrationRegistryTests(unittest.TestCase):
                 expected_skills = (
                     ("tests/test_skills.py",) if key in SKILL_SURFACES else ()
                 )
+                if key == ("qoder", "ide"):
+                    expected_instructions = ("tests/test_skills.py", "tests/test_capability_expansion.py")
+                if key in {("cline", "ide"), ("cursor", "ide"), ("qoder", "ide")}:
+                    expected_skills = ("tests/test_skills.py", "tests/test_capability_expansion.py")
                 self.assertEqual(
                     surface.capabilities["instructions"].fixture_tests,
                     expected_instructions,
@@ -411,8 +436,6 @@ class IntegrationRegistryTests(unittest.TestCase):
 
     def test_provider_capabilities_match_documented_provider_evidence(self):
         for integration in self.integrations.values():
-            if integration.kind != "agent":
-                continue
             for surface in integration.surfaces:
                 key = (integration.id, surface.id)
                 if key not in set(PROVIDER_ROUTES) | PROVIDER_GAPS:
@@ -425,19 +448,21 @@ class IntegrationRegistryTests(unittest.TestCase):
                     self.assertEqual(evidence.checked_on, documented["checked_on"], key)
                     self.assertEqual(
                         evidence.fixture_tests,
-                        ("tests/test_providers.py",),
+                        tuple(documented["fixture_tests"]),
                         key,
                     )
                 else:
                     self.assertIn(key, PROVIDER_GAPS, key)
                     self.assertEqual(evidence.state, "unknown", key)
-                    self.assertEqual(evidence.sources, (), key)
-                    self.assertIsNone(evidence.checked_on, key)
+                    self.assertIn(PROVIDER_GAP_SOURCES[key], evidence.sources, key)
+                    self.assertEqual(evidence.checked_on, "2026-10-26", key)
                     self.assertEqual(evidence.fixture_tests, (), key)
+                    with self.assertRaises(WeaverError):
+                        provider_evidence(integration.id, surface.id)
                 self.assertIsNone(evidence.version_constraint, key)
                 self.assertEqual(evidence.runtime_checks, (), key)
 
-    def test_qoder_ide_is_a_provider_only_handoff_surface(self):
+    def test_qoder_ide_has_documented_app_mcp_and_native_instruction_routes(self):
         qoder = self.integrations["qoder"]
         self.assertEqual(qoder.default_surface, "cli")
         self.assertEqual(qoder.surface_ids(), ("cli", "ide"))
@@ -445,26 +470,35 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertEqual(cli.native_path_hint, ".qoder/settings.json")
         self.assertEqual(cli.mcp_dialect, "mcpServers.type-http")
         self.assertEqual(cli.capabilities["provider"].state, "unknown")
-        self.assertEqual(cli.capabilities["provider"].sources, ())
+        self.assertEqual(cli.capabilities["provider"].sources, (
+            "https://docs.qoder.com/cli/custom-models", "https://docs.qoder.com/cli/model"))
 
         ide = qoder.surface("ide")
-        self.assertIsNone(ide.mcp_dialect)
-        self.assertEqual(ide.config_fields, ())
-        self.assertEqual(ide.config_scope, "none")
+        self.assertEqual(ide.mcp_dialect, "mcpServers.type-sse")
+        self.assertEqual(ide.config_fields, ("mcpServers", "type", "url", "command", "args"))
+        self.assertEqual(ide.config_scope, "app")
         self.assertIsNone(ide.native_path_hint)
-        self.assertIsNone(ide.documented_location)
-        self.assertEqual(ide.instruction_mode, "manual")
-        self.assertEqual(ide.instruction_paths, ())
-        self.assertIsNone(ide.skills_path)
-        self.assertEqual(ide.os_workflows, {os_id: "unknown" for os_id in OS_IDS})
+        self.assertEqual(ide.documented_location,
+                         "Qoder IDE Settings > MCP > My Servers > Add; JSON editor. Persistent configuration path unestablished.")
+        self.assertEqual(ide.instruction_mode, "rules")
+        self.assertEqual(ide.instruction_paths, ("AGENTS.md", ".qoder/rules/"))
+        self.assertEqual(ide.skills_path, ".qoder/skills")
+        self.assertEqual(ide.os_workflows, {os_id: "available" if os_id in {"windows", "macos", "linux"}
+                                          else "unknown" for os_id in OS_IDS})
         for name in ("mcp", "instructions", "skills", "os"):
             evidence = ide.capabilities[name]
-            self.assertEqual(evidence.state, "unknown", name)
-            self.assertEqual(evidence.sources, (), name)
-            self.assertIsNone(evidence.checked_on, name)
-            self.assertEqual(evidence.fixture_tests, (), name)
+            self.assertEqual(evidence.state, "manual" if name == "mcp" else "available", name)
+            self.assertTrue(evidence.sources, name)
+            self.assertEqual(evidence.checked_on, "2026-10-26", name)
             self.assertEqual(evidence.runtime_checks, (), name)
-            self.assertIsNone(evidence.version_constraint, name)
+            if name != "os":
+                self.assertIsNone(evidence.version_constraint, name)
+            else:
+                self.assertIn("Qoder IDE card only", evidence.version_constraint)
+        self.assertEqual(ide.capabilities["mcp"].fixture_tests, ("tests/test_capability_expansion.py",))
+        for name in ("instructions", "skills"):
+            self.assertEqual(ide.capabilities[name].fixture_tests,
+                             ("tests/test_skills.py", "tests/test_capability_expansion.py"))
         provider = ide.capabilities["provider"]
         documented = provider_evidence("qoder", "ide")
         self.assertEqual(provider.state, "manual")
@@ -474,16 +508,24 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertEqual(provider.runtime_checks, ())
         self.assertIsNone(provider.version_constraint)
 
-    def test_qoder_ide_fails_non_provider_exports(self):
+    def test_qoder_ide_exports_manual_ui_fragment_agents_and_canonical_native_skill(self):
         qoder = self.integrations["qoder"]
         profile = load_json(ROOT / "profiles/efficient.json")
         catalog = load_json(ROOT / "catalogs/mcp-servers.json")
-        with self.assertRaises(WeaverError) as mcp_error:
-            render_mcp(qoder, "ide", profile, catalog, [])
-        self.assertIn("unavailable", str(mcp_error.exception).casefold())
-        with self.assertRaises(WeaverError) as bundle_error:
-            render_instruction_bundle(qoder, "ide", profile, [], ROOT)
-        self.assertIn("unknown", str(bundle_error.exception).casefold())
+        empty = render_mcp(qoder, "ide", profile, catalog, [])[0]
+        self.assertEqual(empty.relative_path.as_posix(), "qoder/fragments/mcp.ide.json")
+        self.assertEqual(empty.kind, "mcp-fragment")
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        ide = render_mcp(qoder, "ide", profile, catalog, ["context7"])[0]
+        cli = render_mcp(qoder, "cli", profile, catalog, ["context7"])[0]
+        self.assertEqual(json.loads(ide.content)["mcpServers"]["context7"]["type"], "sse")
+        self.assertEqual(json.loads(cli.content)["mcpServers"]["context7"]["type"], "http")
+        artifacts = render_instruction_bundle(qoder, "ide", profile, ["security-review"], ROOT)
+        self.assertEqual(artifacts[0].relative_path.as_posix(), "qoder/AGENTS.md")
+        self.assertEqual(artifacts[0].kind, "instructions")
+        skill = next(artifact for artifact in artifacts if artifact.kind == "skill")
+        self.assertEqual(skill.relative_path.as_posix(), "qoder/.qoder/skills/security-review/SKILL.md")
+        self.assertEqual(skill.content, (ROOT / ".agents/skills/security-review/SKILL.md").read_bytes().replace(b"\r\n", b"\n"))
 
 
     def test_get_integration_and_surface(self):

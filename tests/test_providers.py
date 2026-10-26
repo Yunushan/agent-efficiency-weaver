@@ -129,7 +129,7 @@ class ProviderRouteTests(unittest.TestCase):
                 self.assertIn("Staging handoff", text)
                 self.assertIn(expected_model_text, text)
                 self.assertIn(source, text)
-                self.assertIn(CHECKED_ON, text)
+                self.assertIn("2026-10-26" if agent_id == "codex" else CHECKED_ON, text)
                 self.assertNotIn("\r", text)
 
     def test_accepts_native_integration_spec_surface_mapping(self) -> None:
@@ -240,8 +240,9 @@ class ProviderEvidenceTests(unittest.TestCase):
                 data = provider_evidence(agent_id, surface)
                 self.assertEqual(data["state"], "available" if agent_id == "codex" else "manual")
                 self.assertIn(source, data["sources"])
-                self.assertEqual(data["checked_on"], CHECKED_ON)
-                self.assertEqual(data["fixture_tests"], ["tests/test_providers.py"])
+                self.assertEqual(data["checked_on"], "2026-10-26" if agent_id == "codex" else CHECKED_ON)
+                self.assertEqual(data["fixture_tests"], ["tests/test_providers.py", "tests/test_expanded_providers.py"]
+                                 if agent_id == "codex" else ["tests/test_providers.py"])
                 text = setup_text(render(agent_id, surface))
                 for url in data["sources"]:
                     self.assertIn(url, text)

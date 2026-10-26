@@ -7,11 +7,12 @@ The foundation includes the 31-product registry (25 agents, 4 providers, and 2 h
 ## Near term
 
 - Record real installed-client and native-device runtime evidence per product, surface, version, OS variant, and architecture without turning simulations into verification.
-- Run the exact expanded candidate through the primary-host CI matrix; the recorded 20-product checkpoint remains historical evidence for its own source commit.
+- Run each exact candidate through the primary-host CI matrix; the recorded earlier 20-product and initial 31-product checkpoints remain evidence for their own source commits.
 - Extend documented adapters only after first-party schema confirmation and golden fixture tests.
 - Preserve remote HTTPS versus local stdio transport distinctions, structured argument validation, explicit profile selection, and the remote-only API request boundary as vendor formats evolve.
 - Extend custom-agent and native model-configuration routes with product-specific fixture tests, explicit reasoning semantics, and permission behavior; keep unresolved routes visible.
 - Maintain provider discovery interfaces and paginated snapshot normalization as catalogs evolve, without promising an exhaustive static model inventory or inferring account access.
+- Keep reviewed unknown-interface conclusions and documented OS constraints current. Reviewed sources close missing-documentation records; installed configuration consumption and inference still need their own evidence.
 - Complete opt-in BSD, Solaris, Android, and iOS host/device verification where suitable isolated environments are available.
 - Improve diff and merge guidance for staged fragments and preserve explicit human review.
 - Continue resource, distribution, and least-privilege checks across Windows, macOS, and Linux on Python 3.11 through 3.13.

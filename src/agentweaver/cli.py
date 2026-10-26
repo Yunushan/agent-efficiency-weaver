@@ -176,6 +176,12 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         elif target.config_scope == 'request':
             lines.extend(['API request fragment only: merge into the documented request after review.',
                           'No request was sent and no local server, connector, or MCP setting was enabled.'])
+        elif target.config_scope == 'app':
+            lines.extend(['Application-scope fragment: review and import entries through the vendor settings interface.',
+                          f'Import location: {target.documented_location or "the documented application settings interface"}.',
+                          'Preserve unrelated application settings; this fragment does not replace them.'])
+            if target.native_path_hint is None:
+                lines.append('No persistent settings file path is established for this import route.')
         else:
             lines.extend([f'Project target after manual review: {target.native_path_hint}.',
                           'Preserve unrelated settings; review existing entries before merging.'])

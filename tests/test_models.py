@@ -252,6 +252,58 @@ class ModelRenderingTests(unittest.TestCase):
                 selected = json.loads(next(item.content for item in artifacts if item.kind == "model-selection"))
                 self.assertEqual(selected["model"], "publisher/local-model")
 
+    def test_lmstudio_protocol_bases_do_not_duplicate_anthropic_version_prefix(self) -> None:
+        bases = {"lmstudio-chat": "http://localhost:1234", "openai-chat": "http://localhost:1234/v1",
+                 "openai-responses": "http://localhost:1234/v1", "anthropic-messages": "http://localhost:1234"}
+        for product in ("qwen-code", "kimi-code"):
+            for protocol, expected_base in bases.items():
+                with self.subTest(product=product, protocol=protocol):
+                    artifacts = render_model_setup(get_integration(product, ROOT), "cli", root=ROOT,
+                        provider_id="lm-studio", model_id="publisher/local-model", protocol=protocol, context_size=8192)
+                    setup = artifacts[0].content.decode()
+                    self.assertIn(f"Provider API base: `{expected_base}`", setup)
+                    self.assertIn("Configuration state: `manual`", setup)
+                    self.assertFalse(any(item.kind == "model-config" for item in artifacts))
+                    if protocol == "anthropic-messages":
+                        self.assertEqual(expected_base + "/v1/messages", "http://localhost:1234/v1/messages")
+                        self.assertIn("https://lmstudio.ai/docs/developer/anthropic-compat", setup)
+
+    def test_kimi_anthropic_and_orchestrator_native_bases_match_sdk_routes(self) -> None:
+        cases = (
+            ("anthropic", "anthropic-messages", "anthropic", "https://api.anthropic.com"),
+            ("perplexity-orchestrator", "openai-chat", "openai", "https://api.perplexity.ai/orchestrator/v1"),
+            ("perplexity-orchestrator", "openai-responses", "openai_responses", "https://api.perplexity.ai/orchestrator/v1"),
+            ("perplexity-orchestrator", "anthropic-messages", "anthropic", "https://api.perplexity.ai/orchestrator"),
+        )
+        for provider, protocol, provider_type, expected_base in cases:
+            with self.subTest(provider=provider, protocol=protocol):
+                artifacts = render_model_setup(get_integration("kimi-code", ROOT), "cli", root=ROOT,
+                    provider_id=provider, model_id="fixture-model", protocol=protocol, context_size=8192)
+                fragment = next(item for item in artifacts if item.kind == "model-config")
+                configured = tomllib.loads(fragment.content.decode())["providers"]["weaver"]
+                self.assertEqual(configured["type"], provider_type)
+                self.assertEqual(configured["base_url"], expected_base)
+                self.assertNotIn("api_key", configured)
+                if provider == "perplexity-orchestrator" and protocol == "anthropic-messages":
+                    self.assertEqual(configured["base_url"] + "/v1/messages",
+                                     "https://api.perplexity.ai/orchestrator/v1/messages")
+                    self.assertIn(b"https://docs.perplexity.ai/api-reference/gateway-messages-post", artifacts[0].content)
+
+    def test_orchestrator_reasoning_keeps_three_distinct_wire_shapes(self) -> None:
+        snapshot = {"provider_id": "perplexity-orchestrator", "models": [{"id": "fixture-model", "reasoning": {
+            "state": "declared", "efforts": ["high"], "budget_tokens": {"minimum": 1}}}]}
+        for protocol, expected in (("openai-chat", {"reasoning_effort": "high"}),
+                                   ("openai-responses", {"reasoning": {"effort": "high"}}),
+                                   ("anthropic-messages", {"output_config": {"effort": "high"}})):
+            with self.subTest(protocol=protocol):
+                checked = check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot,
+                                      protocol=protocol, effort="high")
+                self.assertEqual(checked["reasoning_payload"], expected)
+                self.assertFalse(checked["inference_tested"])
+        checked = check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot,
+                              protocol="anthropic-messages", budget_tokens=1024)
+        self.assertEqual(checked["reasoning_payload"], {"thinking": {"type": "enabled", "budget_tokens": 1024}})
+
     def test_api_efforts_not_supported_by_host_do_not_become_invalid_host_config(self) -> None:
         qwen = render_model_setup(get_integration("qwen-code", ROOT), "cli", root=ROOT,
                                   provider_id="openai", model_id="gpt-6-sol", effort="none")

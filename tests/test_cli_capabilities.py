@@ -66,6 +66,26 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(output, '')
         self.assertIn('multiple products', error)
 
+    def test_qoder_ide_cli_stages_manual_mcp_import_and_native_skills_separately(self):
+        code, output, error = invoke('render', *ROOT_ARGS, '--agent', 'qoder', '--surface', 'ide',
+                                     '--profile', 'balanced', '--dry-run')
+        self.assertEqual(code, 0, error)
+        artifacts = json.loads(output)['artifacts']
+        fragment = next(item for item in artifacts if item['kind'] == 'mcp-fragment')
+        self.assertEqual(fragment['path'], 'qoder/fragments/mcp.ide.json')
+        self.assertEqual(json.loads(fragment['content']), {'mcpServers': {}})
+        self.assertFalse(any(item['path'].endswith('.qoder/settings.json') for item in artifacts))
+        handoff = next(item['content'] for item in artifacts if item['kind'] == 'handoff')
+        self.assertIn('Application-scope fragment', handoff)
+        self.assertIn('Qoder IDE Settings', handoff)
+        self.assertNotIn('Project target', handoff)
+        code, output, error = invoke('bundle', *ROOT_ARGS, '--agent', 'qoder', '--surface', 'ide',
+                                     '--profile', 'balanced', '--skill', 'token-efficient-retrieval', '--dry-run')
+        self.assertEqual(code, 0, error)
+        paths = [item['path'] for item in json.loads(output)['artifacts']]
+        self.assertIn('qoder/AGENTS.md', paths)
+        self.assertIn('qoder/.qoder/skills/token-efficient-retrieval/SKILL.md', paths)
+
     def test_models_import_all_snapshot_entries_and_keep_unknown_availability(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'synthetic-models.json'

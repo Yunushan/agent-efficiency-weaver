@@ -15,6 +15,7 @@ _JSON_DIALECTS: dict[str, tuple[str, tuple[tuple[str, Any], ...]]] = {
     'mcpServers.httpUrl': ('mcpServers', (('httpUrl', _URL),)),
     'mcpServers.type-streamableHttp': ('mcpServers', (('type', 'streamableHttp'), ('url', _URL), ('disabled', False))),
     'mcpServers.type-http': ('mcpServers', (('type', 'http'), ('url', _URL))),
+    'mcpServers.type-sse': ('mcpServers', (('type', 'sse'), ('url', _URL))),
     'mcpServers.url-or-type-http': ('mcpServers', (('url', _URL),)),
     'mcpServers.transport-http': ('mcpServers', (('transport', 'http'), ('url', _URL))),
     'mcpServers.serverUrl': ('mcpServers', (('serverUrl', _URL),)),
@@ -36,6 +37,8 @@ _USER_FRAGMENTS = {
     'zed': 'settings.json', 'goose': 'config.yaml',
     'hermes': 'config.yaml', 'lm-studio': 'mcp.json',
 }
+# UI-edited JSON has a documented schema but no documented persistent file path.
+_APP_FRAGMENTS = {('qoder', 'ide'): ('mcpServers.type-sse', 'mcp.ide.json')}
 _TOML_DIALECT = 'mcp_servers.toml-url'
 # Product-specific documentation is required even when two JSON dialects look alike.
 # Values are (registered dialect, documented stdio shape, first-party source).
@@ -63,11 +66,16 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'lm-studio': ('mcpServers.url', 'type-stdio', 'https://lmstudio.ai/docs/app/mcp'),
     'qwen-code': ('mcpServers.httpUrl', 'command-args', 'https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/'),
 }
+_STDIO_ADDITIONAL_ROUTES = {
+    ('qoder', 'mcpServers.type-sse'): (
+        'command-args', 'https://docs.qoder.com/user-guide/chat/model-context-protocol'
+    ),
+}
 
 
 def stdio_inventory() -> dict[str, dict[str, Any]]:
     """Document adapter schemas separately from installed-host/runtime evidence."""
-    return {product: {'mcp_dialect': dialect, 'schema': shape,
+    inventory: dict[str, dict[str, Any]] = {product: {'mcp_dialect': dialect, 'schema': shape,
                       'sources': [source, 'https://cursor.com/docs/mcp'] if product == 'lm-studio' else [source],
                       'documentation_note': ('LM Studio explicitly documents Cursor mcp.json notation; '
                                              'this is documentation compatibility, not a runtime check.'
@@ -75,13 +83,24 @@ def stdio_inventory() -> dict[str, dict[str, Any]]:
                       'checked_on': '2026-10-26', 'fixture_tests': ['tests/test_stdio_adapters.py'],
                       'runtime_checks': []}
             for product, (dialect, shape, source) in _STDIO_ROUTES.items()}
+    for (product, dialect), (shape, source) in _STDIO_ADDITIONAL_ROUTES.items():
+        inventory[product]['additional_routes'] = [
+            {'mcp_dialect': dialect, 'schema': shape, 'sources': [source],
+             'checked_on': '2026-10-26', 'fixture_tests': ['tests/test_capability_expansion.py'],
+             'runtime_checks': []}
+        ]
+    return inventory
 
 
 def _stdio_entry(agent_id: str | None, dialect: str, name: str, selection: StdioServer) -> dict[str, Any]:
     route = _STDIO_ROUTES.get(agent_id or '')
-    if route is None or route[0] != dialect:
+    extra = _STDIO_ADDITIONAL_ROUTES.get((agent_id or '', dialect))
+    if extra is not None:
+        shape = extra[0]
+    elif route is not None and route[0] == dialect:
+        shape = route[1]
+    else:
         raise WeaverError('Native stdio MCP export is not documented for this product/dialect; use manual setup')
-    shape = route[1]
     command, args = selection['command'], list(selection['args'])
     if shape == 'local-command-array':
         return {'type': 'local', 'command': [command, *args], 'enabled': True}
@@ -149,6 +168,11 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         if spec.id not in _USER_FRAGMENTS:
             raise WeaverError('No documented safe user-scope fragment target')
         path = PurePosixPath(spec.id, 'fragments', _USER_FRAGMENTS[spec.id])
+    elif target.config_scope == 'app':
+        fragment = _APP_FRAGMENTS.get((spec.id, target.id))
+        if fragment is None or fragment[0] != dialect:
+            raise WeaverError('No documented safe app-scope MCP fragment target')
+        path = PurePosixPath(spec.id, 'fragments', fragment[1])
     else:
         if target.config_scope != 'project' or not target.native_path_hint:
             raise WeaverError('Native project export has no documented safe target')
@@ -168,7 +192,7 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
             raise WeaverError('MCP dialect is not documented')
         content = json_bytes(_json_document(dialect, selected, spec.id))
     kind = ('mcp-request' if target.config_scope == 'request' else
-            'mcp-fragment' if target.config_scope == 'user' else 'mcp')
+            'mcp-fragment' if target.config_scope in ('user', 'app') else 'mcp')
     return [RenderedArtifact(path, content, kind)]
 
 

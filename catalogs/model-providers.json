@@ -10,7 +10,8 @@
       "secret_env": "OPENROUTER_API_KEY",
       "protocols": [
         "openrouter-chat",
-        "openai-chat"
+        "openai-chat",
+        "openai-responses"
       ],
       "discovery": {
         "endpoint": "/models",
@@ -21,7 +22,9 @@
       },
       "sources": [
         "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
-        "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+        "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+        "https://openrouter.ai/docs/api_reference/responses/overview",
+        "https://openrouter.ai/docs/api_reference/responses/reasoning"
       ],
       "known_models": []
     },
@@ -283,7 +286,8 @@
       "sources": [
         "https://lmstudio.ai/docs/developer/rest/list",
         "https://lmstudio.ai/docs/developer/rest/chat",
-        "https://lmstudio.ai/docs/developer/openai-compat/responses"
+        "https://lmstudio.ai/docs/developer/openai-compat/responses",
+        "https://lmstudio.ai/docs/developer/anthropic-compat"
       ],
       "known_models": []
     },
@@ -348,7 +352,8 @@
       "sources": [
         "https://docs.perplexity.ai/api-reference/gateway-models-get",
         "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
-        "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+        "https://docs.perplexity.ai/api-reference/gateway-responses-post",
+        "https://docs.perplexity.ai/api-reference/gateway-messages-post"
       ],
       "known_models": []
     }

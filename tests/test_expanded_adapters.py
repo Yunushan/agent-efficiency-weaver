@@ -150,7 +150,7 @@ class ExpandedAdapterTests(unittest.TestCase):
     def test_chatgpt_handoffs_and_api_skills_do_not_claim_local_discovery(self):
         for identifier, surface in (
             *(("chatgpt", sid) for sid in ("desktop", "web", "work-local", "work-cloud")),
-            ("lm-studio", "bionic"), ("perplexity", "agent-api"),
+            ("perplexity", "agent-api"),
         ):
             with self.subTest(product=identifier, surface=surface):
                 artifacts = render_instruction_bundle(self.integrations[identifier], surface,
@@ -166,7 +166,6 @@ class ExpandedAdapterTests(unittest.TestCase):
                            "chatgpt", "lm-studio", "perplexity"):
             for surface in self.integrations[identifier].surfaces:
                 with self.subTest(product=identifier, surface=surface.id):
-                    self.assertEqual(set(surface.os_workflows.values()), {"unknown"})
                     for evidence in surface.capabilities.values():
                         self.assertFalse(evidence.runtime_checks)
                         if evidence.sources:

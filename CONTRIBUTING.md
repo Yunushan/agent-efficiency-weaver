@@ -58,7 +58,9 @@ Custom-agent definitions are separate from portable Skills and project instructi
 
 MCP catalog entries may be remote HTTPS or stdio. Stdio requires a bounded executable string and a separate bounded argument array; do not add raw shell-command, credential, environment, or permission fields. Keep default selection off and require explicit profile permission and `--enable`. Product-specific stdio documentation and fixture evidence are separate from remote URL evidence. Tests must never launch the staged executable, install a package, or expand runtime variables. Perplexity Agent API and LM Studio ephemeral MCP request formats remain remote HTTPS only.
 
-The recorded remote CI run in [docs/readiness.md](docs/readiness.md) predates the 31-product expansion. It cannot substitute for validating the expanded candidate, including its new model, alias, request-fragment, and custom-agent paths.
+The remote CI runs in [docs/readiness.md](docs/readiness.md) identify separate immutable checkpoints for the earlier 20-product release and the initial 31-product expansion. Neither substitutes for validating later model, alias, request-fragment, custom-agent, or documentation-evidence changes.
+
+Preserve documented unknown states when first-party sources establish a boundary without establishing a schema. OS `available` means a documented route on the constrained platform, while `manual` can mean conditional or remote access; neither supplies runtime verification. Keep version, architecture, OS variant and account conditions visible. App-scope MCP fragments must not become guessed persistent settings paths, and manual Skill imports must retain the vendor-required `SKILL.md` filename without being described as native discovery.
 
 ## Platform verification
 

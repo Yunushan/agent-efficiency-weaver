@@ -50,6 +50,7 @@ NATIVE_TARGETS = {
     ("openhands", "cli"): "AGENTS.md",
     ("pi", "cli"): "AGENTS.md",
     ("qwen-code", "cli"): "QWEN.md",
+    ("qoder", "ide"): "AGENTS.md",
     ("zed", "ide"): ".rules",
 }
 
@@ -61,7 +62,10 @@ MANUAL_TARGETS = {
     ("kiro", "ide"),
     ("lm-studio", "bionic"),
     ("lm-studio", "api"),
+    ("lm-studio", "desktop"),
     ("perplexity", "agent-api"),
+    ("perplexity", "app"),
+    ("perplexity", "orchestrator"),
     ("qoder", "cli"),
 }
 
@@ -406,7 +410,7 @@ class InstructionBundleTests(unittest.TestCase):
         self.assertNotIn("skills directory", folded)
 
     def test_manual_skills_are_staged_as_portable_read_files(self):
-        for agent_id in ("aider", "abacus", "cline", "cursor"):
+        for agent_id in ("aider", "abacus"):
             spec = get_integration(agent_id, ROOT)
             with self.subTest(agent=agent_id):
                 artifacts = render_instruction_bundle(
@@ -435,21 +439,21 @@ class InstructionBundleTests(unittest.TestCase):
             source = Path(source_directory)
             copy_canonical(source)
             expected = skill_path(source, "security-review").read_bytes().replace(b"\r\n", b"\n")
-            spec = get_integration("cline", ROOT)
+            spec = get_integration("abacus", ROOT)
             artifacts = render_instruction_bundle(
-                spec, "ide", self.profile, ["security-review"], source
+                spec, "desktop", self.profile, ["security-review"], source
             )
             with tempfile.TemporaryDirectory() as output_directory:
                 output = Path(output_directory).resolve()
                 write_artifacts(output, artifacts)
                 shutil.rmtree(source)
                 self.assertEqual(
-                    (output / "cline/read/security-review.md").read_bytes(),
+                    (output / "abacus/read/security-review.md").read_bytes(),
                     expected,
                 )
                 self.assertIn(
                     "read/security-review.md",
-                    (output / "cline/AGENTS.md").read_text(encoding="utf-8"),
+                    (output / "abacus/AGENTS.md").read_text(encoding="utf-8"),
                 )
 
     def test_direct_api_enforces_profile_contract_and_enterprise_zero(self):
@@ -498,9 +502,9 @@ class InstructionBundleTests(unittest.TestCase):
                 with self.subTest(label=label), self.assertRaises(WeaverError):
                     render_instruction_bundle(spec, "cli", profile, [], root)
 
-    def test_provider_only_surface_without_instruction_evidence_reports_gap(self):
-        qoder = get_integration("qoder", ROOT)
-        base = qoder.surface("cli")
+    def test_synthetic_surface_without_instruction_evidence_reports_gap(self):
+        original = get_integration("codex", ROOT)
+        base = original.surface("cli")
         unknown = CapabilityEvidence(
             state="unknown",
             sources=(),
@@ -524,7 +528,7 @@ class InstructionBundleTests(unittest.TestCase):
             skills_path=None,
             capabilities=capabilities,
         )
-        spec = replace(qoder, default_surface="ide", surfaces=(provider_only,))
+        spec = replace(original, default_surface="ide", surfaces=(provider_only,))
         with self.assertRaises(WeaverError) as raised:
             render_instruction_bundle(spec, "ide", self.profile, [], ROOT)
         message = str(raised.exception).casefold()

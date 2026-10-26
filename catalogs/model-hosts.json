@@ -191,7 +191,7 @@
       "surface_id": "ide",
       "selection": {
         "state": "manual",
-        "mechanism": "Use the conversation model selector; supported thinking levels depend on the selected model and IDE availability.",
+        "mechanism": "Use the IDE conversation model selector and supported thinking levels. CLI Gemini-key/custom-endpoint and SDK local-model configuration do not establish an IDE OpenRouter route.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -199,7 +199,8 @@
           "Choose an available model and supported thinking level"
         ],
         "sources": [
-          "https://antigravity.google/docs/models"
+          "https://antigravity.google/docs/models",
+          "https://antigravity.google/docs/install"
         ]
       },
       "reasoning": {
@@ -232,15 +233,24 @@
       "surface_id": "desktop",
       "selection": {
         "state": "manual",
-        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
-        "fields": [],
+        "mechanism": "Choose a local Work/Codex model from the signed-in picker or deliberately configure a Responses-compatible provider in user-level configuration; this does not configure Chat or Work Cloud.",
+        "fields": [
+          "model",
+          "model_provider",
+          "model_providers.<id>.base_url",
+          "model_providers.<id>.wire_api",
+          "model_providers.<id>.env_key"
+        ],
         "commands": [],
         "ui_steps": [
           "Open the model and reasoning control beneath the composer",
           "Use Advanced to inspect available models and reasoning options"
         ],
         "sources": [
-          "https://learn.chatgpt.com/docs/models"
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/auth",
+          "https://learn.chatgpt.com/docs/amazon-bedrock",
+          "https://learn.chatgpt.com/docs/enterprise/connect-to-a-gateway"
         ]
       },
       "reasoning": {
@@ -275,7 +285,7 @@
       "surface_id": "web",
       "selection": {
         "state": "manual",
-        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "mechanism": "Inspect the signed-in Work model and reasoning picker. Local custom-provider configuration does not carry over to Work Cloud; no generic custom inference-provider route is established here.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -283,7 +293,9 @@
           "Use Advanced to inspect available models and reasoning options"
         ],
         "sources": [
-          "https://learn.chatgpt.com/docs/models"
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/auth",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
         ]
       },
       "reasoning": {
@@ -318,7 +330,7 @@
       "surface_id": "work-cloud",
       "selection": {
         "state": "manual",
-        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "mechanism": "Inspect the signed-in Work model and reasoning picker. Local custom-provider configuration does not carry over to Work Cloud; no generic custom inference-provider route is established here.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -326,7 +338,9 @@
           "Use Advanced to inspect available models and reasoning options"
         ],
         "sources": [
-          "https://learn.chatgpt.com/docs/models"
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/auth",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
         ]
       },
       "reasoning": {
@@ -361,15 +375,24 @@
       "surface_id": "work-local",
       "selection": {
         "state": "manual",
-        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
-        "fields": [],
+        "mechanism": "Choose a local Work/Codex model from the signed-in picker or deliberately configure a Responses-compatible provider in user-level configuration; this does not configure Chat or Work Cloud.",
+        "fields": [
+          "model",
+          "model_provider",
+          "model_providers.<id>.base_url",
+          "model_providers.<id>.wire_api",
+          "model_providers.<id>.env_key"
+        ],
         "commands": [],
         "ui_steps": [
           "Open the model and reasoning control beneath the composer",
           "Use Advanced to inspect available models and reasoning options"
         ],
         "sources": [
-          "https://learn.chatgpt.com/docs/models"
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/auth",
+          "https://learn.chatgpt.com/docs/amazon-bedrock",
+          "https://learn.chatgpt.com/docs/enterprise/connect-to-a-gateway"
         ]
       },
       "reasoning": {
@@ -695,14 +718,15 @@
       "surface_id": "desktop-local",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose the session model from Devin Desktop; SWE-2 variants are model choices rather than a universal provider effort enum.",
+        "mechanism": "Choose a Devin Local session model in the account-managed Desktop picker; third-party ACP agents own their model setup and do not establish a custom provider for Devin Local.",
         "fields": [],
         "commands": [],
         "ui_steps": [
           "Open the session model dropdown"
         ],
         "sources": [
-          "https://docs.devin.ai/desktop/models"
+          "https://docs.devin.ai/desktop/models",
+          "https://docs.devin.ai/desktop/devin-local"
         ]
       },
       "reasoning": {
@@ -1148,7 +1172,7 @@
       "surface_id": "ide",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a managed model in the IDE; the account model catalog and available effort slider levels are host controlled.",
+        "mechanism": "Choose an account-managed IDE model and supported effort level; authentication providers do not establish BYOK inference or an arbitrary custom endpoint.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1156,7 +1180,8 @@
           "Adjust Effort below the model list when offered"
         ],
         "sources": [
-          "https://kiro.dev/docs/models/"
+          "https://kiro.dev/docs/models/",
+          "https://kiro.dev/docs/getting-started/authentication/"
         ]
       },
       "reasoning": {
@@ -1231,7 +1256,7 @@
       "surface_id": "bionic",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a cloud, local or remote model per session or set a default; configurable reasoning levels appear only for supported models.",
+        "mechanism": "Choose LM Studio Cloud, a local model, or a model on another device through LM Link. A Remote choice is not an arbitrary OpenAI-compatible custom API endpoint.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1268,7 +1293,7 @@
       "surface_id": "desktop",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a downloaded model in the desktop app; reasoning settings depend on that model and runtime capabilities.",
+        "mechanism": "Choose a downloaded model. The first-party openai-compat-endpoint plugin exposes a base URL but currently has fixed model choices; it does not establish arbitrary OpenRouter model IDs or Bionic support.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1276,7 +1301,9 @@
           "Inspect supported model reasoning settings"
         ],
         "sources": [
-          "https://lmstudio.ai/docs/app/basics/download-model"
+          "https://lmstudio.ai/docs/app/basics/download-model",
+          "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/config.ts",
+          "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/generator.ts"
         ]
       },
       "reasoning": {
@@ -1443,7 +1470,9 @@
         "ui_steps": [],
         "sources": [
           "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
-          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+          "https://openrouter.ai/docs/api_reference/responses/overview",
+          "https://openrouter.ai/docs/api_reference/responses/reasoning"
         ]
       },
       "reasoning": {
@@ -1478,11 +1507,18 @@
               "pro"
             ],
             "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Responses reasoning.effort",
+            "values": null,
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
-          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+          "https://openrouter.ai/docs/api_reference/responses/reasoning"
         ]
       },
       "checked_on": "2026-10-26",
@@ -1548,21 +1584,41 @@
       "surface_id": "app",
       "selection": {
         "state": "manual",
-        "mechanism": "Inspect the signed-in app model selector; available models depend on its account and organization, independently of API model lists. A separate reasoning control has not been established.",
+        "mechanism": "In Computer on the web, choose an effort preset or Custom model and reasoning level. Desktop retains the regular model picker; custom API credentials authenticate tools, not a replacement inference provider.",
         "fields": [],
         "commands": [],
         "ui_steps": [
-          "Open the model selector beneath the search bar"
+          "On Computer web, open the effort selector in the prompt box",
+          "Choose a preset or Custom to inspect available models and supported reasoning levels"
         ],
         "sources": [
-          "https://www.perplexity.ai/enterprise/videos/how-to-use-perplexity-labs"
+          "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
+          "https://www.perplexity.ai/help-center/en/articles/20260716-using-custom-api-credentials-in-computer"
         ]
       },
       "reasoning": {
-        "state": "unknown",
-        "controls": [],
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Computer web Effort preset",
+            "values": [
+              "Light",
+              "Standard",
+              "High",
+              "Ultra"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Computer web Custom reasoning level",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
         "sources": [
-          "https://www.perplexity.ai/enterprise/videos/how-to-use-perplexity-labs"
+          "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer"
         ]
       },
       "checked_on": "2026-10-26",
@@ -1660,19 +1716,22 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Discover CLI model IDs with the documented listing command or session picker; effort and context controls remain model dependent.",
+        "mechanism": "Select a managed model or use /model > Custom > Add custom model. The BYOK wizard live catalog determines providers, models and credential fields; manual settings.json BYOK configuration is explicitly discouraged.",
         "fields": [],
         "commands": [
           "--list-models",
           "--model",
           "/model",
           "--reasoning-effort",
-          "/effort"
+          "/effort",
+          "/model > Custom > Add custom model"
         ],
         "ui_steps": [],
         "sources": [
           "https://docs.qoder.com/cli/cli-reference",
-          "https://docs.qoder.com/cli/slash-reference"
+          "https://docs.qoder.com/cli/slash-reference",
+          "https://docs.qoder.com/cli/custom-models",
+          "https://docs.qoder.com/cli/model"
         ]
       },
       "reasoning": {

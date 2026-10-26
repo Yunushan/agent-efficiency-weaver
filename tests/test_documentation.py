@@ -2,12 +2,13 @@ import json
 import re
 import tomllib
 import unittest
+from collections import Counter
 from pathlib import Path
 
 from agentweaver.adapters import render_mcp, stdio_inventory
 from agentweaver.agents import agent_inventory
 from agentweaver.config import WeaverError
-from agentweaver.coverage import load_requested_scope
+from agentweaver.coverage import coverage_report, load_requested_scope
 from agentweaver.integrations import load_integrations, load_operating_systems
 from agentweaver.models import load_model_hosts, load_model_providers
 from agentweaver.providers import render_provider_setup
@@ -85,7 +86,7 @@ CATALOG = json.loads(read_document("catalogs/mcp-servers.json"))
 
 def expected_mcp(agent, surface):
     try:
-        render_mcp(agent, surface.id, PROFILE, CATALOG, [])
+        artifacts = render_mcp(agent, surface.id, PROFILE, CATALOG, [])
     except WeaverError:
         state = surface.capabilities["mcp"].state
         if state == "unknown":
@@ -93,7 +94,7 @@ def expected_mcp(agent, surface):
         if state == "unsupported":
             return "Unsupported"
         return "Not exported"
-    if surface.config_scope == "user":
+    if artifacts[0].kind == "mcp-fragment":
         return "Fragment export; manual import"
     if surface.config_scope == "request":
         return "Request fragment"
@@ -197,19 +198,29 @@ class DocumentationDriftTests(unittest.TestCase):
                 else:
                     self.assertIn("runtime pending", row[6])
 
-    def test_provider_only_surface_is_represented_with_bundle_gap(self):
+    def test_qoder_ide_distinguishes_app_mcp_fragment_from_native_instructions_and_skills(self):
         rows = self.product_rows()
         qoder = self.integrations["qoder"]
         self.assertIn("ide", qoder.surface_ids())
         ide = qoder.surface("ide")
-        self.assertEqual(ide.capabilities["mcp"].state, "unknown")
-        self.assertEqual(ide.capabilities["instructions"].state, "unknown")
-        self.assertEqual(ide.capabilities["skills"].state, "unknown")
+        self.assertEqual(ide.config_scope, "app")
+        self.assertIsNone(ide.native_path_hint)
+        self.assertEqual(ide.capabilities["mcp"].state, "manual")
+        self.assertEqual(ide.capabilities["instructions"].state, "available")
+        self.assertEqual(ide.capabilities["skills"].state, "available")
+        self.assertEqual(ide.skills_path, ".qoder/skills")
         self.assertEqual(ide.capabilities["provider"].state, "manual")
         row = rows[("qoder", "ide")]
-        self.assertTrue(row[2].startswith("Unknown"))
-        self.assertIn("bundle gap", row[3])
+        self.assertTrue(row[2].startswith("Fragment export; manual import"))
+        self.assertNotIn("bundle gap", row[3])
         self.assertIn("`manual`", row[5])
+        mcp = render_mcp(qoder, "ide", PROFILE, CATALOG, [])
+        self.assertEqual(mcp[0].kind, "mcp-fragment")
+        self.assertEqual(mcp[0].relative_path.as_posix(), "qoder/fragments/mcp.ide.json")
+        bundle = render_instruction_bundle(qoder, "ide", PROFILE, ["token-efficient-retrieval"], ROOT)
+        self.assertIn("qoder/AGENTS.md", [item.relative_path.as_posix() for item in bundle])
+        self.assertIn("qoder/.qoder/skills/token-efficient-retrieval/SKILL.md",
+                      [item.relative_path.as_posix() for item in bundle])
 
     def test_vocabulary_distinguishes_fragments_from_absent_export(self):
         text = read_document("docs/compatibility.md")
@@ -227,13 +238,16 @@ class DocumentationDriftTests(unittest.TestCase):
         self.assertEqual(set(rows), set(routes))
         for product, route in routes.items():
             row = rows[product]
-            self.assertEqual(clean(row[1]), route["mcp_dialect"])
-            self.assertEqual(clean(row[2]), route["schema"])
+            documented = [route, *route.get("additional_routes", [])]
+            self.assertEqual(set(backticked(row[1])), {item["mcp_dialect"] for item in documented})
+            self.assertEqual(set(backticked(row[2])), {item["schema"] for item in documented})
             self.assertIn(route["checked_on"], row[3])
-            for source in route["sources"]:
+            for source in {url for item in documented for url in item["sources"]}:
                 self.assertIn(source, row[3])
             self.assertIn("runtime pending", row[3])
-        surface_count = sum(surface.mcp_dialect == routes[product.id]["mcp_dialect"]
+        surface_count = sum(surface.mcp_dialect in {
+                                item["mcp_dialect"] for item in
+                                [routes[product.id], *routes[product.id].get("additional_routes", [])]}
                             for product in self.integrations.values() if product.id in routes
                             for surface in product.surfaces)
         self.assertIn(f"{len(routes)} products", text)
@@ -422,8 +436,50 @@ class DocumentationDriftTests(unittest.TestCase):
         targets = {(target.product_id, target.surface_id) for item in scope for target in item.targets}
         self.assertIn(f"{len(scope)} requested groups", text)
         self.assertIn(f"{len(targets)} distinct registry surfaces", text)
+        summary = coverage_report(ROOT)["summary"]
+        self.assertIn(f"{summary['missing_documentation_capabilities']} missing documentation records", text)
+        self.assertIn(f"All {summary['pending_runtime_capabilities']} requested capability runtime records remain pending", text)
+        for state, count in summary["capability_states"].items():
+            self.assertIn(f"{count} {state}", text)
         for token in ("unknown", "missing documentation", "runtime", "not a native support result",
                       "VSCodeagents", "concrete product", "JetBrainsAir", "never `junie`"):
+            self.assertIn(token, text)
+
+    def test_requested_os_table_matches_all_surface_states_constraints_and_sources(self):
+        text = section(read_document("docs/compatibility.md"), "Requested surface OS workflows")
+        rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
+                if len(row) == 10 and PRODUCT_CELL.fullmatch(row[0])}
+        targets = {(target.product_id, target.surface_id)
+                   for item in load_requested_scope(ROOT) for target in item.targets}
+        self.assertEqual(set(rows), targets)
+        symbols = {"available": "A", "manual": "M", "unknown": "?", "unsupported": "X"}
+        for product, surface_id in targets:
+            row = rows[(product, surface_id)]
+            surface = self.integrations[product].surface(surface_id)
+            self.assertEqual([clean(cell) for cell in row[2:9]],
+                             [symbols[surface.os_workflows[os_id]] for os_id in OPERATING_SYSTEMS])
+            evidence = surface.capabilities["os"]
+            if evidence.version_constraint:
+                self.assertIn(evidence.version_constraint, row[9])
+            for source in evidence.sources:
+                self.assertIn(source, row[9])
+        for token in ("documented installation/platform route", "All vendor runtime checks remain pending",
+                      "BSD and Solaris remain unknown", "FreeBSD", "every BSD variant", "aarch64 Termux",
+                      "not a general mobile app claim", "Bionic is a separate app", "approved reachable endpoint",
+                      "without", "Windows 10 1809+", "x64/ARM64"):
+            self.assertIn(token, text)
+
+    def test_manual_vendor_skill_imports_keep_standard_filename_and_declared_limits(self):
+        text = section(read_document("docs/compatibility.md"), "Instruction and skill bundles")
+        for product, surface in (("perplexity", "app"), ("lm-studio", "bionic")):
+            artifacts = render_instruction_bundle(self.integrations[product], surface, PROFILE,
+                                                ["token-efficient-retrieval"], ROOT)
+            imports = [item for item in artifacts if item.kind == "skill-import"]
+            self.assertEqual(len(imports), 1)
+            self.assertEqual(imports[0].relative_path.as_posix(),
+                             f"{product}/imports/skills/token-efficient-retrieval/SKILL.md")
+        for token in ("imports/skills/<name>/SKILL.md", "skill-import", "not a native discovery path",
+                      "No upload or import is performed"):
             self.assertIn(token, text)
 
     def test_model_provider_route_table_matches_declared_protocols(self):
@@ -488,6 +544,10 @@ class DocumentationDriftTests(unittest.TestCase):
                 if len(row) == 5 and PRODUCT_CELL.fullmatch(row[0])}
         definitions = agent_inventory(ROOT)["definitions"]
         self.assertEqual(set(rows), {(row["product_id"], row["surface_id"]) for row in definitions})
+        counts = Counter(row["state"] for row in definitions)
+        for state, count in counts.items():
+            phrase = "native definition routes" if state == "native" else f"{state} routes"
+            self.assertIn(f"{count} {phrase}", text)
         for definition in definitions:
             row = rows[(definition["product_id"], definition["surface_id"])]
             self.assertEqual(clean(row[2]), definition["state"])
@@ -498,12 +558,29 @@ class DocumentationDriftTests(unittest.TestCase):
         for token in ("inherit", "ignore model selection", "explicit model", "provider",
                       "No maximum effort", "Permission defaults", "runtime checks remain pending"):
             self.assertIn(token, text)
+        for token in ("not the parent model", "router", "admin-pinned", "rejects an explicit `inherit`",
+                      "Subagents (Preview)", "experimental", "true tool restriction", "auto-approval semantics",
+                      "authorized project admin", "versioned Profile", "not a complete Profile JSON schema",
+                      "not an authorization boundary", "does not revoke ambient Profile access",
+                      "six requested custom-definition routes", "no distinct registration contract"):
+            self.assertIn(token, text)
 
     def test_recorded_ci_checkpoint_is_explicitly_historical_for_expansion(self):
         text = section(read_document("docs/readiness.md"), "Recorded core CLI CI evidence")
         for token in ("historical evidence", "earlier 20-product", "does not verify", "31-product expansion",
                       "cf5bcdc2b1bacc03df355f24e3f6e6ab55998dad", "40278860777"):
             self.assertIn(token, text)
+
+    def test_expanded_ci_and_runtime_record_contract_remain_commit_and_host_scoped(self):
+        readiness = read_document("docs/readiness.md")
+        text = section(readiness, "Recorded expanded CLI CI evidence")
+        for token in ("40295841872", "b2ef30fe02974a24bf8d0f4c804e908fd9ba338d", "PR #2",
+                      "subsequent changes require their own", "pending vendor runtime"):
+            self.assertIn(token, text)
+        for token in ("product_version", "os_variant", "architecture", "checked_on", "artifact_sha256",
+                      "configuration-consumption", "operator-supplied attestations", "Conflicting aliases",
+                      "regardless of input order", "no latest-date rule"):
+            self.assertIn(token, readiness)
 
 
 if __name__ == "__main__":

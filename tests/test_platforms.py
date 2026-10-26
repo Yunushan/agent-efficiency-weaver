@@ -1,14 +1,29 @@
+import hashlib
 import json
+import platform
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
+from agentweaver.integrations import load_integrations
+from agentweaver.platforms import _host_variant as actual_host_variant
 from agentweaver.platforms import describe_workflow, detect_host_os
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ("windows", "macos", "linux", "bsd", "solaris", "android", "ios")
+
+
+def runtime_check(os_name, **changes):
+    host = {"openbsd": "bsd-openbsd", "freebsd": "bsd-freebsd", "illumos": "solaris-illumos"}.get(os_name, os_name)
+    result = {"os": os_name, "status": "passed", "product": "example", "surface": "cli",
+              "product_version": "1.2.3", "os_variant": f"fixture:{host}", "architecture": platform.machine(),
+              "checked_on": "2026-10-26", "installed": True, "action": "configuration-consumption",
+              "artifact_sha256": hashlib.sha256(b"synthetic configuration fixture").hexdigest()}
+    result.update(changes)
+    return result
 
 
 def surface(workflows=None, evidence=None, **changes):
@@ -57,6 +72,25 @@ def workflows(routes=None):
 
 
 class HostDetectionTests(unittest.TestCase):
+    def test_runtime_host_variant_keeps_release_distribution_and_build_scope(self):
+        cases = [
+            ("windows", {"system": "Windows", "sys_platform": "win32", "release": "11", "version": "10.0.26100"},
+             "windows:11:10.0.26100"),
+            ("macos", {"system": "Darwin", "sys_platform": "darwin", "release": "24.1.0"}, "macos:15.1"),
+            ("linux", {"system": "Linux", "sys_platform": "linux", "os_release_id": "ubuntu",
+                       "os_release_version_id": "24.04"}, "linux:ubuntu:24.04"),
+            ("bsd-openbsd", {"system": "OpenBSD", "sys_platform": "openbsd", "release": "7.7"}, "bsd-openbsd:7.7"),
+            ("solaris-illumos", {"system": "SunOS", "release": "5.11", "version": "illumos"}, "solaris-illumos:5.11"),
+            ("linux", {"system": "Linux", "sys_platform": "linux", "os_release_id": "ubuntu"}, None),
+            ("windows", {"system": "Linux", "sys_platform": "linux"}, None),
+            ("unknown", {"system": "unidentified", "release": "fixture"}, None),
+        ]
+        for host, facts, expected in cases:
+            with self.subTest(host=host, facts=facts), \
+                 mock.patch("agentweaver.platforms.collect_host_facts", return_value=facts), \
+                 mock.patch("agentweaver.platforms.platform.mac_ver", return_value=("15.1", (), "")):
+                self.assertEqual(actual_host_variant(host), expected)
+
     def test_actual_host_is_known(self):
         self.assertIn(detect_host_os(), (*TARGETS, "linux-wsl", "solaris-illumos"))
 
@@ -94,6 +128,81 @@ class HostDetectionTests(unittest.TestCase):
 
 
 class WorkflowDescriptionTests(unittest.TestCase):
+    def setUp(self):
+        variant = mock.patch("agentweaver.platforms._host_variant", side_effect=lambda host: f"fixture:{host}")
+        variant.start()
+        self.addCleanup(variant.stop)
+
+    def test_incomplete_or_wrong_scope_runtime_records_never_establish_readiness(self):
+        required = ("product", "surface", "product_version", "os_variant", "architecture", "checked_on",
+                    "installed", "action", "artifact_sha256")
+        records = []
+        for field in required:
+            record = runtime_check("windows")
+            del record[field]
+            records.append((f"missing {field}", record))
+        for field, value in (("product", "other-product"), ("surface", "ide"), ("product_version", "unknown"),
+                             ("product_version", "C:/private-fixture/version"), ("os_variant", "different-build"),
+                             ("architecture", "unsupported-fixture-architecture"), ("checked_on", "2026-02-30"),
+                             ("artifact_sha256", "not-a-hash"), ("installed", False), ("installed", "true"),
+                             ("action", "version-only")):
+            records.append((f"invalid {field}", runtime_check("windows", **{field: value})))
+        for description, record in records:
+            with self.subTest(record=description):
+                checked = {"native": {"runtime_checks": [record]}}
+                result = describe_workflow(agent(surface(workflows(), checked)), "windows", "windows")
+                self.assertEqual(result["native_vendor"]["status"], "unknown")
+                self.assertEqual(result["native_vendor"]["evidence"], [])
+                self.assertFalse(result["strict_ready"])
+
+    def test_runtime_records_accept_architecture_alias_and_direct_surface_list(self):
+        with mock.patch("agentweaver.platforms.platform.machine", return_value="AMD64"):
+            checked = runtime_check("windows", architecture="x86_64")
+            spec = agent(surface(workflows(), runtime_checks=[checked]))
+            result = describe_workflow(spec, "windows", "windows")
+        self.assertTrue(result["strict_ready"])
+        self.assertEqual(result["native_vendor"]["host_architecture"], "x86_64")
+        self.assertEqual(result["native_vendor"]["evidence"][0]["action"], "configuration-consumption")
+        self.assertEqual(result["native_vendor"]["host_variant"], "fixture:windows")
+
+    def test_documented_registry_routes_never_replace_installed_client_evidence(self):
+        for product in load_integrations(ROOT).values():
+            for selected in product.surfaces:
+                if any(item.runtime_checks for item in selected.capabilities.values()):
+                    continue
+                for target in TARGETS:
+                    with self.subTest(product=product.id, surface=selected.id, target=target):
+                        result = describe_workflow(product, target, target, surface_id=selected.id)
+                        self.assertNotEqual(result["native_vendor"]["status"], "available")
+                        self.assertFalse(result["strict_ready"])
+
+    def test_conflicting_os_scope_fields_cannot_hide_behind_target_os(self):
+        for extra in ({"target_os": "windows", "host_os": "linux"},
+                      {"target_os": "linux", "host_os": "windows"}):
+            with self.subTest(extra=extra):
+                checked = {"native": {"runtime_checks": [runtime_check("windows", **extra)]}}
+                result = describe_workflow(agent(surface(workflows(), checked)), "windows", "windows")
+                self.assertEqual(result["native_vendor"]["evidence"], [])
+                self.assertFalse(result["strict_ready"])
+
+    def test_missing_selected_identity_cannot_match_null_runtime_identity(self):
+        checked = {"native": {"runtime_checks": [runtime_check("windows", product=None, surface=None)]}}
+        spec = agent(surface(workflows(), checked, id=None), default_surface=None, id=None)
+        result = describe_workflow(spec, "windows", "windows")
+        self.assertEqual(result["native_vendor"]["status"], "unknown")
+        self.assertFalse(result["strict_ready"])
+
+    def test_conflicting_runtime_results_fail_closed_regardless_of_order(self):
+        passed = runtime_check("windows", checked_on="2026-10-25")
+        failed = runtime_check("windows", status="failed", installed=False, checked_on="2026-10-26")
+        for records in ([passed, failed], [failed, passed]):
+            with self.subTest(records=records):
+                checked = {"native": {"runtime_checks": records}}
+                result = describe_workflow(agent(surface(workflows(), checked)), "windows", "windows")
+                self.assertEqual(result["native_vendor"]["status"], "unknown")
+                self.assertIsNone(result["native_vendor"]["installed"])
+                self.assertFalse(result["strict_ready"])
+
     def test_partial_target_workflow_does_not_fall_back_to_host_route(self):
         only_linux = {'linux': {'manual': {'status': 'available', 'description': 'Linux route only'}}}
         result = describe_workflow(agent(surface(only_linux)), 'android', 'linux')
@@ -141,7 +250,7 @@ class WorkflowDescriptionTests(unittest.TestCase):
             "native": {
                 "status": "available",
                 "runtime_checks": [
-                    {"os": "windows", "status": "passed", "product_version": "1.2.3", "surface": "cli"}
+                    runtime_check("windows")
                 ],
             }
         }
@@ -157,12 +266,12 @@ class WorkflowDescriptionTests(unittest.TestCase):
         checked = {
             "native": {
                 "status": "available",
-                "runtime_checks": [{"os": "linux", "status": "passed", "surface": "cli"}],
+                "runtime_checks": [runtime_check("linux")],
             }
         }
         result = describe_workflow(agent(surface(workflows(), checked)), "linux", "windows")
         self.assertFalse(result["host"]["matches_target"])
-        self.assertEqual(result["native_vendor"]["status"], "available")
+        self.assertEqual(result["native_vendor"]["status"], "unknown")
         self.assertFalse(result["strict_ready"])
         self.assertTrue(any("host" in item["capability"] for item in result["pending_evidence"]))
 
@@ -177,7 +286,7 @@ class WorkflowDescriptionTests(unittest.TestCase):
         checked = {
             "native": {
                 "status": "available",
-                "runtime_checks": [{"os": "linux", "status": "passed"}],
+                "runtime_checks": [runtime_check("linux")],
             }
         }
         result = describe_workflow(agent(surface(workflows(), checked)), "linux", "linux-wsl")
@@ -189,7 +298,7 @@ class WorkflowDescriptionTests(unittest.TestCase):
         checked = {
             "native": {
                 "status": "available",
-                "runtime_checks": [{"os": "openbsd", "status": "passed"}],
+                "runtime_checks": [runtime_check("openbsd")],
             }
         }
         result = describe_workflow(agent(surface(workflows(), checked)), "bsd", "bsd-openbsd")
@@ -201,7 +310,7 @@ class WorkflowDescriptionTests(unittest.TestCase):
         other = {
             "native": {
                 "status": "available",
-                "runtime_checks": [{"os": "freebsd", "status": "passed"}],
+                "runtime_checks": [runtime_check("freebsd")],
             }
         }
         result = describe_workflow(agent(surface(workflows(), other)), "bsd", "bsd-openbsd")
@@ -212,7 +321,7 @@ class WorkflowDescriptionTests(unittest.TestCase):
         checked = {
             "native": {
                 "status": "available",
-                "runtime_checks": [{"os": "illumos", "status": "passed"}],
+                "runtime_checks": [runtime_check("illumos")],
             }
         }
         result = describe_workflow(agent(surface(workflows(), checked)), "solaris", "solaris-illumos")

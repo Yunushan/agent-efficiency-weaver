@@ -19,6 +19,7 @@ from .integrations import IntegrationSpec, load_integrations
 from .models import check_model
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
 _MODEL = re.compile(r"^~?[A-Za-z0-9][A-Za-z0-9._:+@/-]*$")
 _MODEL_SECRET = re.compile(
     r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|"
@@ -40,6 +41,7 @@ _PATHS = {
     "kiro-json": ".kiro/agents/{name}.json",
     "qoder-markdown": ".qoder/agents/{name}.md",
     "antigravity-markdown": ".agents/agents/{name}.md",
+    "devin-markdown": ".devin/agents/{name}.md",
 }
 _ROW_KEYS = {"product_id", "surface_id", "state", "format", "path_template", "model_field", "model_style",
              "effort_field", "efforts", "model_behavior", "reasoning_behavior", "permission_behavior",
@@ -160,7 +162,7 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
         for field in ("model_behavior", "reasoning_behavior", "permission_behavior"):
             _text(row[field], field, maximum=2000)
         reserved = _strings(row["reserved_names"], "Reserved agent names")
-        if any(not _ID.fullmatch(item) for item in reserved):
+        if any(not _HOST_RESERVED_NAME.fullmatch(item) for item in reserved):
             raise WeaverError("Invalid reserved agent name")
         evidence = _evidence(row["evidence"])
         if state in {"native", "manual"} and not evidence["sources"]:
@@ -191,6 +193,8 @@ def agent_inventory(root: Path) -> dict[str, Any]:
 
 def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, effort: str | None,
                      provider_id: str | None, snapshot: Mapping[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:
+    if row["format"] == "devin-markdown" and model_id == "inherit":
+        raise WeaverError("Devin custom subagents omit model for the router/admin default; inherit is not a documented model selector")
     inherited = model_id in {None, "inherit"}
     if row["model_field"] is None and not inherited:
         raise WeaverError("This custom-agent format ignores or does not support an explicit model")
@@ -280,6 +284,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields_any.update(mode="subagent", permission=permission)
     elif format_name == "qoder-markdown":
         fields_any.update(tools=["Read", "Grep", "Glob"], mcpServers=[])
+    elif format_name == "devin-markdown":
+        fields_any["allowed-tools"] = ["read", "grep", "glob"]
     elif format_name == "antigravity-markdown":
         fields_any.update(model=model or "inherit", tools=["view_file", "grep_search"], subagent=True,
                           mainAgent=False, commandExecutionPolicy="off", mcpServers=[])
@@ -330,7 +336,35 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
              "Permission behavior: " + row["permission_behavior"],
              "Tool filters and prompt instructions do not establish an OS sandbox. Parent policy, managed settings, "
              "and the host's installed version still apply. This file grants no new authorization.",
-             "The default model and reasoning are inherited. No maximum reasoning is selected automatically."]
+             "Model and reasoning defaults follow the selected host behavior described above. "
+             "No maximum reasoning is selected automatically."]
+    if row["format"] == "devin-markdown":
+        lines.extend(["", "Devin Desktop must use the Devin Local agent, with Subagents (Preview) enabled "
+                      "through Devin Settings by the operator. Managed access and workspace trust still apply. "
+                      "This export does not change those settings. Custom subagents are experimental.",
+                      "Omitting model selects the configured default subagent model through a user override, "
+                      "the router or an admin-pinned default; it does not request the parent model. "
+                      "No inherit token or reasoning field is emitted.",
+                      "The profile's allowed-tools is a true tool restriction. The same field on an inline "
+                      "Skill has different auto-approval semantics and must not be substituted for this profile."])
+    if spec.id == "perplexity" and surface == "agent-api" and state == "manual":
+        lines.extend(["", "## Manual Agent API Profile", "",
+                      "In the API Portal, open Profiles > Create profile. Set the model, system instructions, "
+                      "tools, Skills, managed connectors and loop budget, then save the Profile and copy its ID. "
+                      "An authorized project admin manages saved resources. Paste the user supplied role below "
+                      "into the Profile's instructions; this handoff is not a complete Profile export or upload schema.",
+                      "To reference a saved version, the documented POST /v1/agent request contains the following "
+                      "reference object. Replace both placeholders using the saved Profile; this is an example "
+                      "for manual review and is never submitted by Weaver:",
+                      "```json", json.dumps({"profile": {"type": "custom", "id": "profile_REPLACE_WITH_YOUR_PROFILE_ID",
+                                                         "version": "REPLACE_WITH_SAVED_VERSION"},
+                                              "input": "REPLACE_WITH_YOUR_TASK"}, indent=2), "```",
+                      "A request uses either profile or effort, not both. Omitting version or choosing latest "
+                      "tracks the latest saved version. Request fields override Profile defaults; tools merge "
+                      "per tool instead of replacing the complete tool set, and a connector with the same ID "
+                      "replaces that Profile connector. An empty request tools list does not revoke ambient "
+                      "Profile access. A Profile is not an authorization boundary; tool approvals and connected "
+                      "account permissions still apply. No connectors, tools, approvals or services are enabled here."])
     if checked is not None:
         lines.extend(["", f"Model validation provider: {checked['provider_id']}",
                       "Provider validation does not change the parent's provider or prove availability, entitlement, "

@@ -296,6 +296,8 @@ def _toml(model_id: str) -> str:
             'name = "OpenRouter"',
             f"base_url = {_toml_string(DEFAULT_BASE_URL)}",
             f"env_key = {_toml_string(DEFAULT_SECRET_ENV)}",
+            'wire_api = "responses"',
+            "supports_websockets = false",
             "",
         ]
     )
@@ -313,7 +315,8 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
         "state": "available" if route.native_toml else "manual",
         "sources": list(route.sources),
         "checked_on": "2026-10-26" if agent_id in _EXPANDED_ROUTE_IDS else CHECKED_ON,
-        "fixture_tests": ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"],
+        "fixture_tests": (["tests/test_providers.py", "tests/test_expanded_providers.py"] if agent_id == "codex" else
+                          ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"]),
     }
 
 
@@ -356,7 +359,7 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
-_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code"})
+_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
 _ROUTES = {
     "kilo": _Route(
         None,
@@ -595,8 +598,8 @@ _ROUTES = {
         "Use the raw OpenRouter model ID for `model` in `config.toml`; the provider "
         "block supplies OpenRouter.",
         (
-            "Place the staged `config.toml` fragment in the documented Codex config "
-            "scope, or merge the equivalent keys.",
+            "Review and merge the staged `config.toml` fragment into user-level "
+            "`~/.codex/config.toml`; project-local provider definitions are ignored.",
             "Set `OPENROUTER_API_KEY` in the process environment; `env_key` tells Codex "
             "which variable to read.",
             "Do not put the key in the TOML file.",
@@ -604,18 +607,60 @@ _ROUTES = {
         (("OPENROUTER_API_KEY", "Read by Codex through `env_key`."),),
         "Use `env_key` and the process environment. Never write the key into the TOML "
         "fragment.",
-        None,
-        "`base_url` is the documented OpenRouter OpenAI-compatible endpoint.",
+        "https://openrouter.ai/api/v1/responses",
+        "The provider uses the Responses API at `https://openrouter.ai/api/v1/responses`; "
+        "WebSockets are disabled for this documented route.",
         (
             "The native TOML fragment contains no credential.",
             "Use an explicit raw OpenRouter model ID; no model is chosen automatically.",
+            "With `env_key` authentication, Codex does not fetch the OpenRouter model catalog. "
+            "Custom aliases can require matching Codex catalog metadata; a generic model-list "
+            "snapshot does not provide that client metadata or prove compatibility.",
         ),
         (
             "https://openrouter.ai/docs/cookbook/coding-agents/codex-cli",
             "https://developers.openai.com/codex/config-reference",
+            "https://openrouter.ai/docs/cookbook/coding-agents/codex-desktop",
             _OPENROUTER,
         ),
         True,
+    ),
+    "chatgpt": _Route(
+        ("desktop", "work-local"),
+        "",
+        "For local Work or Codex in the ChatGPT desktop app, use the raw OpenRouter "
+        "model ID in user-level `~/.codex/config.toml`. The managed model picker alone "
+        "does not configure a custom inference provider.",
+        (
+            "Review existing user-level configuration and deliberately merge `model`, "
+            '`model_provider = "openrouter"`, and `[model_providers.openrouter]`; '
+            "project-local provider definitions are ignored.",
+            'Set the provider table fields `name = "OpenRouter"`, '
+            '`base_url = "https://openrouter.ai/api/v1"`, `wire_api = "responses"`, '
+            '`supports_websockets = false`, and `env_key = "OPENROUTER_API_KEY"`.',
+            "Supply the credential through the documented local authentication flow so "
+            "it is visible to the desktop process, then restart the app and choose a new local Work or Codex task.",
+        ),
+        (("OPENROUTER_API_KEY", "Referenced by the user-level provider's env_key; never read or written by Weaver."),),
+        "The API/provider credential path is distinct from signing in with a ChatGPT "
+        "workspace through a gateway. Do not put an API key into this repository.",
+        "https://openrouter.ai/api/v1/responses",
+        "Local Work and Codex share local configuration. This handoff uses OpenRouter's "
+        "stateless Responses API; it does not redirect all app, MCP, plugin or browser traffic.",
+        (
+            "This is a manual local Work/Codex handoff, not a Chat conversation, web or Work Cloud provider route.",
+            "With env_key authentication, OpenRouter catalog discovery is not fetched by Codex. "
+            "Unrecognized aliases need matching Codex model metadata; account access, reasoning "
+            "subsets and tool compatibility require separate evidence.",
+            "No settings are installed, credentials read, host processes launched or inference performed.",
+        ),
+        (
+            "https://learn.chatgpt.com/docs/auth",
+            "https://learn.chatgpt.com/docs/amazon-bedrock",
+            "https://learn.chatgpt.com/docs/enterprise/connect-to-a-gateway",
+            "https://learn.chatgpt.com/docs/enterprise/gateway-compatibility",
+            "https://openrouter.ai/docs/cookbook/coding-agents/codex-desktop",
+        ),
     ),
     "abacus": _Route(
         ("desktop",),

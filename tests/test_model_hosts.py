@@ -86,7 +86,7 @@ class ModelHostTests(unittest.TestCase):
 
     def test_unknown_reasoning_is_explicit_without_exporter_or_effort_claim(self) -> None:
         hosts = {(host["product_id"], host["surface_id"]): host for host in load_model_hosts(ROOT)}
-        for pair in (("jetbrains-air", "desktop"), ("openhands", "cli"), ("perplexity", "app")):
+        for pair in (("jetbrains-air", "desktop"), ("openhands", "cli")):
             self.assertEqual(hosts[pair]["reasoning"]["state"], "unknown")
             self.assertEqual(hosts[pair]["reasoning"]["controls"], [])
         self.assertTrue(all(host["selection"]["state"] == "manual" for host in hosts.values()))
@@ -96,6 +96,41 @@ class ModelHostTests(unittest.TestCase):
         self.assertEqual(hosts[("devin", "desktop-local")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertNotIn("/effort", hosts[("antigravity", "ide")]["selection"]["commands"])
         self.assertNotIn("/effort", hosts[("kiro", "ide")]["selection"]["commands"])
+
+    def test_perplexity_web_reasoning_presets_are_not_native_app_or_api_controls(self) -> None:
+        host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("perplexity", "app"))
+        self.assertEqual(host["reasoning"]["state"], "manual")
+        variant, effort = host["reasoning"]["controls"]
+        self.assertEqual(variant["kind"], "variant")
+        self.assertEqual(variant["values"], ["Light", "Standard", "High", "Ultra"])
+        self.assertEqual(effort["kind"], "effort")
+        self.assertIsNone(effort["values"])
+        self.assertTrue(all("web" in control["field"] for control in (variant, effort)))
+        self.assertIn("Desktop retains the regular model picker", host["selection"]["mechanism"])
+        self.assertIn("custom API credentials authenticate tools", host["selection"]["mechanism"])
+
+    def test_byok_picker_and_remote_model_are_not_arbitrary_provider_routes(self) -> None:
+        hosts = {(host["product_id"], host["surface_id"]): host for host in load_model_hosts(ROOT)}
+        qoder = hosts[("qoder", "cli")]["selection"]
+        self.assertIn("live catalog determines", qoder["mechanism"])
+        self.assertIn("https://docs.qoder.com/cli/custom-models", qoder["sources"])
+        studio = hosts[("lm-studio", "desktop")]["selection"]
+        self.assertIn("fixed model choices", studio["mechanism"])
+        self.assertIn("not an arbitrary", hosts[("lm-studio", "bionic")]["selection"]["mechanism"])
+
+    def test_openrouter_responses_accepts_documented_effort_without_inference_claim(self) -> None:
+        snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/model", "reasoning": {
+            "state": "declared", "efforts": ["low", "high"], "toggle": True,
+            "budget_tokens": {"minimum": 1}, "modes": ["standard", "pro"]}}]}
+        checked = check_model(ROOT, "openrouter", "fixture/model", snapshot=snapshot,
+                              protocol="openai-responses", effort="high")
+        self.assertEqual(checked["reasoning_payload"], {"reasoning": {"effort": "high"}})
+        self.assertFalse(checked["inference_tested"])
+        self.assertEqual(checked["availability"], "unknown")
+        for settings in ({"budget_tokens": 1024}, {"reasoning_enabled": True}, {"mode": "pro"}):
+            with self.subTest(settings=settings), self.assertRaises(WeaverError):
+                check_model(ROOT, "openrouter", "fixture/model", snapshot=snapshot,
+                            protocol="openai-responses", **settings)
 
     def test_managed_host_and_backend_catalogs_remain_separate(self) -> None:
         inventory = model_inventory(ROOT)
