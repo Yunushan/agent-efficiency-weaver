@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "requested_items": [
+    {
+      "id": "codex", "label": "Codex / OpenAI Codex",
+      "aliases": ["codex", "OpenAIcodex", "openai-codex", "OpenAI Codex"],
+      "targets": [{"product_id": "codex", "surface_id": "cli"}, {"product_id": "codex", "surface_id": "desktop"}, {"product_id": "codex", "surface_id": "ide"}]
+    },
+    {
+      "id": "chatgpt", "label": "ChatGPT / Work",
+      "aliases": ["chatgpt", "ChatGPT Work", "ChatGPT/Work", "Work"],
+      "targets": [{"product_id": "chatgpt", "surface_id": "desktop"}, {"product_id": "chatgpt", "surface_id": "web"}, {"product_id": "chatgpt", "surface_id": "work-local"}, {"product_id": "chatgpt", "surface_id": "work-cloud"}]
+    },
+    {
+      "id": "kilo", "label": "Kilo AI / Kilo Code",
+      "aliases": ["kilo", "kiloAI", "Kilo AI", "Kilo Code"],
+      "targets": [{"product_id": "kilo", "surface_id": "cli"}, {"product_id": "kilo", "surface_id": "ide"}]
+    },
+    {
+      "id": "opencode", "label": "OpenCode", "aliases": ["opencode", "Open Code"],
+      "targets": [{"product_id": "opencode", "surface_id": "cli"}]
+    },
+    {
+      "id": "vscode-agents", "label": "VS Code agents (named extension surfaces)",
+      "aliases": ["VSCodeagents", "VS Code agents", "vscode-agents"],
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "cline", "surface_id": "ide"}, {"product_id": "kilo", "surface_id": "ide"}, {"product_id": "codex", "surface_id": "ide"}]
+    },
+    {
+      "id": "cline", "label": "Cline", "aliases": ["cline"],
+      "targets": [{"product_id": "cline", "surface_id": "ide"}]
+    },
+    {
+      "id": "factory", "label": "Factory Droid", "aliases": ["factory", "FactoryDroid", "Factory Droid", "droid"],
+      "targets": [{"product_id": "factory", "surface_id": "cli"}]
+    },
+    {
+      "id": "devin", "label": "Devin Desktop", "aliases": ["devin", "DevinDesktop", "Devin Desktop"],
+      "targets": [{"product_id": "devin", "surface_id": "desktop-local"}]
+    },
+    {
+      "id": "jetbrains-air", "label": "JetBrains Air", "aliases": ["jetbrains-air", "JetBrainsAir", "JetBrains Air"],
+      "targets": [{"product_id": "jetbrains-air", "surface_id": "desktop"}]
+    },
+    {
+      "id": "copilot", "label": "GitHub Copilot", "aliases": ["copilot", "GitHubCopilot", "GitHub Copilot"],
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}]
+    },
+    {
+      "id": "cursor", "label": "Cursor", "aliases": ["cursor"],
+      "targets": [{"product_id": "cursor", "surface_id": "ide"}]
+    },
+    {
+      "id": "openhands", "label": "OpenHands", "aliases": ["openhands", "Open Hands"],
+      "targets": [{"product_id": "openhands", "surface_id": "cli"}]
+    },
+    {
+      "id": "zed", "label": "Zed AI", "aliases": ["zed", "ZedAI", "Zed AI"],
+      "targets": [{"product_id": "zed", "surface_id": "ide"}]
+    },
+    {
+      "id": "claude-code", "label": "Claude Code", "aliases": ["claude-code", "ClaudeCode", "Claude Code"],
+      "targets": [{"product_id": "claude-code", "surface_id": "cli"}]
+    },
+    {
+      "id": "kiro", "label": "Kiro", "aliases": ["kiro"],
+      "targets": [{"product_id": "kiro", "surface_id": "ide"}]
+    },
+    {
+      "id": "antigravity", "label": "Google Antigravity", "aliases": ["antigravity", "GoogleAntigravity", "Google Antigravity"],
+      "targets": [{"product_id": "antigravity", "surface_id": "ide"}]
+    },
+    {
+      "id": "hermes", "label": "Hermes", "aliases": ["hermes", "Hermes Agent"],
+      "targets": [{"product_id": "hermes", "surface_id": "cli"}]
+    },
+    {
+      "id": "qwen-code", "label": "Qwen Code", "aliases": ["qwen-code", "QwenCode", "Qwen Code"],
+      "targets": [{"product_id": "qwen-code", "surface_id": "cli"}]
+    },
+    {
+      "id": "qoder", "label": "Qoder", "aliases": ["qoder"],
+      "targets": [{"product_id": "qoder", "surface_id": "cli"}, {"product_id": "qoder", "surface_id": "ide"}]
+    },
+    {
+      "id": "kimi-code", "label": "Kimi Code", "aliases": ["kimi-code", "KimiCode", "Kimi Code"],
+      "targets": [{"product_id": "kimi-code", "surface_id": "cli"}]
+    },
+    {
+      "id": "openrouter", "label": "OpenRouter", "aliases": ["openrouter", "Open Router"],
+      "targets": [{"product_id": "openrouter", "surface_id": "gateway"}]
+    },
+    {
+      "id": "perplexity", "label": "Perplexity", "aliases": ["perplexity"],
+      "targets": [{"product_id": "perplexity", "surface_id": "app"}, {"product_id": "perplexity", "surface_id": "agent-api"}, {"product_id": "perplexity", "surface_id": "orchestrator"}]
+    },
+    {
+      "id": "lm-studio", "label": "LM Studio", "aliases": ["lm-studio", "LMStudio", "LM Studio"],
+      "targets": [{"product_id": "lm-studio", "surface_id": "desktop"}, {"product_id": "lm-studio", "surface_id": "bionic"}, {"product_id": "lm-studio", "surface_id": "api"}]
+    }
+  ]
+}

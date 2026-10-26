@@ -1,0 +1,1177 @@
+{
+  "schema_version": 1,
+  "definitions": [
+    {
+      "product_id": "abacus",
+      "surface_id": "desktop",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "aider",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "amp",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "anthropic",
+      "surface_id": "api",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Provider routing is separate from custom-agent definitions.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "Provider API surfaces are not local custom-agent hosts.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://platform.claude.com/docs/en/api/messages/create",
+          "https://platform.claude.com/docs/en/api/models/list"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "antigravity-markdown",
+      "path_template": ".agents/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "tier",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "model inherits by default; only documented flash/pro tiers are accepted as explicit selections, not arbitrary provider model IDs.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only view_file/grep_search are selected; mainAgent: false, subagent: true, commandExecutionPolicy: off and mcpServers: [] narrow capabilities. Host validation and parent policy still apply.",
+      "reserved_names": [
+        "research",
+        "browser",
+        "self"
+      ],
+      "evidence": {
+        "sources": [
+          "https://antigravity.google/docs/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "desktop",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "web",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "work-cloud",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "work-local",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "claude-markdown",
+      "path_template": ".claude/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "effort",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "model: inherit follows the parent. Host environment, invocation and organization policy can override or substitute a selected model.",
+      "reasoning_behavior": "effort supports a model-dependent subset; host CLAUDE_CODE_EFFORT_LEVEL takes precedence. No effort is chosen by default.",
+      "permission_behavior": "Only Read/Glob/Grep tools are selected. Approval behavior follows the parent and host policy; permissionMode is not emitted.",
+      "reserved_names": [
+        "explore",
+        "plan",
+        "general-purpose",
+        "claude",
+        "statusline-setup"
+      ],
+      "evidence": {
+        "sources": [
+          "https://code.claude.com/docs/en/sub-agents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "ide",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "Current official Cline docs limit subagents to CLI and Desktop; VS Code and JetBrains extensions do not use them.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://github.com/cline/cline/blob/main/docs/features/subagents.mdx"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "codex-toml",
+      "path_template": ".codex/agents/{name}.toml",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "model_reasoning_effort",
+      "efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
+      "reserved_names": [
+        "default",
+        "worker",
+        "explorer"
+      ],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "state": "native",
+      "format": "codex-toml",
+      "path_template": ".codex/agents/{name}.toml",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "model_reasoning_effort",
+      "efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
+      "reserved_names": [
+        "default",
+        "worker",
+        "explorer"
+      ],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "codex-toml",
+      "path_template": ".codex/agents/{name}.toml",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "model_reasoning_effort",
+      "efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
+      "reserved_names": [
+        "default",
+        "worker",
+        "explorer"
+      ],
+      "evidence": {
+        "sources": [
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "state": "native",
+      "format": "vscode-markdown",
+      "path_template": ".github/agents/{name}.agent.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only read and search tools are selected; tool behavior depends on the selected VS Code harness and host policy.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://code.visualstudio.com/docs/agent-customization/custom-agents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "cursor-markdown",
+      "path_template": ".cursor/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "readonly: true restricts file edits and state-changing shell commands. Parent tools including MCP remain subject to host policy; no OS sandbox is asserted.",
+      "reserved_names": [
+        "explore",
+        "browser"
+      ],
+      "evidence": {
+        "sources": [
+          "https://cursor.com/docs/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "devin",
+      "surface_id": "desktop-local",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.devin.ai/llms.txt"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "factory-markdown",
+      "path_template": ".factory/droids/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "reasoningEffort",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "model_behavior": "model: inherit follows the parent; explicit managed IDs or configured custom: IDs use Factory model configuration.",
+      "reasoning_behavior": "reasoningEffort accepts low/medium/high only on a supporting explicit model; Factory ignores it with model: inherit, so that combination is rejected.",
+      "permission_behavior": "tools: read-only and mcpServers: [] narrow tools. Factory always includes TodoWrite and Skill; this is not an OS sandbox.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.factory.com/harness/subagents"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "google",
+      "surface_id": "api",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Provider routing is separate from custom-agent definitions.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "Provider API surfaces are not local custom-agent hosts.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://ai.google.dev/api/models",
+          "https://ai.google.dev/api/generate-content"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "goose",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Pass the role through delegate_task goal/context. No persistent named definition file is established; child model/tool configuration remains host-owned.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "jetbrains-air",
+      "surface_id": "desktop",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Air runs a selected external agent. Apply that agent's supported role configuration; ACP registration is not a reusable subagent definition.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "junie",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "kilo-markdown",
+      "path_template": ".kilo/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "provider/model",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "mode: subagent; edit/bash/task/webfetch/websearch/todowrite are denied and read/glob/grep allowed. Other ambient tools and merged settings require host review; no complete sandbox claim.",
+      "reserved_names": [
+        "code",
+        "plan",
+        "debug",
+        "ask",
+        "orchestrator",
+        "explore",
+        "general"
+      ],
+      "evidence": {
+        "sources": [
+          "https://kilo.ai/docs/customize/custom-modes"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "kilo-markdown",
+      "path_template": ".kilo/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "provider/model",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "mode: subagent; edit/bash/task/webfetch/websearch/todowrite are denied and read/glob/grep allowed. Other ambient tools and merged settings require host review; no complete sandbox claim.",
+      "reserved_names": [
+        "code",
+        "plan",
+        "debug",
+        "ask",
+        "orchestrator",
+        "explore",
+        "general"
+      ],
+      "evidence": {
+        "sources": [
+          "https://kilo.ai/docs/customize/custom-modes"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "kimi-markdown",
+      "path_template": ".kimi-code/agents/{name}.md",
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Kimi ignores a custom-agent model field. Explicit model overrides are rejected; model/provider inherit the session.",
+      "reasoning_behavior": "No per-definition reasoning override is documented; explicit effort requests are rejected.",
+      "permission_behavior": "Read/Grep/Glob only; subagents: [] and override: false. This does not grant workspace trust. Kimi template variables in the prompt are interpreted by the host.",
+      "reserved_names": [
+        "agent",
+        "coder",
+        "explore",
+        "plan"
+      ],
+      "evidence": {
+        "sources": [
+          "https://moonshotai.github.io/kimi-code/en/customization/agents.html"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "kiro-json",
+      "path_template": ".kiro/agents/{name}.json",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitted model uses the Kiro default; explicit models must exist in the host model service. Availability is not tested.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only read tools are selected. includeMcpJson and includePowers are false; fs_write/shell/mcp/subagent are denied. Workspace definitions require host workspace trust; no trust is granted.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://kiro.dev/docs/custom-agents/",
+          "https://kiro.dev/docs/custom-agents/configuration-reference/"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": "IDE >=1.0",
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "bionic",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "desktop",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "openai",
+      "surface_id": "api",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Provider routing is separate from custom-agent definitions.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "Provider API surfaces are not local custom-agent hosts.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://developers.openai.com/api/reference/resources/models/methods/list",
+          "https://developers.openai.com/api/docs/guides/reasoning"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "opencode-markdown",
+      "path_template": ".opencode/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "provider/model",
+      "effort_field": "reasoningEffort",
+      "efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Additional reasoningEffort is provider/model-specific and requires explicit model evidence; omitted by default.",
+      "permission_behavior": "mode: subagent; wildcard permission denies tools first, then read/glob/grep/list are allowed. Parent and managed policy still apply.",
+      "reserved_names": [
+        "build",
+        "plan",
+        "general",
+        "explore",
+        "compaction",
+        "title",
+        "summary"
+      ],
+      "evidence": {
+        "sources": [
+          "https://opencode.ai/docs/agents/"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "openrouter",
+      "surface_id": "gateway",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Provider routing is separate from custom-agent definitions.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "Provider API surfaces are not local custom-agent hosts.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://openrouter.ai/docs/quickstart"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "agent-api",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "app",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "orchestrator",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "pi",
+      "surface_id": "cli",
+      "state": "unknown",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "No native custom-agent model schema established.",
+      "reasoning_behavior": "No custom-agent reasoning field is exported.",
+      "permission_behavior": "No native permission or discovery boundary is claimed.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [],
+        "checked_on": null,
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "qoder-markdown",
+      "path_template": ".qoder/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "effort",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "effort is a model-dependent field; explicit effort needs model evidence. No effort is selected by default.",
+      "permission_behavior": "Only Read/Grep/Glob are selected with mcpServers: []; permissionMode is omitted and inherits parent policy. A permissive parent cannot be tightened through permissionMode.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.qoder.com/cli/subagent"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "ide",
+      "state": "native",
+      "format": "qoder-markdown",
+      "path_template": ".qoder/agents/{name}.md",
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model follows the conversation. The IDE display-name/model-id notation is not projected into an unverified model selector; explicit model overrides are rejected.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only Read/Grep/Glob are selected with mcpServers: []; parent and organization permissions still apply.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.qoder.com/extensions/subagent"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "qwen-markdown",
+      "path_template": ".qwen/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "model: inherit is the default; configured raw IDs or authType:model-id selectors are host-owned. Provider validation does not change Qwen authentication.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only read_file/grep_search/glob are selected. No MCP tools are named; parent approval mode and trust still apply.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "zed",
+      "surface_id": "ide",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Model selection remains with the parent or documented host UI.",
+      "reasoning_behavior": "No per-definition effort field is exported.",
+      "permission_behavior": "Zed profiles configure a main-thread model and available tools through UI; they are not a documented persistent subagent prompt-file format.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://zed.dev/docs/ai/agent-profiles"
+        ],
+        "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    }
+  ]
+}

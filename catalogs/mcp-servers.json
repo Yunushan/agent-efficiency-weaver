@@ -5,6 +5,12 @@
       "kind": "remote",
       "url": "https://mcp.context7.com/mcp",
       "default_enabled": false
+    },
+    "perplexity": {
+      "description": "Official hosted Perplexity MCP. Authenticate manually with OAuth or an API key through the host; API organization billing and tool permissions require review. Source: https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server",
+      "kind": "remote",
+      "url": "https://api.perplexity.ai/mcp",
+      "default_enabled": false
     }
   }
 }

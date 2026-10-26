@@ -16,5 +16,11 @@
   "pi": {"path": "pi/.pi/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
   "codex": {"path": "codex/.codex/config.toml", "empty": "[mcp_servers]\n", "enabled": "[mcp_servers.\"context7\"]\nurl = \"https://mcp.context7.com/mcp\"\n"},
   "abacus": {"path": "abacus/.abacusai/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
-  "claude-code": {"path": "claude-code/.mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}}
+  "claude-code": {"path": "claude-code/.mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}},
+  "factory": {"path": "factory/.factory/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}},
+  "jetbrains-air": {"path": "jetbrains-air/.air/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
+  "hermes": {"path": "hermes/fragments/config.yaml", "empty": {"mcp_servers": {}}, "enabled": {"mcp_servers": {"context7": {"url": "https://mcp.context7.com/mcp", "enabled": true}}}},
+  "qwen-code": {"path": "qwen-code/.qwen/settings.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"httpUrl": "https://mcp.context7.com/mcp"}}}},
+  "kimi-code": {"path": "kimi-code/.kimi-code/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
+  "lm-studio": {"path": "lm-studio/fragments/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}}
 }

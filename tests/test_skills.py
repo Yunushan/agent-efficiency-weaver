@@ -33,21 +33,35 @@ NATIVE_TARGETS = {
     ("claude-code", "cli"): "CLAUDE.md",
     ("cline", "ide"): "AGENTS.md",
     ("codex", "cli"): "AGENTS.md",
+    ("codex", "desktop"): "AGENTS.md",
+    ("codex", "ide"): "AGENTS.md",
     ("copilot", "vscode"): ".github/copilot-instructions.md",
     ("cursor", "ide"): "AGENTS.md",
     ("devin", "desktop-local"): "AGENTS.md",
     ("goose", "cli"): ".goosehints",
+    ("factory", "cli"): "AGENTS.md",
+    ("hermes", "cli"): "AGENTS.md",
+    ("jetbrains-air", "desktop"): "AGENTS.md",
     ("junie", "cli"): ".junie/AGENTS.md",
     ("kilo", "cli"): "AGENTS.md",
     ("kilo", "ide"): "AGENTS.md",
+    ("kimi-code", "cli"): "AGENTS.md",
     ("opencode", "cli"): "AGENTS.md",
     ("openhands", "cli"): "AGENTS.md",
     ("pi", "cli"): "AGENTS.md",
+    ("qwen-code", "cli"): "QWEN.md",
     ("zed", "ide"): ".rules",
 }
 
 MANUAL_TARGETS = {
+    ("chatgpt", "desktop"),
+    ("chatgpt", "web"),
+    ("chatgpt", "work-local"),
+    ("chatgpt", "work-cloud"),
     ("kiro", "ide"),
+    ("lm-studio", "bionic"),
+    ("lm-studio", "api"),
+    ("perplexity", "agent-api"),
     ("qoder", "cli"),
 }
 
@@ -289,11 +303,10 @@ class InstructionBundleTests(unittest.TestCase):
         expected = {
             (agent_id, surface.id)
             for agent_id, spec in self.integrations.items()
-            if spec.kind == "agent"
+            if spec.kind in {"agent", "hybrid"}
             for surface in (spec.surfaces.values() if isinstance(spec.surfaces, dict) else spec.surfaces)
         }
         self.assertEqual(covered, expected)
-        self.assertEqual(len({agent for agent, _ in covered}), 19)
         self.assertEqual(gaps & set(NATIVE_TARGETS), set())
         self.assertEqual(gaps & MANUAL_TARGETS, set())
 

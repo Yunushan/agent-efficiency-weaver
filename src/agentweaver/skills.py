@@ -371,6 +371,15 @@ def _instruction_text(
                 *[f"- {url}" for url in surface.capabilities["instructions"].sources],
             ]
         )
+    if spec.id == "chatgpt":
+        lines.extend(
+            [
+                "",
+                "ChatGPT local Work and hosted Work are separate surfaces. Apply this handoff "
+                "through the selected surface's documented controls. Hosted Work does not read "
+                "local .codex configuration, and this bundle claims no automatic repository discovery.",
+            ]
+        )
     if spec.id == "aider":
         read_paths = [
             "CONVENTIONS.md",
@@ -401,6 +410,11 @@ def _instruction_text(
             lines.append(
                 f"- {skill.name}: {skill.description} "
                 f"(project path: {native_skills_path}/{skill.name}/{SKILL_FILE})"
+            )
+        if spec.id == "hermes":
+            lines.append(
+                "Hermes project Skills require an explicit `hermes skills trust` decision before "
+                "discovery. This bundle does not grant project trust or modify trusted_project_dirs."
             )
     else:
         lines.append(
@@ -437,7 +451,7 @@ def render_instruction_bundle(
 ) -> list[RenderedArtifact]:
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
-    if spec.kind != "agent":
+    if spec.kind not in {"agent", "hybrid"}:
         raise WeaverError("Provider gateways cannot render instruction bundles; use the provider command")
     target = spec.surface(surface)
     facts = _profile_facts(profile)

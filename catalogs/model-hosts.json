@@ -1,0 +1,1850 @@
+{
+  "schema_version": 1,
+  "hosts": [
+    {
+      "product_id": "abacus",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a Desktop model through the configured provider; CoWork effort presets are host routing choices.",
+        "fields": [],
+        "commands": [
+          "/providers",
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://abacus.ai/help/abacusai-desktop/providers"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Desktop CoWork effort selector",
+            "values": [
+              "Low",
+              "Medium",
+              "High"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://abacus.ai/help/platform-updates"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "aider",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select an explicit provider/model in the CLI; reasoning flags apply only to models accepting those settings.",
+        "fields": [
+          "model"
+        ],
+        "commands": [
+          "--model",
+          "/model",
+          "--reasoning-effort",
+          "--thinking-tokens"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://aider.chat/docs/config/reasoning.html"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "--reasoning-effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "--thinking-tokens",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://aider.chat/docs/config/reasoning.html"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "amp",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a Dial preset or configure model routing; each Dial preset combines a model with reasoning and other host behavior.",
+        "fields": [],
+        "commands": [
+          "amp config model-providers"
+        ],
+        "ui_steps": [
+          "Choose the Dial mode"
+        ],
+        "sources": [
+          "https://ampcode.com/docs/customize/model-routing",
+          "https://ampcode.com/docs/models-and-subagents"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Dial mode",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "ultra"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://ampcode.com/docs/customize/model-routing",
+          "https://ampcode.com/docs/models-and-subagents"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "anthropic",
+      "surface_id": "api",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Set model in Messages requests; authenticated paginated model discovery is distinct from host subscription catalogs.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://platform.claude.com/docs/en/api/models/list",
+          "https://platform.claude.com/docs/en/build-with-claude/extended-thinking",
+          "https://platform.claude.com/docs/en/build-with-claude/effort"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "output_config.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "thinking.budget_tokens",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "mode",
+            "field": "thinking.type",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://platform.claude.com/docs/en/api/models/list",
+          "https://platform.claude.com/docs/en/build-with-claude/extended-thinking",
+          "https://platform.claude.com/docs/en/build-with-claude/effort"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use the conversation model selector; supported thinking levels depend on the selected model and IDE availability.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model selector under the conversation prompt",
+          "Choose an available model and supported thinking level"
+        ],
+        "sources": [
+          "https://antigravity.google/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Thinking level",
+            "values": [
+              "Low",
+              "Medium",
+              "High"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://antigravity.google/docs/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer",
+          "Use Advanced to inspect available models and reasoning options"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Work reasoning effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "Power preset",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "web",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer",
+          "Use Advanced to inspect available models and reasoning options"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Work reasoning effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "Power preset",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "work-cloud",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer",
+          "Use Advanced to inspect available models and reasoning options"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Work reasoning effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "Power preset",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "chatgpt",
+      "surface_id": "work-local",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Inspect the Work model and reasoning picker; its signed-in account/workspace catalog is separate from OpenAI API discovery.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer",
+          "Use Advanced to inspect available models and reasoning options"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Work reasoning effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "Power preset",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use the model picker or an explicit model setting; session and persistent effort scopes differ and available levels depend on the model.",
+        "fields": [
+          "model",
+          "effortLevel",
+          "modelSettings"
+        ],
+        "commands": [
+          "/model",
+          "--model",
+          "/effort",
+          "--effort"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://code.claude.com/docs/en/model-config"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "/effort or --effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://code.claude.com/docs/en/model-config"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a provider and model in Cline settings; subscription sign-in and API providers have different catalogs.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open Cline settings",
+          "Choose API Provider and a model"
+        ],
+        "sources": [
+          "https://docs.cline.bot/provider-config/anthropic",
+          "https://docs.cline.bot/provider-config/openai"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "toggle",
+            "field": "Enable Extended Thinking",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.cline.bot/provider-config/anthropic"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a session model or set model in trusted configuration; provider definitions belong in user-level config because project-local provider keys are ignored.",
+        "fields": [
+          "model",
+          "model_reasoning_effort"
+        ],
+        "commands": [
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "model_reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a session model or set model in trusted configuration; provider definitions belong in user-level config because project-local provider keys are ignored.",
+        "fields": [
+          "model",
+          "model_reasoning_effort"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "model_reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a session model or set model in trusted configuration; provider definitions belong in user-level config because project-local provider keys are ignored.",
+        "fields": [
+          "model",
+          "model_reasoning_effort"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the model and reasoning control beneath the composer"
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "model_reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://learn.chatgpt.com/docs/models",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use VS Code chat model selection; signed-in managed models and configured BYOK models remain separate access paths.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the chat model picker",
+          "For a supported model open its Thinking Effort submenu"
+        ],
+        "sources": [
+          "https://code.visualstudio.com/docs/agent-customization/language-models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Thinking Effort submenu",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://code.visualstudio.com/docs/agent-customization/language-models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a model in the account-scoped picker; effort choices and model parameters depend on the model and account policy.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the model picker",
+          "Inspect the selected model parameters"
+        ],
+        "sources": [
+          "https://cursor.com/docs/models-and-pricing",
+          "https://cursor.com/docs/subagents"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Model effort selector",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Subagent model ID [effort=value]",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://cursor.com/docs/models-and-pricing",
+          "https://cursor.com/docs/subagents"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "devin",
+      "surface_id": "desktop-local",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose the session model from Devin Desktop; SWE-2 variants are model choices rather than a universal provider effort enum.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the session model dropdown"
+        ],
+        "sources": [
+          "https://docs.devin.ai/desktop/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "SWE-2 variant",
+            "values": [
+              "Medium",
+              "High",
+              "Max"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.devin.ai/desktop/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a built-in or custom model; custom model thinking settings depend on provider and model recognition.",
+        "fields": [
+          "customModels[].model"
+        ],
+        "commands": [
+          "/model",
+          "/settings"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://docs.factory.com/model-independence/byok"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "customModels[].reasoningEffort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "customModels[].enableThinking",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "customModels[].thinkingMaxTokens",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.factory.com/model-independence/byok"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "google",
+      "surface_id": "api",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a model resource from authenticated model discovery; protocol-specific reasoning fields must retain their request shape.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://ai.google.dev/api/models",
+          "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "GenerateContent generationConfig.thinkingConfig.thinkingLevel",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "GenerateContent generationConfig.thinkingConfig.thinkingBudget",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Interactions generation_config.thinking_level",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://ai.google.dev/api/models",
+          "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "goose",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a configured provider/model; provider-specific environment controls are not a common effort vocabulary.",
+        "fields": [
+          "GOOSE_PROVIDER",
+          "GOOSE_MODEL"
+        ],
+        "commands": [
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://goose-docs.ai/docs/guides/multi-model/",
+          "https://goose-docs.ai/docs/guides/environment-variables/"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "GEMINI3_THINKING_LEVEL",
+            "values": [
+              "low",
+              "high"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "mode",
+            "field": "CLAUDE_THINKING_TYPE",
+            "values": [
+              "adaptive",
+              "enabled",
+              "disabled"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://goose-docs.ai/docs/guides/multi-model/",
+          "https://goose-docs.ai/docs/guides/environment-variables/"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a configured model or use the session picker; model-specific reasoning overrides remain distinct from the dashboard catalog.",
+        "fields": [
+          "model",
+          "agent.reasoning_effort",
+          "agent.reasoning_overrides"
+        ],
+        "commands": [
+          "/model",
+          "/reasoning",
+          "/reasoning --global"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
+          "https://hermes-agent.nousresearch.com/docs/user-guide/configuration"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "agent.reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "agent.reasoning_effort.enabled",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
+          "https://hermes-agent.nousresearch.com/docs/user-guide/configuration"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "jetbrains-air",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose the agent and its model in the task toolbar; provider and agent choices determine the available model list. A shared host reasoning override has not been established.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Choose the agent and model in the new-task toolbar",
+          "Inspect Settings > AI Providers"
+        ],
+        "sources": [
+          "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+        ]
+      },
+      "reasoning": {
+        "state": "unknown",
+        "controls": [],
+        "sources": [
+          "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "junie",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use the session model picker and supported effort picker; the account catalog and Default selection can change.",
+        "fields": [],
+        "commands": [
+          "/model",
+          "/effort"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://junie.jetbrains.com/docs/junie-cli.html"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "/effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://junie.jetbrains.com/docs/junie-cli.html"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose the configured provider/model and one of its supported reasoning variants; output thinking visibility is a separate display setting.",
+        "fields": [
+          "model"
+        ],
+        "commands": [
+          "/models",
+          "/variant",
+          "--model",
+          "--variant"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://kilo.ai/docs/code-with-ai/agents/model-selection",
+          "https://kilo.ai/docs/code-with-ai/platforms/cli-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Reasoning variant",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://kilo.ai/docs/code-with-ai/agents/model-selection",
+          "https://kilo.ai/docs/code-with-ai/platforms/cli-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose the configured provider/model and one of its supported reasoning variants; output thinking visibility is a separate display setting.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the chat model picker",
+          "Choose a supported reasoning variant"
+        ],
+        "sources": [
+          "https://kilo.ai/docs/code-with-ai/agents/model-selection",
+          "https://kilo.ai/docs/code-with-ai/platforms/cli-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Reasoning variant",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://kilo.ai/docs/code-with-ai/agents/model-selection",
+          "https://kilo.ai/docs/code-with-ai/platforms/cli-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a configured model alias; native provider setup requires an explicit known context size and supported reasoning capabilities.",
+        "fields": [
+          "default_model",
+          "models.<alias>.model",
+          "models.<alias>.max_context_size"
+        ],
+        "commands": [
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://moonshotai.github.io/kimi-code/en/configuration/providers.html",
+          "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "toggle",
+            "field": "thinking.enabled",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "thinking.effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://moonshotai.github.io/kimi-code/en/configuration/providers.html",
+          "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a managed model in the IDE; the account model catalog and available effort slider levels are host controlled.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the IDE model picker",
+          "Adjust Effort below the model list when offered"
+        ],
+        "sources": [
+          "https://kiro.dev/docs/models/"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "IDE Effort slider",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://kiro.dev/docs/models/"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Discover locally available model keys with the native models endpoint; local listing and loaded/runtime availability are separate facts.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://lmstudio.ai/docs/developer/rest/list",
+          "https://lmstudio.ai/docs/developer/rest/chat",
+          "https://lmstudio.ai/docs/developer/openai-compat/responses"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Native /api/v1/chat reasoning",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Responses reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://lmstudio.ai/docs/developer/rest/list",
+          "https://lmstudio.ai/docs/developer/rest/chat",
+          "https://lmstudio.ai/docs/developer/openai-compat/responses"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "bionic",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a cloud, local or remote model per session or set a default; configurable reasoning levels appear only for supported models.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the session model picker",
+          "For a supported model choose a reasoning level"
+        ],
+        "sources": [
+          "https://lmstudio.ai/docs/bionic/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Session reasoning level",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://lmstudio.ai/docs/bionic/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a downloaded model in the desktop app; reasoning settings depend on that model and runtime capabilities.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Choose a model from the desktop model loader",
+          "Inspect supported model reasoning settings"
+        ],
+        "sources": [
+          "https://lmstudio.ai/docs/app/basics/download-model"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Model reasoning setting",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://lmstudio.ai/changelog/lmstudio"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "openai",
+      "surface_id": "api",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Set model in an API request; model-list visibility is scoped to API credentials and project access, independently of ChatGPT hosts.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://developers.openai.com/api/reference/resources/models/methods/list",
+          "https://developers.openai.com/api/docs/guides/reasoning"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Responses reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Chat Completions reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "mode",
+            "field": "Responses reasoning.mode",
+            "values": [
+              "standard",
+              "pro"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://developers.openai.com/api/reference/resources/models/methods/list",
+          "https://developers.openai.com/api/docs/guides/reasoning"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a configured provider/model; reasoning options and named variants are model dependent.",
+        "fields": [
+          "model",
+          "provider.<id>.models.<id>.options",
+          "provider.<id>.models.<id>.variants"
+        ],
+        "commands": [
+          "/models"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://opencode.ai/docs/models/"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "provider.<id>.models.<id>.options.reasoningEffort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "provider.<id>.models.<id>.variants",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://opencode.ai/docs/models/"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use the CLI first-run LLM configuration. Its README marks this CLI unmaintained; Agent Canvas and SDK controls do not establish CLI reasoning settings.",
+        "fields": [
+          "~/.openhands/agent_settings.json"
+        ],
+        "commands": [
+          "openhands"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://github.com/OpenHands/OpenHands-CLI"
+        ]
+      },
+      "reasoning": {
+        "state": "unknown",
+        "controls": [],
+        "sources": [
+          "https://github.com/OpenHands/OpenHands-CLI"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "openrouter",
+      "surface_id": "gateway",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Set an explicit gateway model ID and inspect the gateway model-list response; account and downstream provider access may differ.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
+          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "reasoning.max_tokens",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "reasoning.enabled",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "mode",
+            "field": "reasoning.mode",
+            "values": [
+              "standard",
+              "pro"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
+          "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "agent-api",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose an Agent API model or an effort preset; presets select model bundles and do not constitute a universal reasoning setting.",
+        "fields": [
+          "model",
+          "effort"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://docs.perplexity.ai/docs/agent-api/models",
+          "https://docs.perplexity.ai/docs/agent-api/effort"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Agent API effort preset",
+            "values": [
+              "fast",
+              "low",
+              "medium",
+              "high",
+              "xhigh"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.perplexity.ai/docs/agent-api/models",
+          "https://docs.perplexity.ai/docs/agent-api/effort"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "app",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Inspect the signed-in app model selector; available models depend on its account and organization, independently of API model lists. A separate reasoning control has not been established.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model selector beneath the search bar"
+        ],
+        "sources": [
+          "https://www.perplexity.ai/enterprise/videos/how-to-use-perplexity-labs"
+        ]
+      },
+      "reasoning": {
+        "state": "unknown",
+        "controls": [],
+        "sources": [
+          "https://www.perplexity.ai/enterprise/videos/how-to-use-perplexity-labs"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "perplexity",
+      "surface_id": "orchestrator",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose an Orchestrator allowlisted model; authenticated discovery and request shape are specific to this API, separate from the app.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://docs.perplexity.ai/api-reference/gateway-models-get",
+          "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
+          "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Chat Completions reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Responses reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.perplexity.ai/api-reference/gateway-models-get",
+          "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
+          "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "pi",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a model from the configured and authenticated catalog, then select a thinking level supported by that model.",
+        "fields": [],
+        "commands": [
+          "/model",
+          "/thinking"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://pi.dev/docs/latest/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "/thinking",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://pi.dev/docs/latest/models"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Discover CLI model IDs with the documented listing command or session picker; effort and context controls remain model dependent.",
+        "fields": [],
+        "commands": [
+          "--list-models",
+          "--model",
+          "/model",
+          "--reasoning-effort",
+          "/effort"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://docs.qoder.com/cli/cli-reference",
+          "https://docs.qoder.com/cli/slash-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "--reasoning-effort or /effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.qoder.com/cli/cli-reference",
+          "https://docs.qoder.com/cli/slash-reference"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a model in AI Chat and manage visible or custom models in IDE settings; configure thinking effort only when the model offers it.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the AI Chat model picker",
+          "Open Settings > Models to inspect model parameters"
+        ],
+        "sources": [
+          "https://docs.qoder.com/user-guide/chat/model-tier-selector"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Thinking effort parameter",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.qoder.com/user-guide/chat/model-tier-selector"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a configured model provider entry; reasoning request parameters depend on the selected model and provider protocol.",
+        "fields": [
+          "model.name",
+          "modelProviders"
+        ],
+        "commands": [
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "generationConfig.reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "generationConfig.reasoning.budget_tokens",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "generationConfig.reasoning",
+            "values": [
+              "false"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "zed",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a model in a native Zed Agent thread; external agents and terminal threads own their own model settings.",
+        "fields": [
+          "agent.default_model",
+          "agent.subagent_model"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the native Zed Agent model selector",
+          "Inspect Change Thinking Effort for the selected model"
+        ],
+        "sources": [
+          "https://zed.dev/docs/ai/llm-providers",
+          "https://zed.dev/docs/ai/agent-settings",
+          "https://zed.dev/docs/ai/use-api-access"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "agent.default_model.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "agent.default_model.enable_thinking",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "language_models.<provider>.available_models[].mode.budget_tokens",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://zed.dev/docs/ai/llm-providers",
+          "https://zed.dev/docs/ai/agent-settings",
+          "https://zed.dev/docs/ai/use-api-access"
+        ]
+      },
+      "checked_on": "2026-10-26",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    }
+  ]
+}

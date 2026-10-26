@@ -1,4 +1,5 @@
-﻿import json
+﻿import copy
+import json
 import tempfile
 import unittest
 from dataclasses import FrozenInstanceError
@@ -172,12 +173,13 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.integrations = load_integrations(ROOT)
 
     def test_exact_inventory_and_identity(self):
-        self.assertEqual(set(self.integrations), EXPECTED_IDS)
-        self.assertEqual(len(self.integrations), 20)
-        self.assertEqual(len({item.name for item in self.integrations.values()}), 20)
+        catalog = load_json(ROOT / "catalogs/integrations.json")
+        self.assertEqual(set(self.integrations), {item["id"] for item in catalog["integrations"]})
+        self.assertTrue(EXPECTED_IDS <= set(self.integrations))
+        self.assertEqual(len({item.name.casefold() for item in self.integrations.values()}), len(self.integrations))
         self.assertEqual(
             {item.id for item in self.integrations.values()},
-            EXPECTED_IDS,
+            set(self.integrations),
         )
         self.assertEqual(
             [item.id for item in self.integrations.values() if item.kind == "agent"],
@@ -185,19 +187,12 @@ class IntegrationRegistryTests(unittest.TestCase):
         )
 
     def test_kinds_and_defaults(self):
-        self.assertEqual(
-            {item.id for item in self.integrations.values() if item.kind == "agent"},
-            EXPECTED_IDS - {"openrouter"},
-        )
-        self.assertEqual(
-            {item.id for item in self.integrations.values() if item.kind == "provider"},
-            {"openrouter"},
-        )
-        self.assertEqual(
-            {item.id: item.default_surface for item in self.integrations.values()},
-            EXPECTED_DEFAULT_SURFACES,
-        )
+        for identifier in EXPECTED_IDS:
+            item = self.integrations[identifier]
+            self.assertEqual(item.kind, "provider" if identifier == "openrouter" else "agent")
+            self.assertEqual(item.default_surface, EXPECTED_DEFAULT_SURFACES[identifier])
         for item in self.integrations.values():
+            self.assertIn(item.kind, {"agent", "provider", "hybrid"})
             self.assertIn(item.default_surface, item.surface_ids())
 
     def test_native_paths_and_dialects(self):
@@ -216,7 +211,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         for integration in self.integrations.values():
             for surface in integration.surfaces:
                 self.assertTrue(surface.id)
-                self.assertIn(surface.config_scope, {"project", "user", "app", "none"})
+                self.assertIn(surface.config_scope, {"project", "user", "app", "request", "none"})
                 self.assertTrue(surface.instruction_mode)
                 self.assertEqual(set(surface.os_workflows), OS_IDS)
                 self.assertEqual(set(surface.capabilities), CAPABILITY_NAMES)
@@ -231,7 +226,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         for integration in self.integrations.values():
             for surface in integration.surfaces:
                 path = surface.native_path_hint
-                if path is None or surface.config_scope != "project":
+                if path is None or surface.config_scope not in {"project", "request"}:
                     continue
                 self.assertFalse(path.startswith("/"))
                 self.assertNotIn("\\", path)
@@ -328,7 +323,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertIn("illumos", systems["solaris"].variants)
         self.assertEqual(systems["ios"].capabilities["native_agent"].state, "unsupported")
 
-    def test_provider_metadata_is_on_openrouter_only(self):
+    def test_provider_metadata_matches_product_roles(self):
         provider = self.integrations["openrouter"]
         surface = provider.surface("gateway")
         self.assertEqual(surface.capabilities["mcp"].state, "unsupported")
@@ -345,10 +340,18 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertEqual(surface.provider["secret_env"], "OPENROUTER_API_KEY")
         self.assertFalse(surface.provider["mcp_service_enabled"])
         for integration in self.integrations.values():
-            if integration.id == "openrouter":
-                continue
-            for surface in integration.surfaces:
-                self.assertIsNone(surface.provider)
+            metadata = [surface.provider for surface in integration.surfaces]
+            if integration.kind == "agent":
+                self.assertTrue(all(value is None for value in metadata))
+            elif integration.kind == "provider":
+                self.assertTrue(all(value is not None for value in metadata))
+            else:
+                self.assertIn(None, metadata)
+                self.assertTrue(any(value is not None for value in metadata))
+            for value in metadata:
+                if value is not None:
+                    self.assertIs(value["mcp_service_enabled"], False)
+                    self.assertEqual(value["model_selection"], "explicit")
 
     def test_documentation_and_runtime_evidence_are_independent(self):
         for integration in self.integrations.values():
@@ -359,11 +362,18 @@ class IntegrationRegistryTests(unittest.TestCase):
                     self.assertIsInstance(evidence.runtime_checks, tuple)
                     self.assertEqual(evidence.runtime_checks, ())
                     if evidence.state != "unknown":
-                        self.assertEqual(evidence.checked_on, "2026-10-22")
+                        self.assertRegex(evidence.checked_on, r"^\d{4}-\d{2}-\d{2}$")
+                    for reference in (*evidence.fixture_tests, *evidence.runtime_checks):
+                        self.assertTrue((ROOT / reference).is_file(), reference)
 
     def test_mcp_fixtures_cover_only_exported_surfaces(self):
         for integration in self.integrations.values():
             for surface in integration.surfaces:
+                if integration.id not in EXPECTED_IDS or surface.id not in {
+                    item[1] for item in ADAPTER_SURFACES | INSTRUCTION_SURFACES | PROVIDER_GAPS
+                    if item[0] == integration.id
+                }:
+                    continue
                 expected = (
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
@@ -380,6 +390,8 @@ class IntegrationRegistryTests(unittest.TestCase):
         for integration in self.integrations.values():
             for surface in integration.surfaces:
                 key = (integration.id, surface.id)
+                if integration.id not in EXPECTED_IDS or key not in INSTRUCTION_SURFACES | PROVIDER_GAPS | {("qoder", "ide"), ("openrouter", "gateway")}:
+                    continue
                 expected_instructions = (
                     ("tests/test_skills.py",) if key in INSTRUCTION_SURFACES else ()
                 )
@@ -399,10 +411,12 @@ class IntegrationRegistryTests(unittest.TestCase):
 
     def test_provider_capabilities_match_documented_provider_evidence(self):
         for integration in self.integrations.values():
-            if integration.kind == "provider":
+            if integration.kind != "agent":
                 continue
             for surface in integration.surfaces:
                 key = (integration.id, surface.id)
+                if key not in set(PROVIDER_ROUTES) | PROVIDER_GAPS:
+                    continue
                 evidence = surface.capabilities["provider"]
                 if key in PROVIDER_ROUTES:
                     documented = provider_evidence(integration.id, surface.id)
@@ -480,7 +494,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             get_integration("", ROOT)
         with self.assertRaises(WeaverError):
-            get_surface("codex", "desktop", ROOT)
+            get_surface("codex", "missing-surface", ROOT)
 
     def test_records_are_frozen(self):
         integration = self.integrations["kilo"]
@@ -492,6 +506,85 @@ class IntegrationRegistryTests(unittest.TestCase):
             surface.id = "changed"
         with self.assertRaises(FrozenInstanceError):
             evidence.state = "unknown"
+
+    def test_catalog_extensions_do_not_require_runtime_product_counts(self):
+        data = load_json(ROOT / "catalogs/integrations.json")
+        entry = copy.deepcopy(data["integrations"][0])
+        entry.update(id="future-agent", name="Future Agent")
+        data["integrations"].append(entry)
+        self.assertIn("future-agent", self._load_copy(data))
+
+    def test_hybrid_roles_require_host_and_provider_surfaces(self):
+        data = load_json(ROOT / "catalogs/integrations.json")
+        host = copy.deepcopy(next(item for item in data["integrations"] if item["id"] == "abacus"))
+        api = copy.deepcopy(next(item for item in data["integrations"] if item["id"] == "openrouter")["surfaces"][0])
+        host.update(id="hybrid-fixture", name="Hybrid Fixture", kind="hybrid")
+        api["id"] = "api"
+        host["surfaces"].append(api)
+        data["integrations"] = [host]
+        self.assertEqual(self._load_copy(data)["hybrid-fixture"].kind, "hybrid")
+        for kind in ("agent", "provider"):
+            invalid = copy.deepcopy(data)
+            invalid["integrations"][0]["kind"] = kind
+            self._assert_invalid(invalid)
+        for only in (host["surfaces"][:1], host["surfaces"][1:]):
+            invalid = copy.deepcopy(data)
+            invalid["integrations"][0]["surfaces"] = only
+            invalid["integrations"][0]["default_surface"] = only[0]["id"]
+            self._assert_invalid(invalid)
+
+    def test_provider_urls_are_credential_free_and_http_is_local_lm_studio_only(self):
+        data = load_json(ROOT / "catalogs/integrations.json")
+        provider = copy.deepcopy(next(item for item in data["integrations"] if item["id"] == "openrouter"))
+        provider.update(id="lm-studio", name="Local Provider Fixture")
+        data["integrations"] = [provider]
+        metadata = provider["surfaces"][0]["provider"]
+        metadata["secret_env"] = None
+        for address in ("https://models.example/v1", "http://localhost:1234/api/v1",
+                        "http://127.0.0.1:1234/api/v1", "http://[::1]:1234/api/v1"):
+            metadata["base_url"] = address
+            self.assertIsNone(self._load_copy(data)["lm-studio"].surfaces[0].provider["secret_env"])
+        for address in ("http://remote.example/v1", "http://localhost.example/v1", "http://127.1/v1",
+                        "http://[::1", "http://localhost:bad/v1", "http://user:NEVER-ECHO@localhost/v1",
+                        "https://user:NEVER-ECHO@models.example/v1", "https://models.example?token=NEVER-ECHO",
+                        "https://models.example/#NEVER-ECHO", "https://models.example\\evil"):
+            metadata["base_url"] = address
+            self._assert_invalid(data)
+        metadata["base_url"] = "http://localhost:1234/v1"
+        provider["id"] = "other-provider"
+        self._assert_invalid(data)
+
+    def test_provider_metadata_and_request_paths_fail_closed(self):
+        data = load_json(ROOT / "catalogs/integrations.json")
+        provider = copy.deepcopy(next(item for item in data["integrations"] if item["id"] == "openrouter"))
+        data["integrations"] = [provider]
+        for key, value in (("mcp_service_enabled", True), ("mcp_service_enabled", 0),
+                           ("secret_env", "sk-NEVER-ECHO"), ("secret_env", "KEY\nNEVER-ECHO"),
+                           ("endpoint", "https://other.example"), ("endpoint", "//other.example"),
+                           ("endpoint", "/chat?token=NEVER-ECHO"), ("endpoint", "/chat#NEVER-ECHO"),
+                           ("endpoint", "/../chat"), ("model_selection", "automatic"), ("api_key", "NEVER-ECHO")):
+            invalid = copy.deepcopy(data)
+            invalid["integrations"][0]["surfaces"][0]["provider"][key] = value
+            self._assert_invalid(invalid)
+        surface = provider["surfaces"][0]
+        surface["config_scope"] = "request"
+        surface["native_path_hint"] = "requests/example.json"
+        self.assertEqual(self._load_copy(data)["openrouter"].surfaces[0].config_scope, "request")
+        for path in ("../escape.json", "C:/secret.json", "requests/CON.json", "requests\\fragment.json"):
+            surface["native_path_hint"] = path
+            self._assert_invalid(data)
+
+    def test_canonical_ids_and_duplicate_names_are_strict(self):
+        data = load_json(ROOT / "catalogs/integrations.json")
+        for identifier in ("../bad", "CON", "nul", "UPPER", "contains_space", "space id", "-bad", "bad--id"):
+            invalid = copy.deepcopy(data)
+            invalid["integrations"][0]["id"] = identifier
+            self._assert_invalid(invalid)
+            invalid = copy.deepcopy(data)
+            invalid["integrations"][0]["surfaces"][0]["id"] = identifier
+            self._assert_invalid(invalid)
+        data["integrations"][1]["name"] = data["integrations"][0]["name"].upper()
+        self._assert_invalid(data)
 
     def test_strict_schema_rejects_bad_version_and_unknown_keys(self):
         data = json.loads((ROOT / "catalogs/integrations.json").read_text(encoding="utf-8"))
@@ -536,6 +629,11 @@ class IntegrationRegistryTests(unittest.TestCase):
             self.assertNotIn(str(root), str(caught.exception))
 
     def _assert_invalid(self, data):
+        with self.assertRaises(WeaverError) as caught:
+            self._load_copy(data)
+        self.assertNotIn("NEVER-ECHO", str(caught.exception))
+
+    def _load_copy(self, data):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "catalogs").mkdir()
@@ -543,8 +641,7 @@ class IntegrationRegistryTests(unittest.TestCase):
                 json.dumps(data),
                 encoding="utf-8",
             )
-            with self.assertRaises(WeaverError):
-                load_integrations(root)
+            return load_integrations(root)
 
 
 if __name__ == "__main__":

@@ -273,7 +273,7 @@ def _markdown(
             "",
             "## Evidence",
             "",
-            f"- Checked on: {CHECKED_ON}",
+            f"- Checked on: {'2026-10-26' if agent_id in _EXPANDED_ROUTE_IDS else CHECKED_ON}",
             "- Sources:",
         ]
     )
@@ -312,8 +312,8 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
     return {
         "state": "available" if route.native_toml else "manual",
         "sources": list(route.sources),
-        "checked_on": CHECKED_ON,
-        "fixture_tests": ["tests/test_providers.py"],
+        "checked_on": "2026-10-26" if agent_id in _EXPANDED_ROUTE_IDS else CHECKED_ON,
+        "fixture_tests": ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"],
     }
 
 
@@ -356,6 +356,7 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code"})
 _ROUTES = {
     "kilo": _Route(
         None,
@@ -589,7 +590,7 @@ _ROUTES = {
         ),
     ),
     "codex": _Route(
-        ("cli",),
+        ("cli", "desktop", "ide"),
         "",
         "Use the raw OpenRouter model ID for `model` in `config.toml`; the provider "
         "block supplies OpenRouter.",
@@ -737,3 +738,66 @@ _ROUTES = {
         ),
     ),
 }
+
+# These are deliberate manual handoffs. A documented compatible endpoint does not
+# establish installed-version validation, inference success, or native agent export.
+_ROUTES.update({
+    "factory": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Use the explicit provider model ID in customModels[].model: `{model}`.",
+        steps=(
+            "Open `/settings` > Custom models, or `/model` > Manage custom models.",
+            "Add a generic-chat-completion-api custom model with the OpenRouter base URL.",
+            "Use `{model}` as model and `${OPENROUTER_API_KEY}` as the apiKey environment reference.",
+            "Review and merge into `~/.factory/settings.json`; do not replace unrelated customModels.",
+        ),
+        env=(("OPENROUTER_API_KEY", "Referenced by Factory as ${OPENROUTER_API_KEY}."),),
+        credential_note="Factory supports environment references in apiKey; no credential is staged.",
+        endpoint=None, endpoint_note="The generic Chat Completions route uses the OpenRouter API base URL.",
+        restrictions=("This route is a manual configuration handoff for the registered CLI surface.",
+                      "No web/mobile model access or inference was verified."),
+        sources=("https://docs.factory.com/model-independence/byok", _OPENROUTER),
+    ),
+    "hermes": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Use the explicit gateway model slug `{model}`; do not rely on automatic alias resolution.",
+        steps=("Set OPENROUTER_API_KEY in the local Hermes process environment.",
+               "Choose the authenticated OpenRouter provider in the model picker or `/model`.",
+               "Set model.provider to openrouter and model.default to `{model}` in the reviewed config.yaml model mapping.",
+               "New sessions read changed settings; use `/model` to deliberately switch an existing session."),
+        env=(("OPENROUTER_API_KEY", "Credential for the authenticated OpenRouter provider."),),
+        credential_note="Use the local credential setup; never stage api_key or a dashboard session token.",
+        endpoint=None, endpoint_note="Use OpenRouter's documented OpenAI-compatible API endpoint.",
+        restrictions=("The picker is curated and does not establish coverage of every model in a raw gateway catalog.",
+                      "No dashboard service is enabled by this handoff."),
+        sources=("https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models", _OPENROUTER),
+    ),
+    "qwen-code": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Place `{model}` under modelProviders.openai[].id with an explicit endpoint and envKey.",
+        steps=("Review ~/.qwen/settings.json before changing modelProviders.",
+               "Add an OpenAI-compatible route with the OpenRouter baseUrl, envKey OPENROUTER_API_KEY and id `{model}`.",
+               "Choose the route using `/model`; provider arrays replace their matching settings scope."),
+        env=(("OPENROUTER_API_KEY", "Referenced through modelProviders.openai[].envKey."),),
+        credential_note="Keep only the environment variable name in envKey; no key is read or written.",
+        endpoint=None, endpoint_note="Explicit OpenAI-compatible Chat Completions route; other protocols are separate routes.",
+        restrictions=("An explicit model ID is accepted syntax, not proof of account access or successful inference.",
+                      "Reasoning must be supported by the selected model and protocol."),
+        sources=("https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/", _OPENROUTER),
+    ),
+    "kimi-code": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Set an explicit upstream model `{model}` in a configured model alias.",
+        steps=("Use current Kimi Code ~/.kimi-code/config.toml; legacy ~/.kimi belongs to archived Python Kimi CLI.",
+               "Configure an openai provider with the OpenRouter base_url and api_key_env OPENROUTER_API_KEY.",
+               "Declare the model alias with `{model}` and a separately documented max_context_size.",
+               "Select the alias using `/model`; do not copy OAuth credentials during legacy migration."),
+        env=(("OPENROUTER_API_KEY", "Explicitly declared by api_key_env; no automatic secret binding."),),
+        credential_note="Use api_key_env instead of a literal api_key in config.toml.",
+        endpoint=None, endpoint_note="Custom openai provider selects Chat Completions; openai_responses is separate.",
+        restrictions=("The required context limit is not inferred from a model's name.",
+                      "This model handoff does not implement a custom-agent model field; current Kimi ignores that field."),
+        sources=("https://moonshotai.github.io/kimi-code/en/configuration/providers.html",
+                 "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html", _OPENROUTER),
+    ),
+})

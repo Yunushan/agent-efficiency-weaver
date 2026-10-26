@@ -48,6 +48,18 @@ Distribution verification requires runtime modules, the `py.typed` marker, and p
 
 Documentation changes must stay aligned with the registries. Tests read the actual catalogs and fail when a product, surface, OS family, evidence state, or provider gap is missing or misrepresented. Do not document a native exporter for a manual surface, do not describe fixture tests as installed-version verification, and do not add vendor entitlement, SSO, compliance certification, native mobile, autonomous execution, or numerical performance claims without reproducible evidence.
 
+The current registry contains 31 products: 25 agents, 4 providers, and 2 hybrids. Product and surface IDs must come from `catalogs/integrations.json`. Keep requested labels and aliases in `catalogs/requested-coverage.json`; every target must resolve and a group alias must not silently select an exporter. A mapped request is not evidence that all its capabilities work. Hybrid provider interfaces and application/MCP-host surfaces are separate contracts.
+
+Model/provider routes belong in `catalogs/model-providers.json`. Add documented protocols, snapshot formats, and model-specific reasoning evidence rather than a supposedly exhaustive list of evolving model IDs. Treat a caller-supplied listing as catalog visibility, not successful inference or account access. Keep missing availability, token, and cost data unknown. Never commit captured private account catalogs, real credentials, or provenance containing private paths. Synthetic model snapshots must be clearly identified in tests.
+
+Maintain one `catalogs/model-hosts.json` row per registered product/surface. Host picker, field, session-command, and UI evidence must stay specific to that surface. A manual documented control does not activate a native exporter; null allowed values require selected-model discovery. Do not transfer a CLI-only effort command to an IDE or treat an API model response as the app's account catalog. Host availability remains unknown until separately recorded evidence establishes more.
+
+Custom-agent definitions are separate from portable Skills and project instructions. Test their native/manual/unknown/unsupported outcomes, actual model and reasoning fields, and permission limitations. New Python behavior requires unit tests. New packaged catalogs must be added to both runtime/build asset allowlists, `MANIFEST.in`, resource tests, installed-package smoke checks as appropriate, and `validate`. Run every portable Skill validator through the documented gates.
+
+MCP catalog entries may be remote HTTPS or stdio. Stdio requires a bounded executable string and a separate bounded argument array; do not add raw shell-command, credential, environment, or permission fields. Keep default selection off and require explicit profile permission and `--enable`. Product-specific stdio documentation and fixture evidence are separate from remote URL evidence. Tests must never launch the staged executable, install a package, or expand runtime variables. Perplexity Agent API and LM Studio ephemeral MCP request formats remain remote HTTPS only.
+
+The recorded remote CI run in [docs/readiness.md](docs/readiness.md) predates the 31-product expansion. It cannot substitute for validating the expanded candidate, including its new model, alias, request-fragment, and custom-agent paths.
+
 ## Platform verification
 
 `scripts/verify-platform.py` is opt-in and requires an explicit `--output` path:

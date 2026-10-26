@@ -1,0 +1,275 @@
+"""Independent parsing and safety checks for offline custom-agent definitions."""
+import copy
+import json
+import socket
+import subprocess
+import tempfile
+import tomllib
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import yaml
+
+from agentweaver.agents import agent_inventory, render_agent_definition
+from agentweaver.artifacts import write_artifacts
+from agentweaver.config import WeaverError
+from agentweaver.integrations import load_integrations
+
+ROOT = Path(__file__).resolve().parents[1]
+NATIVE_PATHS = {
+    ("codex", "cli"): ".codex/agents/reviewer.toml",
+    ("codex", "desktop"): ".codex/agents/reviewer.toml",
+    ("codex", "ide"): ".codex/agents/reviewer.toml",
+    ("claude-code", "cli"): ".claude/agents/reviewer.md",
+    ("copilot", "vscode"): ".github/agents/reviewer.agent.md",
+    ("factory", "cli"): ".factory/droids/reviewer.md",
+    ("opencode", "cli"): ".opencode/agents/reviewer.md",
+    ("kilo", "cli"): ".kilo/agents/reviewer.md",
+    ("kilo", "ide"): ".kilo/agents/reviewer.md",
+    ("qwen-code", "cli"): ".qwen/agents/reviewer.md",
+    ("kimi-code", "cli"): ".kimi-code/agents/reviewer.md",
+    ("cursor", "ide"): ".cursor/agents/reviewer.md",
+    ("kiro", "ide"): ".kiro/agents/reviewer.json",
+    ("qoder", "cli"): ".qoder/agents/reviewer.md",
+    ("qoder", "ide"): ".qoder/agents/reviewer.md",
+    ("antigravity", "ide"): ".agents/agents/reviewer.md",
+}
+
+
+def parse_definition(content, path):
+    text = content.decode("utf-8")
+    if path.endswith(".toml"):
+        return tomllib.loads(text), None
+    if path.endswith(".json"):
+        return json.loads(text), None
+    header, body = text[4:].split("\n---\n", 1)
+    return yaml.safe_load(header), body.lstrip("\n")
+
+
+class CustomAgentDefinitionTests(unittest.TestCase):
+    def setUp(self):
+        self.integrations = load_integrations(ROOT)
+
+    def render(self, product="codex", surface="cli", **kwargs):
+        values = dict(name="reviewer", description="Review small changes.",
+                      instructions="Inspect the requested code and report evidence.")
+        values.update(kwargs)
+        return render_agent_definition(self.integrations[product], surface, root=ROOT, **values)
+
+    def test_inventory_covers_registered_surfaces_and_distinguishes_evidence(self):
+        inventory = agent_inventory(ROOT)
+        expected = {(product, surface.id) for product, spec in self.integrations.items() for surface in spec.surfaces}
+        rows = inventory["definitions"]
+        actual = {(row["product_id"], row["surface_id"]) for row in rows}
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(actual), len(rows))
+        self.assertEqual({row["state"] for row in rows}, {"native", "manual", "unknown", "unsupported"})
+        self.assertFalse(inventory["network_used"])
+        self.assertFalse(inventory["credentials_read"])
+        self.assertFalse(inventory["runtime_verified"])
+        native = {(row["product_id"], row["surface_id"]) for row in rows if row["state"] == "native"}
+        self.assertEqual(native, set(NATIVE_PATHS))
+        for row in rows:
+            with self.subTest(product=row["product_id"], surface=row["surface_id"]):
+                self.assertFalse(row["evidence"]["runtime_checks"])
+                if row["state"] in {"native", "manual"}:
+                    self.assertTrue(row["evidence"]["sources"])
+                    self.assertEqual(row["evidence"]["checked_on"], "2026-10-26")
+                    self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
+
+    def test_every_native_file_independently_parses_and_has_separate_handoff(self):
+        for (product, surface), path in NATIVE_PATHS.items():
+            with self.subTest(product=product, surface=surface):
+                artifacts = self.render(product, surface)
+                self.assertEqual([item.kind for item in artifacts], ["agent-definition", "agent-handoff"])
+                self.assertEqual(artifacts[0].relative_path.as_posix(), f"{product}/{path}")
+                self.assertEqual(artifacts[1].relative_path.as_posix(), f"{product}/agents/reviewer/HANDOFF.md")
+                parsed, body = parse_definition(artifacts[0].content, path)
+                self.assertEqual(parsed["description"], "Review small changes.")
+                if product == "codex":
+                    self.assertIn("Inspect the requested code", parsed["developer_instructions"])
+                elif product == "kiro":
+                    self.assertIn("Inspect the requested code", parsed["prompt"])
+                else:
+                    self.assertIn("Inspect the requested code", body)
+                for item in artifacts:
+                    self.assertNotIn(b"\r", item.content)
+                handoff = artifacts[1].content.decode()
+                self.assertIn("No agent was installed or executed", handoff)
+                self.assertIn("No maximum reasoning is selected automatically", handoff)
+                self.assertIn("none recorded", handoff)
+
+    def test_defaults_inherit_models_and_reasoning_without_implicit_maximum(self):
+        for (product, surface), path in NATIVE_PATHS.items():
+            with self.subTest(product=product, surface=surface):
+                parsed, _ = parse_definition(self.render(product, surface)[0].content, path)
+                self.assertIn(parsed.get("model"), (None, "inherit"))
+                self.assertNotIn("model_reasoning_effort", parsed)
+                self.assertNotIn("reasoningEffort", parsed)
+                self.assertNotIn("effort", parsed)
+
+    def test_tool_presets_do_not_grant_parent_permissions_or_mcp_access(self):
+        codex = tomllib.loads(self.render()[0].content.decode())
+        self.assertEqual(codex["features"], dict(shell_tool=False, apps=False, plugins=False))
+        for ignored_parent_key in ("sandbox_mode", "approval_policy", "model_provider", "mcp_servers"):
+            self.assertNotIn(ignored_parent_key, codex)
+        self.assertIn("do not override the parent", self.render()[1].content.decode())
+        self.assertIn("no read-only OS sandbox is promised", self.render()[1].content.decode())
+        for product, surface in (("claude-code", "cli"), ("qwen-code", "cli"), ("kimi-code", "cli"),
+                                 ("factory", "cli"), ("qoder", "cli"), ("qoder", "ide")):
+            path = NATIVE_PATHS[product, surface]
+            parsed, _ = parse_definition(self.render(product, surface)[0].content, path)
+            self.assertNotIn("Bash", parsed["tools"])
+            self.assertNotIn("permissionMode", parsed)
+            if product in {"factory", "qoder"}:
+                self.assertEqual(parsed["mcpServers"], [])
+        opencode, _ = parse_definition(self.render("opencode")[0].content, NATIVE_PATHS["opencode", "cli"])
+        self.assertEqual(opencode["permission"]["*"], "deny")
+        self.assertEqual(opencode["mode"], "subagent")
+        kiro = json.loads(self.render("kiro", "ide")[0].content)
+        self.assertEqual(kiro["tools"], ["read"])
+        self.assertFalse(kiro["includeMcpJson"])
+        self.assertFalse(kiro["includePowers"])
+        self.assertTrue(all(rule["effect"] == "deny" for rule in kiro["permissions"]["rules"]))
+        cursor, _ = parse_definition(self.render("cursor", "ide")[0].content, NATIVE_PATHS["cursor", "ide"])
+        self.assertTrue(cursor["readonly"])
+
+    def test_frontmatter_and_toml_injection_remain_literal_user_text(self):
+        description = 'Review: "quoted" # yaml &anchor [list] {object} é'
+        instructions = 'First line\r\n---\r\nmodel = "injected"\r\n[features]\r\nshell_tool = true\r\n"""\r\n最後'
+        normalized = instructions.replace("\r\n", "\n")
+        for (product, surface), path in NATIVE_PATHS.items():
+            with self.subTest(product=product, surface=surface):
+                artifact = self.render(product, surface, description=description, instructions=instructions)[0]
+                parsed, body = parse_definition(artifact.content, path)
+                self.assertEqual(parsed["description"], description)
+                if product == "codex":
+                    self.assertEqual(parsed["developer_instructions"], normalized)
+                    self.assertFalse(parsed["features"]["shell_tool"])
+                elif product == "kiro":
+                    self.assertEqual(parsed["prompt"], normalized)
+                else:
+                    self.assertEqual(body, normalized + "\n")
+                    self.assertNotEqual(parsed.get("model"), "injected")
+
+    def test_explicit_effort_needs_both_host_and_model_support(self):
+        artifacts = self.render(model_id="gpt-6.1-sol", provider_id="openai", effort="high")
+        parsed = tomllib.loads(artifacts[0].content.decode())
+        self.assertEqual(parsed["model_reasoning_effort"], "high")
+        self.assertEqual(parsed["model"], "gpt-6.1-sol")
+        self.assertIn("does not change the parent's provider", artifacts[1].content.decode())
+        for options in (
+            dict(effort="high"), dict(model_id="inherit", effort="high"),
+            dict(model_id="gpt-6.1-sol", effort="high"),
+            dict(model_id="unlisted-model", provider_id="openai", effort="high"),
+            dict(model_id="gpt-6.1-sol", provider_id="openai", effort="ultra"),
+        ):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render(**options)
+        for product, surface in (("kimi-code", "cli"), ("qwen-code", "cli"), ("copilot", "vscode"),
+                                 ("kilo", "cli"), ("cursor", "ide"), ("kiro", "ide")):
+            with self.subTest(product=product), self.assertRaises(WeaverError):
+                self.render(product, surface, model_id="gpt-6.1-sol", provider_id="openai", effort="high")
+        for options in (dict(effort="high"), dict(model_id="inherit", effort="high"),
+                        dict(model_id="gpt-6.1-sol", provider_id="openai", effort="max")):
+            with self.subTest(factory=options), self.assertRaises(WeaverError):
+                self.render("factory", **options)
+
+    def test_model_controls_preserve_host_semantics(self):
+        for product, surface in (("kimi-code", "cli"), ("qoder", "ide")):
+            with self.subTest(product=product), self.assertRaises(WeaverError):
+                self.render(product, surface, model_id="a-model")
+        for product in ("opencode", "kilo"):
+            with self.subTest(product=product):
+                with self.assertRaises(WeaverError):
+                    self.render(product, model_id="gpt-6.1-sol")
+                artifact = self.render(product, model_id="gpt-6.1-sol", provider_id="openai")[0]
+                parsed, _ = parse_definition(artifact.content, NATIVE_PATHS[product, "cli"])
+                self.assertEqual(parsed["model"], "openai/gpt-6.1-sol")
+                already_qualified = self.render(product, model_id="openai/gpt-6.1-sol", provider_id="openai")[0]
+                qualified, _ = parse_definition(already_qualified.content, NATIVE_PATHS[product, "cli"])
+                self.assertEqual(qualified["model"], "openai/gpt-6.1-sol")
+        tier = self.render("antigravity", "ide", model_id="flash")[0]
+        parsed, _ = parse_definition(tier.content, NATIVE_PATHS["antigravity", "ide"])
+        self.assertEqual(parsed["model"], "flash")
+        with self.assertRaises(WeaverError):
+            self.render("antigravity", "ide", model_id="models/gemini-3.8-flash")
+
+    def test_manual_routes_produce_only_labeled_handoff_and_reject_ignored_overrides(self):
+        for product, surface in (("hermes", "cli"), ("jetbrains-air", "desktop"), ("zed", "ide"),
+                                 *(("chatgpt", sid) for sid in ("desktop", "web", "work-local", "work-cloud"))):
+            with self.subTest(product=product, surface=surface):
+                artifacts = self.render(product, surface)
+                self.assertEqual(len(artifacts), 1)
+                self.assertEqual(artifacts[0].kind, "agent-handoff")
+                self.assertIn("not a discoverable subagent file", artifacts[0].content.decode())
+                self.assertIn("Inspect the requested code", artifacts[0].content.decode())
+                with self.assertRaises(WeaverError):
+                    self.render(product, surface, model_id="gpt-6.1-sol")
+
+    def test_unknown_and_unsupported_routes_fail_closed(self):
+        for row in agent_inventory(ROOT)["definitions"]:
+            if row["state"] in {"unknown", "unsupported"}:
+                with self.subTest(product=row["product_id"], surface=row["surface_id"]), self.assertRaises(WeaverError):
+                    self.render(row["product_id"], row["surface_id"])
+        with self.assertRaises(WeaverError):
+            self.render(surface="cloud")
+
+    def test_untrusted_input_names_controls_and_metadata_are_rejected(self):
+        for name in ("../outside", "UPPER", "with_under", "a/b", "a\\b", "con", "nul", "-name", "name-", "x..y", "", "worker"):
+            with self.subTest(name=name), self.assertRaises(WeaverError):
+                self.render(name=name)
+        for field, value in (("description", "line\nmodel: attacker"), ("description", "bad\ud800"),
+                             ("instructions", "line\rbad"), ("instructions", "bad\x00"),
+                             ("instructions", "bad\u202e"), ("model_id", "sk-do-not-stage-this-value"),
+                             ("model_id", []), ("effort", {}), ("snapshot", [])):
+            with self.subTest(field=field, value=repr(value)), self.assertRaises(WeaverError):
+                self.render(**{field: value})
+
+    def test_model_validation_without_provider_cannot_emit_paths_or_credentials(self):
+        for model in (
+            "C:/private-fixture/model", "c:/private-fixture/model", "/private-fixture/model",
+            "provider//model", "provider/../model", "provider/./model", "provider/model/",
+            "sk-proj-synthetic-secret", "SK-PROJ-synthetic-secret", "BearerSyntheticToken",
+            "provider/sk-proj-synthetic-secret", "provider/ghp_" + "x" * 24,
+        ):
+            with self.subTest(model=model), self.assertRaises(WeaverError) as raised:
+                self.render(model_id=model)
+            self.assertNotIn(model, str(raised.exception))
+        # A provider is optional for a syntactically valid inherited-provider model.
+        artifact = self.render(model_id="valid-future-model")[0]
+        self.assertEqual(tomllib.loads(artifact.content.decode())["model"], "valid-future-model")
+
+    def test_catalog_does_not_accept_guessed_formats_paths_or_product_references(self):
+        original = json.loads((ROOT / "catalogs/custom-agents.json").read_text())
+        native_index = next(index for index, row in enumerate(original["definitions"]) if row["state"] == "native")
+        for field, value in (("path_template", "../../{name}.md"), ("format", "guessed-yaml"),
+                             ("product_id", "not-a-product"), ("surface_id", "not-a-surface"),
+                             ("state", []), ("format", []), ("model_style", []),
+                             ("model_field", "approval_policy"), ("effort_field", "permissionMode"),
+                             ("extra", "unknown")):
+            catalog = copy.deepcopy(original)
+            catalog["definitions"][native_index][field] = value
+            with self.subTest(field=field), mock.patch("agentweaver.agents.load_json", return_value=catalog), self.assertRaises(WeaverError):
+                agent_inventory(ROOT)
+
+    def test_rendering_is_deterministic_offline_and_uses_the_safe_staged_writer(self):
+        with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
+                mock.patch.object(Path, "home", side_effect=AssertionError("ambient home inspected")):
+            first = self.render()
+            self.assertEqual(first, self.render())
+            self.assertTrue(agent_inventory(ROOT)["definitions"])
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            destination = Path(directory).resolve()
+            write_artifacts(destination, first)
+            for artifact in first:
+                self.assertEqual((destination / artifact.relative_path).read_bytes(), artifact.content)
+            with self.assertRaises(WeaverError):
+                write_artifacts(destination, first)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -5,10 +5,11 @@ import sys
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 
-from .adapters import render_mcp
+from .adapters import render_mcp, stdio_inventory
 from .artifacts import RenderedArtifact, validate_artifacts, write_artifacts
 from .compare import compare_runs
 from .config import WeaverError, load_json, safe_name, validate_catalog, validate_profile
+from .coverage import coverage_report, load_requested_scope, resolve_product_alias
 from .integrations import (
     IntegrationSpec,
     integration_inventory,
@@ -39,7 +40,24 @@ def _parser() -> argparse.ArgumentParser:
     inventory = subs.add_parser('inventory')
     inventory.add_argument('--root', type=Path)
     inventory.add_argument('--format', choices=['json', 'text'], default='text')
-    for name in ('render', 'bundle', 'provider', 'doctor'):
+    coverage = subs.add_parser('coverage')
+    coverage.add_argument('--root', type=Path)
+    coverage.add_argument('--format', choices=['json', 'text'], default='text')
+    coverage.add_argument('--strict', action='store_true')
+    models = subs.add_parser('models')
+    models.add_argument('--root', type=Path)
+    models.add_argument('--provider')
+    models.add_argument('--agent')
+    models.add_argument('--surface')
+    models.add_argument('--input', type=Path)
+    models.add_argument('--format', choices=['json', 'text'], default='json')
+    agents = subs.add_parser('agents')
+    agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
+    agents.add_argument('--root', type=Path)
+    agents.add_argument('--agent')
+    agents.add_argument('--surface')
+    agents.add_argument('--format', choices=['json', 'text'], default='json')
+    for name in ('render', 'bundle', 'provider', 'doctor', 'model', 'agent'):
         command = subs.add_parser(name)
         command.add_argument('--root', type=Path)
         if name == 'render':
@@ -63,9 +81,24 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--enable', action='append', default=[])
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
-        else:
+        elif name in ('provider', 'model'):
             command.add_argument('--provider', required=True)
             command.add_argument('--model', required=True)
+            command.add_argument('--catalog', type=Path)
+            command.add_argument('--protocol')
+            command.add_argument('--reasoning-effort')
+            command.add_argument('--reasoning-budget', type=int)
+            command.add_argument('--reasoning', choices=['on', 'off'])
+            command.add_argument('--reasoning-mode')
+            command.add_argument('--context-size', type=int)
+        elif name == 'agent':
+            command.add_argument('--name', required=True)
+            command.add_argument('--description', required=True)
+            command.add_argument('--instructions-file', type=Path, required=True)
+            command.add_argument('--model')
+            command.add_argument('--provider')
+            command.add_argument('--catalog', type=Path)
+            command.add_argument('--reasoning-effort')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
     report.add_argument('--format', choices=['json', 'markdown'], default='markdown')
@@ -84,6 +117,14 @@ def _paths(args: argparse.Namespace) -> list[str] | None:
     if args.cmd == 'validate':
         return None
     paths = ['catalogs/integrations.json', 'catalogs/operating-systems.json']
+    if args.cmd != 'inventory':
+        paths.append('catalogs/requested-coverage.json')
+    if args.cmd in ('coverage', 'models', 'model', 'provider', 'agents', 'agent'):
+        paths.append('catalogs/model-providers.json')
+    if args.cmd in ('coverage', 'models'):
+        paths.append('catalogs/model-hosts.json')
+    if args.cmd in ('coverage', 'agents', 'agent'):
+        paths.append('catalogs/custom-agents.json')
     if args.cmd in ('render', 'bundle'):
         if not safe_name(args.profile):
             raise WeaverError('Invalid profile name; use an allowlisted profile ID')
@@ -99,11 +140,11 @@ def _selection(args: argparse.Namespace, root: Path) -> tuple[IntegrationSpec, s
     agent_id = getattr(args, 'agent', None) or getattr(args, 'platform', None)
     if getattr(args, 'platform', None) not in (None, 'kilo', 'abacus'):
         raise WeaverError('Legacy --platform accepts kilo or abacus; use --agent for other integrations')
-    if not safe_name(agent_id):
-        raise WeaverError('Invalid agent ID; inspect inventory')
+    if not isinstance(agent_id, str):
+        raise WeaverError('Invalid product selection; inspect inventory or coverage')
     integrations = load_integrations(root)
     if agent_id not in integrations:
-        raise WeaverError('Unknown integration; inspect inventory')
+        agent_id = resolve_product_alias(root, agent_id)
     spec = integrations[agent_id]
     surface = args.surface or spec.default_surface
     if surface not in spec.surface_ids():
@@ -132,6 +173,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.extend(['User-scope fragment only: use the vendor settings interface to review and manually merge',
                           f'the selected entries at {target.documented_location or "the documented user settings location"}.',
                           'Do not copy this fragment into a project or replace the entire user configuration.'])
+        elif target.config_scope == 'request':
+            lines.extend(['API request fragment only: merge into the documented request after review.',
+                          'No request was sent and no local server, connector, or MCP setting was enabled.'])
         else:
             lines.extend([f'Project target after manual review: {target.native_path_hint}.',
                           'Preserve unrelated settings; review existing entries before merging.'])
@@ -189,7 +233,100 @@ def _benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def _model_snapshot(args: argparse.Namespace, root: Path) -> dict[str, Any] | None:
+    from .models import read_model_snapshot
+
+    path = getattr(args, 'catalog', None)
+    if path is None:
+        return None
+    provider = getattr(args, 'provider', None)
+    if provider is None:
+        raise WeaverError('A model catalog requires an explicit provider')
+    return read_model_snapshot(path, provider, root)
+
+
+def _reasoning(args: argparse.Namespace) -> bool | None:
+    selected = getattr(args, 'reasoning', None)
+    return None if selected is None else selected == 'on'
+
+
+def _extended_inventory(args: argparse.Namespace, root: Path) -> int:
+    from .agents import agent_inventory
+    from .models import load_model_providers, model_inventory, read_model_snapshot
+
+    if args.cmd == 'coverage':
+        data = coverage_report(root)
+        data['model_catalogs'] = model_inventory(root)
+        data['custom_agents'] = agent_inventory(root)
+        data['mcp_transports'] = {'stdio': {
+            'documented_adapters': stdio_inventory(),
+            'runtime_verified': False,
+            'unestablished_file_exports': ['jetbrains-air/desktop', 'openhands/cli'],
+            'remote_only_requests': ['perplexity/agent-api', 'lm-studio/api'],
+        }}
+        summary = data['summary']
+        data['full_requested_support_verified'] = (
+            summary['missing_documentation_capabilities'] == 0
+            and summary['pending_runtime_capabilities'] == 0
+            and not any(summary['capability_states'].get(state, 0)
+                        for state in ('unknown', 'manual', 'unsupported'))
+            and data['model_catalogs']['catalog_completeness'] == 'complete'
+        )
+        if args.format == 'text':
+            print('Requested scope mappings:', summary['mapped_items'], '/', summary['requested_items'])
+            print('Referenced product surfaces:', summary['referenced_surfaces'])
+            print('Capability states:', json.dumps(summary['capability_states'], sort_keys=True))
+            print('Pending runtime capability records:', summary['pending_runtime_capabilities'])
+            print('Full requested support verified:', data['full_requested_support_verified'])
+            print('Model inventory completeness: unknown; catalog visibility is not successful inference.')
+            for item in data['requested_items']:
+                targets = ', '.join(f"{target['product_id']}/{target['surface_id']}" for target in item['targets'])
+                print(f"{item['label']}: {targets}")
+        else:
+            print(json.dumps(data, indent=2, ensure_ascii=True, allow_nan=False))
+        return 1 if args.strict and not data['full_requested_support_verified'] else 0
+    if args.cmd == 'models':
+        if args.surface is not None and args.agent is None:
+            raise WeaverError('Select a product before selecting a model-control surface')
+        if args.input is not None:
+            if args.provider is None:
+                raise WeaverError('Model snapshot import requires an explicit provider')
+            if args.agent is not None:
+                raise WeaverError('Inspect host controls separately from importing a provider snapshot')
+            data = read_model_snapshot(args.input, args.provider, root)
+        else:
+            data = model_inventory(root)
+            if args.provider is not None:
+                providers = load_model_providers(root)
+                if args.provider not in providers:
+                    raise WeaverError('Unknown model provider; inspect models inventory')
+                data['providers'] = [providers[args.provider]]
+            if args.agent is not None:
+                product = resolve_product_alias(root, args.agent)
+                if args.surface is not None:
+                    load_integrations(root)[product].surface(args.surface)
+                data['hosts'] = [entry for entry in data['hosts']
+                                 if entry['product_id'] == product
+                                 and (args.surface is None or entry['surface_id'] == args.surface)]
+    else:
+        data = agent_inventory(root)
+        if args.surface is not None and args.agent is None:
+            raise WeaverError('Select a product before selecting an agent-definition surface')
+        if args.agent is not None:
+            product = resolve_product_alias(root, args.agent)
+            if args.surface is not None:
+                load_integrations(root)[product].surface(args.surface)
+            data['definitions'] = [entry for entry in data['definitions']
+                                   if entry['product_id'] == product
+                                   and (args.surface is None or entry['surface_id'] == args.surface)]
+    # Both forms retain provenance and unknown states; text is pretty JSON for these inventories.
+    print(json.dumps(data, indent=2, ensure_ascii=True, allow_nan=False))
+    return 0
+
+
 def _run(args: argparse.Namespace, root: Path) -> int:
+    if args.cmd in ('coverage', 'models', 'agents'):
+        return _extended_inventory(args, root)
     if args.cmd == 'inventory':
         if args.format == 'json':
             print(json.dumps(integration_inventory(root), indent=2))
@@ -197,12 +334,18 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             print(inventory_text(root), end='')
         return 0
     if args.cmd == 'validate':
+        from .agents import agent_inventory
+        from .models import load_model_hosts, load_model_providers
         from .skills import validate_skills
 
         catalog = load_json(root / 'catalogs/mcp-servers.json')
         errors = validate_catalog(catalog)
         load_integrations(root)
         load_operating_systems(root)
+        load_requested_scope(root)
+        load_model_providers(root)
+        load_model_hosts(root)
+        agent_inventory(root)
         profiles = sorted((root / 'profiles').glob('*.json'))
         if not profiles:
             errors.append('No profiles found')
@@ -213,7 +356,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             for error in errors:
                 print('ERROR:', error, file=sys.stderr)
             return 1
-        print('Configuration, registry and portable skill validation passed')
+        print('Configuration, registries, requested coverage and portable skill validation passed')
         return 0
     spec, surface, target_os, host_os = _selection(args, root)
     if args.cmd == 'doctor':
@@ -239,17 +382,39 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             if errors:
                 raise WeaverError('; '.join(errors))
             artifacts = render_instruction_bundle(spec, surface, profile, args.skill, root)
-    elif args.cmd == 'provider':
+    elif args.cmd in ('provider', 'model'):
         from .providers import render_provider_setup
 
-        gateway = load_integrations(root)['openrouter']
-        metadata = gateway.surface(gateway.default_surface).provider
-        artifacts = render_provider_setup(spec, surface, provider_id=args.provider, model_id=args.model,
-                                          provider_metadata=metadata)
+        extended = args.cmd == 'model' or args.provider != 'openrouter' or any(
+            getattr(args, key) is not None for key in
+            ('catalog', 'protocol', 'reasoning_effort', 'reasoning_budget', 'reasoning', 'reasoning_mode', 'context_size')
+        )
+        if extended:
+            from .models import render_model_setup
+
+            artifacts = render_model_setup(spec, surface, root=root, provider_id=args.provider, model_id=args.model,
+                                           snapshot=_model_snapshot(args, root), effort=args.reasoning_effort,
+                                           budget_tokens=args.reasoning_budget, reasoning_enabled=_reasoning(args),
+                                           protocol=args.protocol, mode=args.reasoning_mode, context_size=args.context_size)
+        else:
+            gateway = load_integrations(root)['openrouter']
+            metadata = gateway.surface(gateway.default_surface).provider
+            artifacts = render_provider_setup(spec, surface, provider_id=args.provider, model_id=args.model,
+                                              provider_metadata=metadata)
+    elif args.cmd == 'agent':
+        from .agents import render_agent_definition
+
+        if args.catalog is not None and args.provider is None:
+            raise WeaverError('A model catalog requires an explicit provider')
+        artifacts = render_agent_definition(
+            spec, surface, root=root, name=args.name, description=args.description,
+            instructions=args.instructions_file.read_text(encoding='utf-8'), model_id=args.model,
+            effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
+        )
     else:
         raise WeaverError('Unsupported command')
     artifacts.append(_handoff(spec, surface, target_os, host_os, mcp=args.cmd == 'render',
-                              label='PROVIDER-OS' if args.cmd == 'provider' else None))
+                              label={'provider': 'PROVIDER-OS', 'model': 'MODEL-OS', 'agent': 'AGENT-OS'}.get(args.cmd)))
     _emit(args, artifacts)
     return 0
 

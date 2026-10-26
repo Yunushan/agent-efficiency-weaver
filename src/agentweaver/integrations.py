@@ -3,13 +3,14 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import AbstractSet, Any, NoReturn, cast
+from urllib.parse import urlparse
 
 from .config import WeaverError, load_json, safe_https_url
 
 SCHEMA_VERSION = 1
 CAPABILITY_NAMES = ("mcp", "instructions", "skills", "provider", "os")
 CAPABILITY_STATES = {"available", "manual", "unsupported", "unknown"}
-CONFIG_SCOPES = {"project", "user", "app", "none"}
+CONFIG_SCOPES = {"project", "user", "app", "request", "none"}
 OS_IDS = ("windows", "macos", "linux", "bsd", "solaris", "android", "ios")
 OS_CAPABILITY_NAMES = ("core_runtime", "native_agent", "manual_remote")
 EXPECTED_IDS = (
@@ -34,6 +35,8 @@ EXPECTED_IDS = (
     "qoder",
     "zed",
 )
+# Historical baseline only. The catalog is authoritative and may add products.
+ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 INTEGRATION_KEYS = {"id", "name", "kind", "default_surface", "surfaces"}
 SURFACE_REQUIRED_KEYS = {
     "id",
@@ -208,9 +211,17 @@ def _safe_relative(value: object, label: str) -> str | None:
 
 
 def _native_hint(value: object, label: str, config_scope: str) -> str | None:
-    if config_scope == "project":
+    if config_scope in {"project", "request"}:
         return _safe_relative(value, label)
     return _optional_string(value, label)
+
+
+def _canonical_id(value: object, label: str) -> str:
+    identifier = _string(value, label)
+    if not ID_PATTERN.fullmatch(identifier):
+        _fail(f"{label}: lowercase portable canonical id required")
+    _safe_relative(identifier, label)
+    return identifier
 
 
 def _reference(value: object, label: str) -> str:
@@ -268,7 +279,7 @@ def _os_workflows(value: object, label: str) -> dict[str, str]:
     return result
 
 
-def _provider(value: object, label: str) -> dict[str, Any] | None:
+def _provider(value: object, label: str, integration_id: str) -> dict[str, Any] | None:
     if value is None:
         return None
     data = _strict_object(
@@ -277,18 +288,30 @@ def _provider(value: object, label: str) -> dict[str, Any] | None:
         {"base_url", "endpoint", "model_selection", "model_ids", "secret_env", "mcp_service_enabled"},
     )
     base_url = _string(data["base_url"], f"{label}.base_url")
-    if not base_url.startswith("https://"):
-        _fail(f"{label}.base_url: HTTPS URL required")
+    valid_url = safe_https_url(base_url)
+    if integration_id == "lm-studio" and base_url.startswith("http://"):
+        try:
+            parsed = urlparse(base_url)
+            valid_url = (parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+                         and safe_https_url("https://" + base_url[len("http://"):]))
+        except ValueError:
+            valid_url = False
+    if not valid_url:
+        _fail(f"{label}.base_url: credential-free HTTPS URL or explicit local LM Studio URL required")
     endpoint = _string(data["endpoint"], f"{label}.endpoint")
+    if (not endpoint.startswith("/") or endpoint.startswith("//")
+            or not safe_https_url("https://endpoint.invalid" + endpoint)
+            or any(part in {".", ".."} for part in endpoint.split("/"))):
+        _fail(f"{label}.endpoint: absolute endpoint path without credentials, query or fragment required")
     model_selection = _string(data["model_selection"], f"{label}.model_selection")
     if model_selection != "explicit":
         _fail(f"{label}.model_selection: explicit selection required")
     model_ids = list(_string_list(data["model_ids"], f"{label}.model_ids"))
-    secret_env = _string(data["secret_env"], f"{label}.secret_env")
-    if not re.match(r"^[A-Z][A-Z0-9_]*$", secret_env):
+    secret_env = _optional_string(data["secret_env"], f"{label}.secret_env")
+    if secret_env is not None and not re.fullmatch(r"[A-Z][A-Z0-9_]*", secret_env):
         _fail(f"{label}.secret_env: environment variable name required")
-    if not isinstance(data["mcp_service_enabled"], bool):
-        _fail(f"{label}.mcp_service_enabled: boolean required")
+    if data["mcp_service_enabled"] is not False:
+        _fail(f"{label}.mcp_service_enabled: generated provider MCP services must remain disabled")
     return {
         "base_url": base_url,
         "endpoint": endpoint,
@@ -302,7 +325,7 @@ def _provider(value: object, label: str) -> dict[str, Any] | None:
 def _surface(value: object, integration_id: str) -> SurfaceSpec:
     label = f"integration {integration_id} surface"
     data = _strict_object(value, label, SURFACE_REQUIRED_KEYS, SURFACE_OPTIONAL_KEYS)
-    surface_id = _string(data["id"], f"{label}.id")
+    surface_id = _canonical_id(data["id"], f"{label}.id")
     label = f"integration {integration_id} surface {surface_id}"
     dialect = _optional_string(data["mcp_dialect"], f"{label}.mcp_dialect")
     config_fields = _string_list(data["config_fields"], f"{label}.config_fields")
@@ -328,9 +351,7 @@ def _surface(value: object, integration_id: str) -> SurfaceSpec:
         name: _evidence(capabilities_data[name], f"{label}.capabilities.{name}")
         for name in CAPABILITY_NAMES
     }
-    provider = _provider(data.get("provider"), f"{label}.provider")
-    if provider is not None and integration_id != "openrouter":
-        _fail(f"{label}.provider: provider metadata is only valid for openrouter")
+    provider = _provider(data.get("provider"), f"{label}.provider", integration_id)
     return SurfaceSpec(
         id=surface_id,
         mcp_dialect=dialect,
@@ -350,13 +371,13 @@ def _surface(value: object, integration_id: str) -> SurfaceSpec:
 def _integration(value: object, index: int) -> IntegrationSpec:
     label = f"integrations[{index}]"
     data = _strict_object(value, label, INTEGRATION_KEYS)
-    integration_id = _string(data["id"], f"{label}.id")
+    integration_id = _canonical_id(data["id"], f"{label}.id")
     label = f"integration {integration_id}"
     name = _string(data["name"], f"{label}.name")
     kind = _string(data["kind"], f"{label}.kind")
-    if kind not in {"agent", "provider"}:
-        _fail(f"{label}.kind: expected agent or provider")
-    default_surface = _string(data["default_surface"], f"{label}.default_surface")
+    if kind not in {"agent", "provider", "hybrid"}:
+        _fail(f"{label}.kind: expected agent, provider or hybrid")
+    default_surface = _canonical_id(data["default_surface"], f"{label}.default_surface")
     surfaces_data = data["surfaces"]
     if not isinstance(surfaces_data, list) or not surfaces_data:
         _fail(f"{label}.surfaces: non-empty list required")
@@ -370,6 +391,10 @@ def _integration(value: object, index: int) -> IntegrationSpec:
     if kind == "provider":
         if any(surface.provider is None for surface in surfaces):
             _fail(f"{label}: provider surfaces require provider metadata")
+    elif kind == "hybrid":
+        metadata_count = sum(surface.provider is not None for surface in surfaces)
+        if metadata_count == 0 or metadata_count == len(surfaces):
+            _fail(f"{label}: hybrid requires both provider and host surfaces")
     elif any(surface.provider is not None for surface in surfaces):
         _fail(f"{label}: agent surfaces cannot define provider metadata")
     return IntegrationSpec(
@@ -388,34 +413,19 @@ def load_integrations(root: Path) -> dict[str, IntegrationSpec]:
         "integrations catalog",
         {"schema_version", "integrations"},
     )
-    if data["schema_version"] != SCHEMA_VERSION:
+    if type(data["schema_version"]) is not int or data["schema_version"] != SCHEMA_VERSION:
         _fail(f"integrations catalog: schema_version {SCHEMA_VERSION} required")
     entries = data["integrations"]
-    if not isinstance(entries, list):
-        _fail("integrations catalog: integrations must be a list")
+    if not isinstance(entries, list) or not entries:
+        _fail("integrations catalog: integrations must be a non-empty list")
     integrations = {}
     for index, entry in enumerate(entries):
         integration = _integration(entry, index)
         if integration.id in integrations:
             _fail(f"integrations catalog: duplicate integration id {integration.id!r}")
         integrations[integration.id] = integration
-    if set(integrations) != set(EXPECTED_IDS):
-        missing = sorted(set(EXPECTED_IDS) - set(integrations))
-        extra = sorted(set(integrations) - set(EXPECTED_IDS))
-        detail = []
-        if missing:
-            detail.append("missing " + ", ".join(missing))
-        if extra:
-            detail.append("unexpected " + ", ".join(extra))
-        _fail("integrations catalog: " + "; ".join(detail))
-    if len(integrations) != 20:
-        _fail("integrations catalog: exactly 20 integrations required")
-    if len({integration.name for integration in integrations.values()}) != 20:
+    if len({integration.name.casefold() for integration in integrations.values()}) != len(integrations):
         _fail("integrations catalog: integration names must be unique")
-    agents = [integration for integration in integrations.values() if integration.kind == "agent"]
-    providers = [integration for integration in integrations.values() if integration.kind == "provider"]
-    if len(agents) != 19 or len(providers) != 1 or providers[0].id != "openrouter":
-        _fail("integrations catalog: exactly 19 agents and one openrouter provider required")
     return {key: integrations[key] for key in sorted(integrations)}
 
 
@@ -468,7 +478,7 @@ def load_operating_systems(root: Path) -> dict[str, OperatingSystemSpec]:
         "operating systems catalog",
         {"schema_version", "operating_systems"},
     )
-    if data["schema_version"] != SCHEMA_VERSION:
+    if type(data["schema_version"]) is not int or data["schema_version"] != SCHEMA_VERSION:
         _fail(f"operating systems catalog: schema_version {SCHEMA_VERSION} required")
     entries = data["operating_systems"]
     if not isinstance(entries, list):
@@ -562,10 +572,12 @@ def inventory_text(root: Path) -> str:
     integrations = data["integrations"]
     agents = sum(1 for item in integrations if item["kind"] == "agent")
     providers = sum(1 for item in integrations if item["kind"] == "provider")
+    hybrids = sum(1 for item in integrations if item["kind"] == "hybrid")
     lines = [
         f"schema_version: {data['schema_version']}",
         f"agents: {agents}",
         f"providers: {providers}",
+        f"hybrids: {hybrids}",
         "integrations:",
     ]
     for item in integrations:

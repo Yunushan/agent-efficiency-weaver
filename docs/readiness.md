@@ -4,7 +4,7 @@ The current release is an offline Python CLI that validates registries and Skill
 
 | Gate | Required result |
 |---|---|
-| Registry and Skills | Catalogs, profiles, integrations, OS registry, and every portable Skill validate |
+| Registry and Skills | Integrations, requested-scope aliases, provider/model metadata, per-surface host model/reasoning controls, custom-agent routes, profiles, OS registry, and every portable Skill validate |
 | Unit tests | The complete offline unittest suite passes |
 | Lint | Ruff reports no errors |
 | Types | The strict mypy pipeline passes for the runtime package |
@@ -31,6 +31,10 @@ Save output under the ignored `reports/generated/` directory if a local record i
 
 Production acceptance requires reviewing the current release contracts as well as passing tests: explicit/default-off MCP selection, registry-sourced identities and labeled gaps, owned-hash staging safety, validated portable Skills, unknown benchmark coverage, bundled installed resources, and documentation that matches actual behavior. The relevant evidence is in the registry-derived documentation tests, adapter goldens, staged-write and CLI tests, benchmark validation tests, and isolated distribution checks. A passing summary does not replace checking that coverage against the intended release.
 
+The 31-product expansion adds 25 agents, 4 providers, and 2 hybrids; requested-scope mapping accounts for 23 groups across 33 distinct surfaces. These counts describe the candidate's inventory, not resolved support. Review unknown capability states, missing documentation, pending runtime checks, remote HTTPS versus stdio serialization, request-scope MCP bodies, model/protocol reasoning rules, custom-agent definition routes, and app-managed manual handoffs separately. Stdio fixtures establish output structure without executing an MCP server. A complete mapping report or a visible model in a caller-supplied snapshot cannot fill an inference or runtime evidence gap.
+
+The host model/control inventory accounts for all 42 registered surfaces, separately from provider discovery snapshots. Its documented manual controls, null model-dependent values, unknown reasoning routes, and unknown availability must remain visible. This catalog neither enables native model exporters nor supplies account or installed-version evidence.
+
 For a release decision covering all primary CI targets, require successful runs of the exact candidate on Windows, macOS, and Linux across Python 3.11, 3.12, and 3.13. One Windows run cannot establish this matrix, and skipped platform tests remain unverified on that host. If the candidate is uncommitted, older remote CI results cannot stand in for its validation. Commit and push still require explicit authorization under AGENTS.md.
 
 A full local gate score does not fill the roadmap's pending runtime evidence. Installed-client compatibility requires a separate manual record for the product, surface, version, OS variant, architecture, exact action, artifact hashes, and observed configuration-consumption result. BSD, Solaris, Android, and iOS workflows retain the conditional or remote limitations in the compatibility registry. Missing native access remains pending.
@@ -38,6 +42,8 @@ A full local gate score does not fill the roadmap's pending runtime evidence. In
 The score also makes no claim about measured token/cost savings, vendor entitlements, SSO, compliance certification, or autonomous execution. Synthetic benchmark fixtures test the data pipeline only. A deployment or vendor compatibility decision must consider the relevant external evidence independently of this repository score.
 
 ## Recorded core CLI CI evidence
+
+This checkpoint is **historical evidence for the earlier 20-product release**. It does not verify the current 31-product expansion, its additional surfaces, custom-agent definitions, model catalog handling, or reasoning settings. Require a new run for the exact expanded candidate before making a matrix-wide release claim.
 
 On 2026-10-26, [CI run 40278860777](https://github.com/Yunushan/agent-efficiency-weaver/actions/runs/40278860777) passed all nine Windows/macOS/Linux × Python 3.11/3.12/3.13 jobs for source commit `cf5bcdc2b1bacc03df355f24e3f6e6ab55998dad`, package version `0.1.0`. Each job runs the six required gates, including original-wheel and sdist-rebuilt-wheel installation and smoke checks outside the checkout. This is an immutable evidence checkpoint; later candidates require their own successful CI run.
 
