@@ -224,6 +224,11 @@ def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, e
     bare_model = (model.removeprefix(provider_id + "/")
                   if style == "provider/model" and provider_id is not None else model)
     checked = check_model(root, provider_id, bare_model, snapshot, effort=effort) if provider_id is not None else None
+    if checked is not None:
+        architecture = checked["architecture"]
+        outputs = architecture.get("output_modalities") if architecture is not None else None
+        if outputs and "text" not in outputs:
+            raise WeaverError("Selected model does not declare text output; native language-agent definitions require text output")
     if style == "provider/model":
         if provider_id is not None:
             model = f"{provider_id}/{bare_model}"

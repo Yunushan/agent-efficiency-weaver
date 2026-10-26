@@ -43,6 +43,8 @@ Every capability record in the requested scope now has reviewed documentation so
 
 `models --provider ID --input snapshot.json` reads a model response captured separately by the operator. It performs no discovery request. `model --agent PRODUCT --provider PROVIDER --model ID` stages model setup; optional reasoning controls are validated for the selected provider, protocol, and documented model or snapshot capabilities. Catalog visibility is not successful inference, installed-version compatibility, or account access. Missing availability, token, or cost data stays unknown.
 
+For a separately captured OpenRouter inventory across model types, use its documented `output_modalities=all` filter; the endpoint otherwise defaults to text output. Imported conditional prices remain conditional, unresolved prices remain unknown, and modality metadata helps distinguish task-specific models from language-agent model choices. See the [model snapshot contract](docs/compatibility.md#models-and-reasoning).
+
 `models --agent PRODUCT --surface SURFACE` inspects that host's documented model chooser and reasoning controls. This host inventory is separate from importing a provider snapshot with `--input`.
 
 The host-control inventory covers all 42 registered surfaces and preserves unknown reasoning overrides and unknown availability. A documented effort, budget, toggle, variant, or mode remains specific to the selected host and model. The inventory does not enable additional native exporters or prove access to a listed model.

@@ -61,6 +61,77 @@ class SnapshotTests(unittest.TestCase):
             path.write_text(json.dumps(value), encoding="utf-8")
             return read_model_snapshot(path, provider, ROOT)
 
+    def test_openrouter_conditional_pricing_keeps_order_conditions_and_exact_decimals(self) -> None:
+        pricing = {"prompt": "0.000004", "completion": "0.00002", "input_cache_write_1h": "0.000008", "discount": 0.1,
+                   "overrides": [
+                       {"utc_days": ["friday", "monday"], "utc_start": 2230, "utc_end": 400, "prompt": "0.000008"},
+                       {"min_prompt_tokens": 200000, "prompt": "0.000002", "input_cache_write_1h": "0.000004"},
+                       {"utc_days": ["saturday", "sunday"], "completion": "1e-999"},
+                   ]}
+        result = self.read("openrouter", {"data": [{"id": "fixture/conditional-prices", "pricing": pricing}]})
+        self.assertEqual(result["models"][0]["pricing"], pricing)
+        self.assertEqual(result["models"][0]["pricing"]["overrides"][0]["prompt"], "0.000008")
+        self.assertNotIn("pricing_observations", result["models"][0])
+
+    def test_openrouter_observed_minus_one_is_unknown_not_a_charge_or_zero(self) -> None:
+        result = self.read("openrouter", {"data": [{"id": "fixture/unresolved-price", "pricing": {
+            "prompt": "-1", "completion": "0", "overrides": [{"min_prompt_tokens": 10, "completion": "-1"}]}}]})
+        model = result["models"][0]
+        self.assertEqual(model["pricing"], {"prompt": None, "completion": "0",
+                                            "overrides": [{"min_prompt_tokens": 10, "completion": None}]})
+        self.assertEqual(model["pricing_observations"], [
+            {"field": "prompt", "raw": "-1", "state": "unknown"},
+            {"field": "completion", "raw": "-1", "state": "unknown", "override_index": 0}])
+        self.assertEqual(result["model_count"], 1)
+        with self.assertRaises(WeaverError):
+            self.read("openai", {"data": [{"id": "fixture-model", "pricing": {"prompt": "-1"}}]})
+
+    def test_openrouter_prices_reject_malformed_numbers_types_and_fields(self) -> None:
+        for amount in (True, False, 1, 1.5, [], {}, "-2", "-1.0", "-0.01", "NaN", "Infinity", "-Infinity",
+                       "1e99999999999999999999999999999999", " 0.1", "", "0\n"):
+            with self.subTest(amount=amount), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/invalid-price", "pricing": {"prompt": amount}}]})
+        for pricing in ({"unknown_field": "1"}, {"overrides": {}}, {"overrides": [True]},
+                        {"overrides": [{"overrides": []}]}, {"overrides": [{"unexpected": "1"}]},
+                        {"discount": True}, {"discount": "0.1"}, {"discount": -0.1}, {"discount": 1.1}):
+            with self.subTest(pricing=pricing), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/invalid-schema", "pricing": pricing}]})
+
+    def test_openrouter_price_conditions_are_typed_without_selecting_a_rate(self) -> None:
+        conditions = [
+            {"min_prompt_tokens": True}, {"min_prompt_tokens": "10"}, {"min_prompt_tokens": -1},
+            {"min_prompt_tokens": 1.5}, {"utc_start": 100}, {"utc_end": 200},
+            {"utc_start": 100, "utc_end": 100}, {"utc_start": 100, "utc_end": 2400},
+            {"utc_start": 160, "utc_end": 200}, {"utc_start": True, "utc_end": 200},
+            {"utc_start": "100", "utc_end": 200}, {"utc_start": -1, "utc_end": 200},
+            {"utc_days": []}, {"utc_days": "monday"}, {"utc_days": ["monday", "monday"]},
+            {"utc_days": ["Monday"]}, {"utc_days": [None]},
+        ]
+        for condition in conditions:
+            with self.subTest(condition=condition), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/invalid-condition", "pricing": {
+                    "prompt": "1", "overrides": [{**condition, "prompt": "2"}]}}]})
+
+    def test_openrouter_retains_architecture_and_raw_declared_reasoning_metadata(self) -> None:
+        architecture = {"input_modalities": ["text", "image"], "output_modalities": ["text", "audio"],
+                        "modality": "text+image->text+audio", "tokenizer": "Other", "instruct_type": None}
+        reasoning = {"mandatory": False, "default_enabled": True, "supported_efforts": ["high", "low", "none"],
+                     "default_effort": "high", "supports_max_tokens": True}
+        snapshot = self.read("openrouter", {"data": [{"id": "fixture/multimodal", "architecture": architecture,
+                                                      "reasoning": reasoning}]})
+        model = snapshot["models"][0]
+        self.assertEqual(model["architecture"], architecture)
+        self.assertEqual(model["reasoning_metadata"], reasoning)
+        self.assertEqual(model["reasoning"]["efforts"], ["high", "low", "none"])
+        checked = check_model(ROOT, "openrouter", "fixture/multimodal", snapshot)
+        self.assertEqual(checked["architecture"], architecture)
+        self.assertEqual(checked["language_agent_compatibility"], "unknown")
+        self.assertFalse(checked["inference_tested"])
+        for architecture in ({"input_modalities": "text"}, {"output_modalities": ["text", "text"]},
+                             {"output_modalities": [False]}, {"tokenizer": []}, {"unvalidated": "value"}):
+            with self.subTest(architecture=architecture), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/invalid-modalities", "architecture": architecture}]})
+
     def test_all_supported_provider_formats_import_without_truncation(self) -> None:
         cases = {
             "openrouter": {"data": [{"id": f"publisher/model-{number}"} for number in range(135)]},
@@ -211,6 +282,19 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_known_nontext_output_uses_manual_task_handoff_for_coding_hosts(self) -> None:
+        snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/nontext-model", "architecture": {
+            "input_modalities": ["text"], "output_modalities": ["embeddings"]}}]}
+        for product in ("qwen-code", "kimi-code"):
+            with self.subTest(product=product):
+                artifacts = render_model_setup(get_integration(product, ROOT), "cli", root=ROOT,
+                    provider_id="openrouter", model_id="fixture/nontext-model", snapshot=snapshot,
+                    protocol="openai-responses", context_size=8192)
+                self.assertFalse(any(artifact.kind == "model-config" for artifact in artifacts))
+                self.assertIn(b"Configuration state: `manual`", artifacts[0].content)
+                self.assertIn(b"task-specific manual handoff", artifacts[0].content)
+                self.assertIn(b"Language-agent compatibility: unknown", artifacts[0].content)
+
     def test_qwen_native_fragment_is_credential_reference_and_explicit_model(self) -> None:
         artifacts = render_model_setup(get_integration("qwen-code", ROOT), "cli", root=ROOT,
                                        provider_id="openai", model_id="gpt-6-sol", effort="low")

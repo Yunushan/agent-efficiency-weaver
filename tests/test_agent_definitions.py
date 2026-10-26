@@ -197,6 +197,34 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             self.render("antigravity", "ide", model_id="models/gemini-3.8-flash")
 
+    def test_selected_model_output_modalities_gate_native_language_agent_definitions(self):
+        identifier = "fixture/selected-model"
+        for product in ("codex", "opencode"):
+            for outputs in (["image"], ["embeddings"], ["audio", "video"]):
+                snapshot = {"provider_id": "openrouter", "models": [{"id": identifier,
+                    "architecture": {"input_modalities": ["text"], "output_modalities": outputs}}]}
+                with self.subTest(product=product, outputs=outputs), self.assertRaises(WeaverError) as raised:
+                    self.render(product, model_id=identifier, provider_id="openrouter", snapshot=snapshot)
+                self.assertIn("does not declare text output", str(raised.exception))
+                self.assertNotIn(identifier, str(raised.exception))
+            for architecture in (None, {"input_modalities": ["text"]}, {"output_modalities": []},
+                                 {"output_modalities": ["text"]}, {"output_modalities": ["text", "image"]}):
+                entry = {"id": identifier}
+                if architecture is not None:
+                    entry["architecture"] = architecture
+                snapshot = {"provider_id": "openrouter", "models": [entry]}
+                with self.subTest(product=product, architecture=architecture):
+                    artifacts = self.render(product, model_id=identifier, provider_id="openrouter", snapshot=snapshot)
+                    self.assertEqual(artifacts[0].kind, "agent-definition")
+                    fields, _ = parse_definition(artifacts[0].content, NATIVE_PATHS[product, "cli"])
+                    expected = identifier if product == "codex" else "openrouter/" + identifier
+                    self.assertEqual(fields["model"], expected)
+            # Another model's known non-text output cannot classify an unlisted ID.
+            snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/image-only",
+                "architecture": {"output_modalities": ["image"]}}]}
+            artifacts = self.render(product, model_id=identifier, provider_id="openrouter", snapshot=snapshot)
+            self.assertEqual(artifacts[0].kind, "agent-definition")
+
     def test_devin_desktop_binding_uses_profile_tool_restrictions_and_router_default(self):
         artifacts = self.render("devin", "desktop-local")
         fields, body = parse_definition(artifacts[0].content, NATIVE_PATHS["devin", "desktop-local"])

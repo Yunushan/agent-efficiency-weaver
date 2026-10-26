@@ -17,14 +17,15 @@
         "endpoint": "/models",
         "format": "openrouter",
         "auth": "Bearer API key documented for the current model-list route; no key is read by Weaver",
-        "scope": "Gateway catalog; output_modalities defaults to text; request all for other modalities; account/provider access may differ",
+        "scope": "Public catalog defaults to text output; capture output_modalities=all for all exposed model types. Omit both offset and limit for the full filtered response, or capture every page. Public visibility is not account access or inference.",
         "pagination": "offset/limit and links/total_count; omitted offset/limit returns full filtered list; completeness remains unknown"
       },
       "sources": [
         "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
         "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
         "https://openrouter.ai/docs/api_reference/responses/overview",
-        "https://openrouter.ai/docs/api_reference/responses/reasoning"
+        "https://openrouter.ai/docs/api_reference/responses/reasoning",
+        "https://github.com/OpenRouterTeam/terraform-provider-openrouter/blob/main/docs/data-sources/model.md"
       ],
       "known_models": []
     },

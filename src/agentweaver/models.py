@@ -11,6 +11,7 @@ import math
 import re
 from collections.abc import Mapping
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 from urllib.parse import parse_qsl, urlsplit
@@ -32,6 +33,16 @@ _SECRET_KEYS = {"api_key", "apikey", "authorization", "credentials", "credential
 _SECRET = re.compile(r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})",
                      re.IGNORECASE)
 _MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
+_OPENROUTER_PRICE_FIELDS = {
+    "prompt", "completion", "request", "image", "image_output", "image_token", "audio", "audio_output",
+    "input_audio_cache", "input_cache_read", "input_cache_write", "input_cache_write_1h", "internal_reasoning", "web_search",
+}
+_OPENROUTER_OVERRIDE_PRICES = {
+    "prompt", "completion", "audio", "input_audio_cache", "input_cache_read", "input_cache_write", "input_cache_write_1h",
+}
+_OPENROUTER_PRICE_CONDITIONS = {"min_prompt_tokens", "utc_start", "utc_end", "utc_days"}
+_WEEKDAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+_DECIMAL_PRICE = re.compile(r"(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z")
 
 
 def _fail(message: str) -> NoReturn:
@@ -352,6 +363,88 @@ def _snapshot_provenance(value: object, *, normalized: bool = False) -> dict[str
     return dict(value)
 
 
+def _openrouter_pricing(value: object) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Preserve documented conditional prices without calculating a request cost.
+
+    The observed -1 string is retained as an unresolved observation, never a
+    negative charge or zero. Its undocumented meaning is deliberately not inferred.
+    """
+    if not isinstance(value, dict) or set(value) - (_OPENROUTER_PRICE_FIELDS | {"discount", "overrides"}):
+        _fail("Invalid OpenRouter pricing schema")
+    observations: list[dict[str, Any]] = []
+
+    def amount(field: str, raw: object, override_index: int | None = None) -> str | None:
+        if raw is None:
+            return None
+        if raw == "-1":
+            observation: dict[str, Any] = {"field": field, "raw": "-1", "state": "unknown"}
+            if override_index is not None:
+                observation["override_index"] = override_index
+            observations.append(observation)
+            return None
+        if not isinstance(raw, str) or not _DECIMAL_PRICE.fullmatch(_text(raw, "price")):
+            _fail("Invalid OpenRouter price")
+        try:
+            parsed = Decimal(raw)
+        except InvalidOperation:
+            _fail("Invalid OpenRouter price")
+        if not parsed.is_finite() or parsed < 0:
+            _fail("Invalid OpenRouter price")
+        return raw
+
+    pricing: dict[str, Any] = {}
+    for key, raw in value.items():
+        if key in _OPENROUTER_PRICE_FIELDS:
+            pricing[key] = amount(key, raw)
+        elif key == "discount":
+            if type(raw) not in {int, float} or not 0 <= raw <= 1:
+                _fail("Invalid OpenRouter pricing discount")
+            pricing[key] = raw
+        else:
+            if not isinstance(raw, list):
+                _fail("OpenRouter pricing overrides must be a list")
+            overrides: list[dict[str, Any]] = []
+            for index, entry in enumerate(raw):
+                if not isinstance(entry, dict) or set(entry) - (_OPENROUTER_OVERRIDE_PRICES | _OPENROUTER_PRICE_CONDITIONS):
+                    _fail("Invalid OpenRouter price override schema")
+                if ("utc_start" in entry) != ("utc_end" in entry):
+                    _fail("OpenRouter pricing time windows require both bounds")
+                override: dict[str, Any] = {}
+                for field, item in entry.items():
+                    if field in _OPENROUTER_OVERRIDE_PRICES:
+                        override[field] = amount(field, item, index)
+                    elif field == "min_prompt_tokens":
+                        if type(item) is not int or item < 0:
+                            _fail("Invalid OpenRouter pricing token threshold")
+                        override[field] = item
+                    elif field == "utc_days":
+                        days = _strings(item, "OpenRouter pricing weekdays", allowed=_WEEKDAYS)
+                        if not days:
+                            _fail("OpenRouter pricing weekdays cannot be empty")
+                        override[field] = days
+                    else:
+                        if type(item) is not int or not 0 <= item <= 2359 or item % 100 > 59:
+                            _fail("Invalid OpenRouter pricing UTC time")
+                        override[field] = item
+                if "utc_start" in entry and entry["utc_start"] == entry["utc_end"]:
+                    _fail("OpenRouter pricing time window bounds must differ")
+                overrides.append(override)
+            pricing[key] = overrides
+    return pricing, observations
+
+
+def _model_architecture(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) - {"input_modalities", "output_modalities", "modality", "tokenizer", "instruct_type"}:
+        _fail("Invalid model architecture metadata")
+    result: dict[str, Any] = {}
+    for field, item in value.items():
+        if field in {"input_modalities", "output_modalities"}:
+            result[field] = _strings(item, "model modalities")
+        else:
+            result[field] = None if item is None else _text(item, "model architecture")
+    return result
+
+
 def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], digest: str) -> dict[str, Any]:
     _scan(raw)
     if raw.get("provider_id", provider_id) != provider_id:
@@ -413,6 +506,13 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
             display = entry.get("display_name", entry.get("displayName", entry.get("name", identifier)))
             item: dict[str, Any] = {"id": identifier, "display_name": _text(display, "model display name"),
                                     "reasoning": _native_reasoning(entry, format_name), "inference_tested": False}
+            if format_name == "openrouter":
+                if "architecture" in entry:
+                    item["architecture"] = _model_architecture(entry["architecture"])
+                if "reasoning" in entry:
+                    item["reasoning_metadata"] = {key: entry["reasoning"][key] for key in (
+                        "mandatory", "default_enabled", "supported_efforts", "default_effort", "supports_max_tokens")
+                        if key in entry["reasoning"]}
             for target, alternatives in {
                 "context_length": ("context_length", "contextWindow", "max_context_length"),
                 "input_limit": ("inputTokenLimit", "max_input_tokens"),
@@ -429,7 +529,11 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
             if "supportedGenerationMethods" in entry:
                 item["supported_methods"] = _strings(entry["supportedGenerationMethods"], "supported methods")
             # Preserve prices as supplied data; absent prices remain absent, never zero.
-            if "pricing" in entry:
+            if "pricing" in entry and format_name == "openrouter":
+                item["pricing"], observations = _openrouter_pricing(entry["pricing"])
+                if observations:
+                    item["pricing_observations"] = observations
+            elif "pricing" in entry:
                 if not isinstance(entry["pricing"], dict):
                     _fail("Invalid model pricing")
                 pricing: dict[str, Any] = {}
@@ -590,6 +694,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             evidence = {"origin": "documentation", "sources": known["sources"], "checked_on": provider["checked_on"]}
     visible: bool | None = None
     provenance: dict[str, Any] | None = None
+    architecture: dict[str, Any] | None = None
     if snapshot is not None:
         if not isinstance(snapshot, Mapping) or snapshot.get("provider_id") != provider_id:
             _fail("Snapshot provider does not match requested provider")
@@ -606,8 +711,10 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             if entry_id in seen:
                 _fail("Duplicate model id in snapshot")
             seen.add(entry_id)
+            declared_architecture = _model_architecture(entry["architecture"]) if "architecture" in entry else None
             if entry_id == identifier:
                 visible = True
+                architecture = declared_architecture
                 if context_size is None and "context_length" in entry:
                     context = entry["context_length"]
                     if type(context) is not int or context < 1:
@@ -625,7 +732,8 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             "inference_tested": False, "runtime_verified": False, "availability": "unknown",
             "reasoning_capability": cap, "reasoning_evidence": evidence, "reasoning_payload": payload,
             "snapshot_provenance": provenance, "catalog_completeness": "unknown", "network_used": False,
-            "credentials_read": False, "context_size": context_size}
+            "credentials_read": False, "context_size": context_size, "architecture": architecture,
+            "language_agent_compatibility": "unknown"}
 
 
 def _json_artifact(path: str, value: object, kind: str) -> RenderedArtifact:
@@ -654,7 +762,12 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     native = False
     artifacts: list[RenderedArtifact] = []
     native_note = "No native model configuration exporter is documented for this product/surface/provider route."
-    if (registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
+    architecture = checked["architecture"]
+    text_candidate = architecture is None or "output_modalities" not in architecture or "text" in architecture["output_modalities"]
+    if not text_candidate:
+        native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
+                       "language-agent compatibility is unknown.")
+    if (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
         model: dict[str, Any] = {"id": model_id, "baseUrl": api_base, "envKey": provider["secret_env"],
@@ -674,7 +787,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         artifacts.append(_json_artifact(f"{prefix}/settings.fragment.json", fragment, "model-config"))
         native = True
         native_note = "Merge the staged fragment into Qwen settings deliberately; modelProviders replaces its matching scope."
-    elif registered.id == "kimi-code" and surface == "cli" and chosen in {
+    elif text_candidate and registered.id == "kimi-code" and surface == "cli" and chosen in {
             "openai-chat", "openai-responses", "anthropic-messages"} and budget_tokens is None and mode is None and effort not in {"none", "minimal"} and provider["secret_env"] is not None:
         provider_type = {"openai-chat": "openai", "openai-responses": "openai_responses", "anthropic-messages": "anthropic"}[chosen]
         def quote(value: object) -> str:
@@ -711,6 +824,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
              f"- Protocol: `{chosen}`", f"- Configuration state: `{'available' if native else 'manual'}`",
              f"- Provider API base: `{api_base}`", f"- Credential environment reference: `{provider['secret_env']}`",
              f"- Visible in supplied snapshot: `{checked['visible_in_snapshot']}`", "- Inference/runtime verified: false",
+             f"- Provider-declared architecture: `{json.dumps(architecture, ensure_ascii=True)}`",
+             "- Language-agent compatibility: unknown",
              "- Catalog completeness and account availability: unknown", "", native_note, "",
              "Review the model-selection fragment against the selected API and merge only intended settings. "
              "Supply credentials through the product's documented local authentication flow. "
