@@ -273,7 +273,7 @@ def _markdown(
             "",
             "## Evidence",
             "",
-            f"- Checked on: {'2026-10-26' if agent_id in _EXPANDED_ROUTE_IDS else CHECKED_ON}",
+            f"- Checked on: {'2026-10-26' if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON}",
             "- Sources:",
         ]
     )
@@ -314,7 +314,7 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
     return {
         "state": "available" if route.native_toml else "manual",
         "sources": list(route.sources),
-        "checked_on": "2026-10-26" if agent_id in _EXPANDED_ROUTE_IDS else CHECKED_ON,
+        "checked_on": "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON,
         "fixture_tests": (["tests/test_providers.py", "tests/test_expanded_providers.py"] if agent_id == "codex" else
                           ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"]),
     }
@@ -360,6 +360,7 @@ def render_provider_setup(
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
 _EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
+_REFRESHED_ROUTE_IDS = _EXPANDED_ROUTE_IDS | {"openhands"}
 _ROUTES = {
     "kilo": _Route(
         None,
@@ -481,21 +482,33 @@ _ROUTES = {
     "openhands": _Route(
         ("cli",),
         "openrouter/",
-        "Use `openrouter/<raw>` when a model is not in the selector and must be "
-        "entered in the Advanced tab.",
+        "Use the SDK's LiteLLM model ID `openrouter/<raw>` in `llm.model`, or in "
+        "`LLM_MODEL` with `--override-with-envs`. A file-agent model field instead names a saved LLM profile.",
         (
-            "Open Settings > LLM and select OpenRouter as the provider.",
-            "Select a model and enter the key in the settings profile.",
-            "For an unlisted model, use Advanced and enter `openrouter/<raw>`.",
+            "Run `openhands`, press `Ctrl+P`, and select Settings to configure the CLI model and credentials.",
+            "Review the existing `~/.openhands/agent_settings.json`: use `openrouter/<raw>` for "
+            "`llm.model` and the OpenRouter API base for `llm.base_url`. No complete settings file is exported.",
+            "For temporary process overrides, explicitly use `--override-with-envs`; "
+            "`LLM_MODEL`, `LLM_BASE_URL`, and `LLM_API_KEY` overrides are not persisted.",
         ),
-        (),
-        "Enter the key in Settings > LLM. The OpenRouter route page documents no "
-        "OpenRouter-specific environment variable.",
+        (("LLM_MODEL", "SDK model ID; used only with --override-with-envs."),
+         ("LLM_BASE_URL", "Custom API base; used only with --override-with-envs."),
+         ("LLM_API_KEY", "Provider credential; used only with --override-with-envs.")),
+        "Supply the credential through CLI Settings or a controlled process environment with "
+        "`LLM_API_KEY` and `--override-with-envs`. Environment overrides do not change saved settings. "
+        "The generator reads no credential and writes no credential or live settings.",
         None,
-        "Use the documented OpenRouter base URL and chat completions endpoint.",
-        ("The model prefix is `openrouter/<raw>` for unlisted model IDs.",),
+        "The pinned CLI loads its SDK LLM configuration directly; the SDK passes the model ID "
+        "and API base to LiteLLM's OpenRouter route.",
+        ("This is a manual CLI handoff; Agent Canvas Settings > LLM and Advanced tabs are a separate interface.",
+         "Model access, supported reasoning values, tool compatibility, and inference remain unverified."),
         (
             "https://docs.openhands.dev/openhands/usage/llms/openrouter",
+            "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/command-reference.mdx",
+            "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml",
+            "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py",
+            "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/utils/openhands_provider.py",
+            "https://docs.litellm.ai/docs/providers/openrouter",
             _OPENROUTER,
         ),
     ),

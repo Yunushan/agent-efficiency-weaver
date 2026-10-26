@@ -129,7 +129,7 @@ class ProviderRouteTests(unittest.TestCase):
                 self.assertIn("Staging handoff", text)
                 self.assertIn(expected_model_text, text)
                 self.assertIn(source, text)
-                self.assertIn("2026-10-26" if agent_id == "codex" else CHECKED_ON, text)
+                self.assertIn("2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON, text)
                 self.assertNotIn("\r", text)
 
     def test_accepts_native_integration_spec_surface_mapping(self) -> None:
@@ -152,6 +152,19 @@ class ProviderRouteTests(unittest.TestCase):
         self.assertNotIn("--model openrouter/openrouter/", text)
         with self.assertRaises(WeaverError):
             render("aider", "cli", model="")
+
+    def test_openhands_handoff_uses_cli_settings_and_opt_in_temporary_environment(self) -> None:
+        artifacts = render("openhands", "cli", model="fixture/cli-model")
+        self.assertEqual([item.kind for item in artifacts], ["provider-setup"])
+        text = setup_text(artifacts)
+        for expected in ("`Ctrl+P`", "~/.openhands/agent_settings.json", "llm.model", "llm.base_url",
+                         "openrouter/fixture/cli-model", "LLM_MODEL", "LLM_BASE_URL", "LLM_API_KEY",
+                         "--override-with-envs", "not persisted", "separate interface", "saved LLM profile"):
+            self.assertIn(expected, text)
+        self.assertNotIn("Open Settings > LLM", text)
+        self.assertNotIn("use Advanced", text)
+        self.assertNotIn("OPENROUTER_API_KEY", text)
+        self.assertIn("2026-10-26", text)
 
     def test_codex_adds_native_toml_fragment_without_credentials(self) -> None:
         artifacts = render("codex", "cli", model="openai/gpt-5.2")
@@ -240,7 +253,7 @@ class ProviderEvidenceTests(unittest.TestCase):
                 data = provider_evidence(agent_id, surface)
                 self.assertEqual(data["state"], "available" if agent_id == "codex" else "manual")
                 self.assertIn(source, data["sources"])
-                self.assertEqual(data["checked_on"], "2026-10-26" if agent_id == "codex" else CHECKED_ON)
+                self.assertEqual(data["checked_on"], "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON)
                 self.assertEqual(data["fixture_tests"], ["tests/test_providers.py", "tests/test_expanded_providers.py"]
                                  if agent_id == "codex" else ["tests/test_providers.py"])
                 text = setup_text(render(agent_id, surface))

@@ -321,8 +321,86 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertEqual(pi_os.state, "manual")
         self.assertTrue(all("pi.dev" in source for source in pi_os.sources))
         cursor_os = self.integrations["cursor"].surface("ide").capabilities["os"]
-        self.assertEqual(cursor_os.state, "manual")
+        self.assertEqual(cursor_os.state, "available")
         self.assertTrue(all("cursor.com" in source for source in cursor_os.sources))
+
+    def test_three_primary_os_routes_keep_exact_sources_constraints_and_runtime_limits(self):
+        expected = {
+            ("cursor", "ide"): (
+                ("https://cursor.com/docs/get-started/quickstart", "https://cursor.com/download",
+                 "https://cursor.com/docs/cloud-agent/mobile"),
+                ("3.27", "macOS >=12", "Windows >=10", "x64/ARM64", "minima unestablished",
+                 "iOS >=26 is remote control", "Android planned"),
+            ),
+            ("claude-code", "cli"): (
+                ("https://code.claude.com/docs/en/setup", "https://code.claude.com/docs/en/changelog.md",
+                 "https://code.claude.com/docs/en/mobile"),
+                ("2.1.310", "macOS >=13", "Windows >=10 1809", "Server >=2019", "Ubuntu >=20.04",
+                 "Debian >=10", "Alpine >=3.19", "x64/ARM64", "Native Windows has no sandbox",
+                 "WSL2 supports sandbox, WSL1 does not", "Mobile remote clients only"),
+            ),
+            ("qoder", "cli"): (
+                ("https://docs.qoder.com/cli/installation", "https://docs.qoder.com/release-notes/qoder-cli",
+                 "https://docs.qoder.com/mobile/app/remote-control"),
+                ("1.1.78", "macOS/Linux arm64 or amd64", "Windows amd64 only (ARM64 unsupported)",
+                 "Minimum OS versions", "minima unestablished", "Node >=20 only for legacy npm",
+                 "Mobile remote clients only"),
+            ),
+        }
+        for (product_id, surface_id), (sources, constraints) in expected.items():
+            with self.subTest(product=product_id, surface=surface_id):
+                surface = self.integrations[product_id].surface(surface_id)
+                evidence = surface.capabilities["os"]
+                self.assertEqual(evidence.state, "available")
+                self.assertEqual(evidence.sources, sources)
+                self.assertEqual(evidence.checked_on, "2026-10-26")
+                for constraint in constraints:
+                    self.assertIn(constraint, evidence.version_constraint)
+                for os_id in ("windows", "macos", "linux"):
+                    self.assertEqual(surface.os_workflows[os_id], "available")
+                for os_id in ("bsd", "solaris"):
+                    self.assertEqual(surface.os_workflows[os_id], "unknown")
+                self.assertEqual(surface.os_workflows["ios"], "manual")
+                self.assertEqual(surface.os_workflows["android"], "unknown" if product_id == "cursor" else "manual")
+                self.assertEqual(evidence.fixture_tests, ())
+                self.assertEqual(evidence.runtime_checks, ())
+
+    def test_openhands_cli_evidence_identifies_consuming_loaders_and_exact_fixtures(self):
+        surface = self.integrations["openhands"].surface("cli")
+        cli = "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/"
+        sdk = "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/"
+        mcp = surface.capabilities["mcp"]
+        self.assertEqual(surface.config_scope, "user")
+        self.assertIsNone(surface.native_path_hint)
+        self.assertEqual(surface.documented_location, "~/.openhands/mcp.json")
+        self.assertEqual(surface.config_fields, ("mcpServers", "url", "command", "args"))
+        self.assertEqual(mcp.state, "manual")
+        self.assertEqual(mcp.sources, (
+            "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/mcp-servers.mdx",
+            cli + "openhands_cli/mcp/mcp_utils.py#L15-L58",
+            cli + "openhands_cli/mcp/mcp_utils.py#L160-L190",
+        ))
+        self.assertEqual(mcp.fixture_tests, ("tests/test_adapters.py", "tests/test_stdio_adapters.py"))
+        loader_sources = (
+            cli + "openhands_cli/stores/agent_store.py#L408-L421",
+            sdk + "openhands-sdk/openhands/sdk/skills/skill.py#L853-L923",
+            sdk + "openhands-sdk/openhands/sdk/skills/utils.py#L254-L324",
+        )
+        for capability in ("instructions", "skills"):
+            evidence = surface.capabilities[capability]
+            self.assertEqual(evidence.state, "available")
+            self.assertEqual(evidence.sources, loader_sources)
+            self.assertEqual(evidence.fixture_tests, ("tests/test_skills.py",))
+            self.assertIn("working directory then Git root", evidence.version_constraint)
+            self.assertIn("immediate child directories", evidence.version_constraint)
+        for capability in ("mcp", "instructions", "skills"):
+            evidence = surface.capabilities[capability]
+            self.assertIn("CLI 1.16.0", evidence.version_constraint)
+            self.assertIn("SDK 1.28.1", evidence.version_constraint)
+            limitation = "not installed-client evidence" if capability == "mcp" else "no installed-client evidence"
+            self.assertIn(limitation, evidence.version_constraint)
+            self.assertEqual(evidence.checked_on, "2026-10-26")
+            self.assertEqual(evidence.runtime_checks, ())
 
     def test_operating_system_catalog(self):
         systems = load_operating_systems(ROOT)
@@ -396,6 +474,8 @@ class IntegrationRegistryTests(unittest.TestCase):
                     continue
                 expected = (
                     ("tests/test_capability_expansion.py",) if (integration.id, surface.id) == ("qoder", "ide") else
+                    ("tests/test_adapters.py", "tests/test_stdio_adapters.py")
+                    if (integration.id, surface.id) == ("openhands", "cli") else
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
                     else ()

@@ -1431,23 +1431,55 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Use the CLI first-run LLM configuration. Its README marks this CLI unmaintained; Agent Canvas and SDK controls do not establish CLI reasoning settings.",
+        "mechanism": "Use the CLI LLM settings and review the persisted Agent.llm configuration in agent_settings.json. The pinned CLI 1.16.0 loads SDK 1.28.1 configuration directly. File-agent model values select saved LLM profiles, rather than raw provider model IDs. Reasoning effort is model-feature dependent and omitted on the Responses subscription route; Chat extended-thinking budgets are capped below max_output_tokens. No native settings exporter is provided.",
         "fields": [
-          "~/.openhands/agent_settings.json"
+          "~/.openhands/agent_settings.json",
+          "llm.model"
         ],
         "commands": [
           "openhands"
         ],
-        "ui_steps": [],
+        "ui_steps": [
+          "Press Ctrl+P to open the CLI command palette",
+          "Select Settings to configure the LLM model and credentials"
+        ],
         "sources": [
-          "https://github.com/OpenHands/OpenHands-CLI"
+          "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/command-reference.mdx",
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml",
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/agent/base.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/subagent/registry.py"
         ]
       },
       "reasoning": {
-        "state": "unknown",
-        "controls": [],
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "llm.reasoning_effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "none"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "llm.extended_thinking_budget",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
         "sources": [
-          "https://github.com/OpenHands/OpenHands-CLI"
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml",
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/agent/base.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/llm.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/options/chat_options.py",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/options/responses_options.py"
         ]
       },
       "checked_on": "2026-10-26",

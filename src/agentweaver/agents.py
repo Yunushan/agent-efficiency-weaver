@@ -20,6 +20,7 @@ from .models import check_model
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
+_LLM_PROFILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _MODEL = re.compile(r"^~?[A-Za-z0-9][A-Za-z0-9._:+@/-]*$")
 _MODEL_SECRET = re.compile(
     r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|"
@@ -42,12 +43,13 @@ _PATHS = {
     "qoder-markdown": ".qoder/agents/{name}.md",
     "antigravity-markdown": ".agents/agents/{name}.md",
     "devin-markdown": ".devin/agents/{name}.md",
+    "openhands-markdown": ".agents/agents/{name}.md",
 }
 _ROW_KEYS = {"product_id", "surface_id", "state", "format", "path_template", "model_field", "model_style",
              "effort_field", "efforts", "model_behavior", "reasoning_behavior", "permission_behavior",
              "reserved_names", "evidence"}
 _EVIDENCE_KEYS = {"sources", "checked_on", "version_constraint", "fixture_tests", "runtime_checks"}
-_STYLES = {"bare", "provider/model", "tier", "none"}
+_STYLES = {"bare", "provider/model", "tier", "local-profile", "none"}
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
@@ -75,6 +77,17 @@ def _name(value: object, label: str = "Agent name") -> str:
     if not _ID.fullmatch(identifier) or identifier in _RESERVED:
         raise WeaverError(f"{label}: portable lowercase letters, digits and single hyphens required")
     return identifier
+
+
+def _llm_profile(value: object) -> str:
+    reference = _text(value, "Local LLM profile reference", maximum=69)
+    name = reference.removesuffix(".json")
+    if (not _LLM_PROFILE.fullmatch(name) or reference == "inherit" or _MODEL_SECRET.search(name)
+            or name.casefold().startswith(("sk-", "bearer", "aiza", "ghp_", "gho_", "ghs_", "ghr_",
+                                           "github_pat_", "glpat-", "xoxb-", "xoxp-", "xoxa-", "xoxr-"))
+            or re.search(r"(?:AKIA|ASIA)[A-Z0-9]{16}", name)):
+        raise WeaverError("Invalid local LLM profile reference")
+    return reference
 
 
 def _strings(value: object, label: str) -> list[str]:
@@ -152,6 +165,8 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
         if (not isinstance(row["model_style"], str) or row["model_style"] not in _STYLES
                 or (row["model_field"] is None) != (row["model_style"] == "none")):
             raise WeaverError("Invalid custom-agent model style")
+        if (format_name == "openhands-markdown") != (row["model_style"] == "local-profile"):
+            raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
         if set(efforts) - _EFFORTS or bool(efforts) != (row["effort_field"] is not None):
             raise WeaverError("Invalid custom-agent effort declaration")
@@ -193,6 +208,10 @@ def agent_inventory(root: Path) -> dict[str, Any]:
 
 def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, effort: str | None,
                      provider_id: str | None, snapshot: Mapping[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:
+    if row["model_style"] == "local-profile":
+        if model_id not in {None, "inherit"} or any(value is not None for value in (effort, provider_id, snapshot)):
+            raise WeaverError("OpenHands custom agents accept a local LLM profile reference or inheritance; raw model/provider/effort overrides are not exported")
+        return None, None
     if row["format"] == "devin-markdown" and model_id == "inherit":
         raise WeaverError("Devin custom subagents omit model for the router/admin default; inherit is not a documented model selector")
     inherited = model_id in {None, "inherit"}
@@ -291,6 +310,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields_any.update(tools=["Read", "Grep", "Glob"], mcpServers=[])
     elif format_name == "devin-markdown":
         fields_any["allowed-tools"] = ["read", "grep", "glob"]
+    elif format_name == "openhands-markdown":
+        fields_any.update(model="inherit", tools=[])
     elif format_name == "antigravity-markdown":
         fields_any.update(model=model or "inherit", tools=["view_file", "grep_search"], subagent=True,
                           mainAgent=False, commandExecutionPolicy="off", mcpServers=[])
@@ -306,7 +327,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
 def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, name: str,
                             description: str, instructions: str, model_id: str | None = None,
                             effort: str | None = None, provider_id: str | None = None,
-                            snapshot: Mapping[str, Any] | None = None) -> list[RenderedArtifact]:
+                            snapshot: Mapping[str, Any] | None = None,
+                            llm_profile: str | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -325,13 +347,22 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     prompt = _text(instructions, "Agent instructions", multiline=True, maximum=131072)
     row = _load_definitions(root).get((spec.id, surface), _unknown_row(spec.id, surface))
     if identifier in row["reserved_names"]:
-        raise WeaverError("Agent name would replace a built-in agent; choose a distinct custom name")
+        raise WeaverError("Agent name is reserved or would replace a built-in agent; choose a distinct custom name")
     state = row["state"]
     if state in {"unknown", "unsupported"}:
         raise WeaverError(f"Custom-agent definition unavailable for {spec.id}/{surface}: {state}")
     if state == "manual" and any(value is not None for value in (model_id, effort, provider_id, snapshot)):
         raise WeaverError("Manual custom-agent handoff cannot apply or validate native model/effort overrides")
-    model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
+    model: str | None
+    checked: dict[str, Any] | None
+    if llm_profile is not None:
+        if (spec.id, surface, row["model_style"]) != ("openhands", "cli", "local-profile"):
+            raise WeaverError("Local LLM profile references are supported only for OpenHands CLI custom-agent definitions")
+        if any(value is not None for value in (model_id, effort, provider_id, snapshot)):
+            raise WeaverError("A local LLM profile reference conflicts with model, provider, effort or catalog overrides")
+        model, checked = _llm_profile(llm_profile), None
+    else:
+        model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
     lines = ["# Custom agent definition handoff", "", f"Product: {spec.name} ({spec.id})",
              f"Surface: {surface}", f"Agent: {identifier}", f"Description: {summary}",
              f"Export route: {state}", "", "This is an offline staged artifact. Review and import it manually. "
@@ -352,6 +383,23 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "No inherit token or reasoning field is emitted.",
                       "The profile's allowed-tools is a true tool restriction. The same field on an inline "
                       "Skill has different auto-approval semantics and must not be substituted for this profile."])
+    if row["format"] == "openhands-markdown":
+        lines.extend(["", "This route is scoped to the audited OpenHands CLI 1.16.0 source with its pinned "
+                      "SDK 1.28.1. CLI conversation setup reaches the SDK file-agent loader; this is source "
+                      "evidence, not installed-client or native-device verification.",
+                      "Project discovery checks .agents/agents/*.md before .openhands/agents/*.md, then the "
+                      "same directories under the user's home. Only top-level Markdown files are loaded; "
+                      "readme.md is skipped. Existing registrations, including the CLI's built-in agents and "
+                      "plugin agents, can take precedence; use a unique name.",
+                      "By default the definition inherits the parent model. A non-inherit OpenHands model field selects "
+                      "a named local LLM profile, not a provider model ID. This exporter does not inspect "
+                      "profiles or apply raw model, provider or reasoning overrides. An explicitly selected "
+                      "profile reference is recorded without reading its configuration or credentials, checking "
+                      "its existence, or creating a profile. The host resolves it during later manual use; "
+                      "profile availability and reasoning behavior remain unknown.",
+                      "tools: [] declares no external tools. Base finish/think behavior may remain, and this "
+                      "does not establish an OS sandbox. No MCP servers, hooks or permission modes are emitted. "
+                      "Host and parent policy still apply."])
     if spec.id == "perplexity" and surface == "agent-api" and state == "manual":
         lines.extend(["", "## Manual Agent API Profile", "",
                       "In the API Portal, open Profiles > Create profile. Set the model, system instructions, "
@@ -374,7 +422,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.extend(["", f"Model validation provider: {checked['provider_id']}",
                       "Provider validation does not change the parent's provider or prove availability, entitlement, "
                       "successful inference, or installed-host compatibility."])
-    if model is not None:
+    if llm_profile is not None:
+        lines.append(f"Explicit local LLM profile reference: {model}")
+    elif model is not None:
         lines.append(f"Explicit native model selection: {model}")
     if effort is not None:
         lines.append(f"Explicit native effort selection: {effort}")

@@ -934,24 +934,39 @@
     {
       "product_id": "openhands",
       "surface_id": "cli",
-      "state": "unknown",
-      "format": null,
-      "path_template": null,
-      "model_field": null,
-      "model_style": "none",
+      "state": "native",
+      "format": "openhands-markdown",
+      "path_template": ".agents/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "local-profile",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "Reviewed CLI and SDK documentation. The SDK documents file-based agents and model profiles, but the reviewed CLI documentation does not establish its discovery or registration contract. No native CLI model field is exported.",
-      "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "SDK agent tools, MCP and permission_mode are not assigned to the CLI without an explicit CLI binding. No CLI definition discovery path or permission boundary is claimed.",
-      "reserved_names": [],
+      "model_behavior": "Defaults to model: inherit. The separate llm_profile option records a named local LLM profile reference in model; it is not a raw provider model ID. Existence, credentials, configured provider/model and reasoning are not inspected. Raw model/provider/effort/catalog overrides cannot be combined with a profile reference.",
+      "reasoning_behavior": "No custom-agent reasoning field is established for this pinned CLI/SDK route; explicit effort is rejected.",
+      "permission_behavior": "tools: [] declares no external tools; base finish/think behavior may remain. No MCP, hooks or permission modes are emitted and no OS sandbox is claimed. Project .agents/agents precedes .openhands/agents, then user directories; existing built-in/programmatic/plugin registrations may win. Use a unique top-level Markdown filename.",
+      "reserved_names": [
+        "readme",
+        "general-purpose",
+        "code-explorer",
+        "bash-runner",
+        "web-researcher"
+      ],
       "evidence": {
         "sources": [
-          "https://docs.openhands.dev/openhands/usage/cli/terminal",
-          "https://docs.openhands.dev/sdk/guides/agent-file-based"
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml#L11-L26",
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/setup.py#L124-L156",
+          "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/utils.py#L171-L201",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/workspace/workspace.py#L36-L49",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/conversation/conversation.py#L139-L195",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/conversation/impl/local_conversation.py#L744-L800",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/subagent/load.py#L48-L151",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/subagent/schema.py#L151-L205",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/subagent/registry.py#L212-L260",
+          "https://docs.openhands.dev/sdk/guides/agent-file-based",
+          "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/llm_profile_store.py#L29-L102"
         ],
         "checked_on": "2026-10-26",
-        "version_constraint": null,
+        "version_constraint": "Audited OpenHands CLI 1.16.0 source 283c6ac3610f4299f405f7389f65766dcb83e12a with pinned SDK/tools 1.28.1 (SDK commit edaac806d1599a4ee1662fd4008fbcd7b537ecd1). No installed-client check.",
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],

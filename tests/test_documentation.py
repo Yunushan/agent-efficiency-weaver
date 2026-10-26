@@ -241,9 +241,13 @@ class DocumentationDriftTests(unittest.TestCase):
             documented = [route, *route.get("additional_routes", [])]
             self.assertEqual(set(backticked(row[1])), {item["mcp_dialect"] for item in documented})
             self.assertEqual(set(backticked(row[2])), {item["schema"] for item in documented})
-            self.assertIn(route["checked_on"], row[3])
-            for source in {url for item in documented for url in item["sources"]}:
-                self.assertIn(source, row[3])
+            self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", row[3])),
+                             {url for item in documented for url in item["sources"]})
+            self.assertEqual(set(backticked(row[3])),
+                             {reference for item in documented for reference in item["fixture_tests"]})
+            for item in documented:
+                self.assertIn(item["checked_on"], row[3])
+                self.assertEqual(item["runtime_checks"], [])
             self.assertIn("runtime pending", row[3])
         surface_count = sum(surface.mcp_dialect in {
                                 item["mcp_dialect"] for item in
@@ -259,8 +263,10 @@ class DocumentationDriftTests(unittest.TestCase):
                       "1,024", "128 arguments", "4,096", "32,768", "environment maps", "variable expansion",
                       "never executes", "invokes a shell", "installs a package", "credential-looking",
                       "Perplexity Agent API", "LM Studio ephemeral", "remote HTTPS only", "reject selected stdio",
-                      "JetBrains Air", "OpenHands", "stdio file-export gaps", "not installed-client evidence"):
+                      "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "not installed-client evidence",
+                      "manual user MCP fragment", "CLI 1.16.0 source"):
             self.assertIn(token, text)
+        self.assertNotIn("OpenHands retain stdio file-export gaps", text)
 
     def test_operating_system_table_covers_seven_families(self):
         systems = load_operating_systems(ROOT)
@@ -535,7 +541,7 @@ class DocumentationDriftTests(unittest.TestCase):
             self.assertIn(host["checked_on"], row[4])
             self.assertIn("runtime pending", row[4])
         for token in ("do not enable a native exporter", "Null control values", "model-dependent",
-                      "unknown reasoning overrides", "external agents", "project-local provider keys are ignored"):
+                      "unknown shared reasoning override", "external agents", "project-local provider keys are ignored"):
             self.assertIn(token, text)
 
     def test_custom_agent_table_covers_all_registry_surfaces_and_declared_fields(self):
@@ -562,8 +568,53 @@ class DocumentationDriftTests(unittest.TestCase):
                       "Subagents (Preview)", "experimental", "true tool restriction", "auto-approval semantics",
                       "authorized project admin", "versioned Profile", "not a complete Profile JSON schema",
                       "not an authorization boundary", "does not revoke ambient Profile access",
-                      "six requested custom-definition routes", "no distinct registration contract"):
+                      "five requested custom-definition routes", "no distinct registration contract"):
             self.assertIn(token, text)
+
+    def test_openhands_guide_binds_cli_loaders_without_promoting_profiles_or_runtime(self):
+        compatibility = read_document("docs/compatibility.md")
+        definitions = section(compatibility, "Custom agent definitions")
+        for token in ("CLI 1.16.0/SDK 1.28.1", "model: inherit", "tools: []",
+                      "saved local LLM profiles", "not raw provider model IDs", "top-level Markdown",
+                      "base finish/think", "No MCP, hooks, permission modes or OS sandbox",
+                      "not installed-client verification", "--llm-profile NAME", "by default",
+                      "existing named local LLM profile", "preserves the exact supplied reference",
+                      "without reading the profile store or credentials", "checking existence",
+                      "creating a profile", "1–64 ASCII", "optional lowercase `.json`",
+                      "keeps its suffix and case", "literal case-sensitive `inherit`",
+                      "`inherit.json` and `Inherit`", "other products reject `--llm-profile`",
+                      "conflicts with `--model`, `--provider`, `--catalog`, and `--reasoning-effort`"):
+            self.assertIn(token, definitions)
+        route = next(row for row in agent_inventory(ROOT)["definitions"]
+                     if (row["product_id"], row["surface_id"]) == ("openhands", "cli"))
+        self.assertEqual((route["model_style"], route["model_field"]), ("local-profile", "model"))
+        profile_source = next(source for source in route["evidence"]["sources"]
+                              if "llm_profile_store.py" in source)
+        self.assertIn(profile_source, definitions)
+        skills = section(compatibility, "Instruction and skill bundles")
+        for token in ("working directory and then Git root", "immediate child directories",
+                      "no general ancestor or category recursion", "not installed-client discovery"):
+            self.assertIn(token, skills)
+        evidence = self.integrations["openhands"].surface("cli").capabilities["skills"]
+        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", skills)), set(evidence.sources))
+        controls = section(compatibility, "Host model controls")
+        for token in ("JetBrains Air desktop alone", "unknown shared reasoning override", "Agent.llm",
+                      "llm.reasoning_effort", "llm.extended_thinking_budget", "model-feature dependent",
+                      "Responses subscription route", "capped below `max_output_tokens`"):
+            self.assertIn(token, controls)
+        provider = section(compatibility, "OpenRouter provider handoffs")
+        for token in ("press `Ctrl+P`", "choose Settings", "--override-with-envs", "not persisted",
+                      "llm.model", "llm.base_url", "exports no complete settings file"):
+            self.assertIn(token, provider)
+        self.assertNotIn("README marks this CLI unmaintained", controls)
+
+    def test_zero_context_inventory_is_distinct_from_usable_configuration(self):
+        text = section(read_document("docs/compatibility.md"), "Models and reasoning")
+        for token in ("context_length: 0", "remains in normalized inventory", "context_size",
+                      "`None` (unknown)", "not a configured zero-length window", "--context-size 0",
+                      "invalid", "positive", "Kimi native configuration", "manual template"):
+            self.assertIn(token, text)
+        self.assertIn("derived usable `context_size` remains `None`", read_document("docs/architecture.md"))
 
     def test_recorded_ci_checkpoint_is_explicitly_historical_for_expansion(self):
         text = section(read_document("docs/readiness.md"), "Recorded core CLI CI evidence")

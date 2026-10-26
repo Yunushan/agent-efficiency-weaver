@@ -715,11 +715,13 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             if entry_id == identifier:
                 visible = True
                 architecture = declared_architecture
-                if context_size is None and "context_length" in entry:
+                if "context_length" in entry:
                     context = entry["context_length"]
-                    if type(context) is not int or context < 1:
+                    if type(context) is not int or context < 0:
                         _fail("Invalid model context size in snapshot")
-                    context_size = context
+                    # A provider-declared zero does not establish a usable limit.
+                    if context_size is None and context > 0:
+                        context_size = context
                 supplied = entry.get("reasoning")
                 if isinstance(supplied, dict) and supplied.get("state") != "unknown":
                     cap = _reasoning({k: v for k, v in supplied.items() if k != "state"})

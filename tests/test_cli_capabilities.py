@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 from unittest import mock
 
+import yaml
 from test_cli_exports import invoke
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,6 +133,24 @@ class CapabilityCliTests(unittest.TestCase):
             self.assertNotIn('Traceback', error)
             self.assertFalse(destination.exists())
 
+    def test_zero_provider_context_reaches_manual_handoff_without_becoming_an_explicit_zero(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'synthetic-nontext-model.json'
+            path.write_text(json.dumps({'data': [{'id': 'fixture/nontext-zero-context', 'context_length': 0,
+                'architecture': {'input_modalities': ['text'], 'output_modalities': ['image']}}]}), encoding='utf-8')
+            args = ('model', *ROOT_ARGS, '--agent', 'qwen-code', '--provider', 'openrouter',
+                    '--model', 'fixture/nontext-zero-context', '--catalog', str(path), '--dry-run')
+            code, output, error = invoke(*args)
+            self.assertEqual(code, 0, error)
+            artifacts = json.loads(output)['artifacts']
+            self.assertFalse(any(item['kind'] == 'model-config' for item in artifacts))
+            self.assertIn('Configuration state: `manual`', next(item['content'] for item in artifacts
+                                                              if item['kind'] == 'model-setup'))
+            code, output, error = invoke(*args, '--context-size', '0')
+            self.assertEqual(code, 2)
+            self.assertEqual(output, '')
+            self.assertNotIn('Traceback', error)
+
     def test_provider_command_uses_selected_native_provider(self):
         code, output, error = invoke('provider', *ROOT_ARGS, '--agent', 'codex', '--provider', 'anthropic',
                                      '--model', 'synthetic-model', '--dry-run')
@@ -164,6 +183,27 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(code, 0, error)
         rows = json.loads(output)['definitions']
         self.assertEqual([(row['product_id'], row['surface_id']) for row in rows], [('codex', 'ide')])
+
+    def test_openhands_local_profile_is_explicit_data_without_model_or_catalog_override(self):
+        with tempfile.TemporaryDirectory() as directory:
+            instructions = Path(directory) / 'synthetic-instructions.txt'
+            instructions.write_text('Review only the context supplied by the parent.', encoding='utf-8')
+            args = ('agent', *ROOT_ARGS, '--agent', 'openhands', '--name', 'profile-review',
+                    '--description', 'Review supplied fixture context.', '--instructions-file', str(instructions),
+                    '--llm-profile', 'team.review.json', '--dry-run')
+            code, output, error = invoke(*args)
+            self.assertEqual(code, 0, error)
+            definition = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'agent-definition')
+            self.assertEqual(definition['path'], 'openhands/.agents/agents/profile-review.md')
+            config = yaml.safe_load(definition['content'].split('---\n', 2)[1])
+            self.assertEqual(config['model'], 'team.review.json')
+            self.assertEqual(config['tools'], [])
+            code, output, error = invoke(*args, '--provider', 'openrouter',
+                                         '--catalog', str(Path(directory) / 'not-read.json'))
+            self.assertEqual(code, 2)
+            self.assertEqual(output, '')
+            self.assertIn('cannot be combined', error)
+            self.assertNotIn('not-read', error)
 
     def test_custom_agent_cli_force_cannot_replace_manual_edits(self):
         with tempfile.TemporaryDirectory() as directory:

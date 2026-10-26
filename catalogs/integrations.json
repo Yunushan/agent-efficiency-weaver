@@ -392,9 +392,9 @@
           ],
           "skills_path": ".claude/skills",
           "os_workflows": {
-            "windows": "unknown",
-            "macos": "unknown",
-            "linux": "unknown",
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
             "bsd": "unknown",
             "solaris": "unknown",
             "android": "manual",
@@ -452,12 +452,14 @@
               "runtime_checks": []
             },
             "os": {
-              "state": "manual",
+              "state": "available",
               "sources": [
+                "https://code.claude.com/docs/en/setup",
+                "https://code.claude.com/docs/en/changelog.md",
                 "https://code.claude.com/docs/en/mobile"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Docs checked 2026-10-26; newest release 2.1.310 (2026-10-23). macOS >=13; Windows >=10 1809 or Server >=2019; Ubuntu >=20.04, Debian >=10, Alpine >=3.19; x64/ARM64, RAM >=4GB. Native Windows has no sandbox; WSL2 supports sandbox, WSL1 does not. Mobile remote clients only.",
               "fixture_tests": [],
               "runtime_checks": []
             }
@@ -967,9 +969,9 @@
           ],
           "skills_path": ".cursor/skills",
           "os_workflows": {
-            "windows": "unknown",
-            "macos": "unknown",
-            "linux": "unknown",
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
             "bsd": "unknown",
             "solaris": "unknown",
             "android": "unknown",
@@ -1026,12 +1028,14 @@
               "runtime_checks": []
             },
             "os": {
-              "state": "manual",
+              "state": "available",
               "sources": [
+                "https://cursor.com/docs/get-started/quickstart",
+                "https://cursor.com/download",
                 "https://cursor.com/docs/cloud-agent/mobile"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Docs checked 2026-10-26; desktop download 3.27. macOS >=12 Apple Silicon/Intel; Windows >=10 x64/ARM64; Linux deb/rpm/AppImage x64/ARM64. Linux distro/libc minima unestablished. iOS >=26 is remote control, not IDE execution; Android planned.",
               "fixture_tests": [],
               "runtime_checks": []
             }
@@ -1711,7 +1715,9 @@
           "mcp_dialect": "mcpServers.url",
           "config_fields": [
             "mcpServers",
-            "url"
+            "url",
+            "command",
+            "args"
           ],
           "config_scope": "user",
           "native_path_hint": null,
@@ -1734,22 +1740,27 @@
             "mcp": {
               "state": "manual",
               "sources": [
-                "https://docs.openhands.dev/openhands/usage/settings/mcp-settings"
+                "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/mcp-servers.mdx",
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/mcp/mcp_utils.py#L15-L58",
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/mcp/mcp_utils.py#L160-L190"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Source audited: CLI 1.16.0 at 283c6ac with SDK 1.28.1; manual user mcp.json import, not installed-client evidence.",
               "fixture_tests": [
-                "tests/test_adapters.py"
+                "tests/test_adapters.py",
+                "tests/test_stdio_adapters.py"
               ],
               "runtime_checks": []
             },
             "instructions": {
               "state": "available",
               "sources": [
-                "https://docs.openhands.dev/overview/skills"
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py#L408-L421",
+                "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/skills/skill.py#L853-L923",
+                "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/skills/utils.py#L254-L324"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Source audited: CLI 1.16.0 / SDK 1.28.1; working directory then Git root, canonical Skills as immediate child directories; no installed-client evidence.",
               "fixture_tests": [
                 "tests/test_skills.py"
               ],
@@ -1758,10 +1769,12 @@
             "skills": {
               "state": "available",
               "sources": [
-                "https://docs.openhands.dev/openhands/usage/settings/mcp-settings"
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py#L408-L421",
+                "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/skills/skill.py#L853-L923",
+                "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/skills/utils.py#L254-L324"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Source audited: CLI 1.16.0 / SDK 1.28.1; working directory then Git root, canonical Skills as immediate child directories; no installed-client evidence.",
               "fixture_tests": [
                 "tests/test_skills.py"
               ],
@@ -1771,13 +1784,18 @@
               "state": "manual",
               "sources": [
                 "https://docs.openhands.dev/openhands/usage/llms/openrouter",
+                "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/command-reference.mdx",
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml",
+                "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py",
+                "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/utils/openhands_provider.py",
+                "https://docs.litellm.ai/docs/providers/openrouter",
                 "https://openrouter.ai/docs/quickstart"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
               "fixture_tests": [
                 "tests/test_providers.py"
               ],
+              "version_constraint": null,
               "runtime_checks": []
             },
             "os": {
@@ -2003,9 +2021,9 @@
           ],
           "skills_path": ".qoder/skills",
           "os_workflows": {
-            "windows": "unknown",
-            "macos": "unknown",
-            "linux": "unknown",
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
             "bsd": "unknown",
             "solaris": "unknown",
             "android": "manual",
@@ -2060,12 +2078,14 @@
               "runtime_checks": []
             },
             "os": {
-              "state": "manual",
+              "state": "available",
               "sources": [
+                "https://docs.qoder.com/cli/installation",
+                "https://docs.qoder.com/release-notes/qoder-cli",
                 "https://docs.qoder.com/mobile/app/remote-control"
               ],
-              "checked_on": "2026-10-22",
-              "version_constraint": null,
+              "checked_on": "2026-10-26",
+              "version_constraint": "Docs checked 2026-10-26; newest CLI release 1.1.78 (2026-10-23). macOS/Linux arm64 or amd64; Windows amd64 only (ARM64 unsupported), Windows Terminal recommended. Minimum OS versions and Linux libc/distro minima unestablished. Node >=20 only for legacy npm. Mobile remote clients only.",
               "fixture_tests": [],
               "runtime_checks": []
             }

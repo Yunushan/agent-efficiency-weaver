@@ -238,8 +238,29 @@ class SnapshotTests(unittest.TestCase):
             with self.assertRaises(WeaverError):
                 read_model_snapshot(path, "openai", ROOT)
 
+    def test_provider_zero_context_is_preserved_without_inventing_a_usable_limit(self) -> None:
+        snapshot = self.read("openrouter", {"data": [{"id": "fixture/zero-context", "context_length": 0}]})
+        self.assertEqual(snapshot["models"][0]["context_length"], 0)
+        checked = check_model(ROOT, "openrouter", "fixture/zero-context", snapshot)
+        self.assertTrue(checked["visible_in_snapshot"])
+        self.assertIsNone(checked["context_size"])
+        self.assertEqual(check_model(ROOT, "openrouter", "fixture/zero-context", snapshot,
+                                     context_size=8192)["context_size"], 8192)
+        self.assertEqual(snapshot["models"][0]["context_length"], 0)
+
 
 class ModelValidationTests(unittest.TestCase):
+    def test_context_overrides_do_not_hide_invalid_snapshot_limits(self) -> None:
+        snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/context-limit", "context_length": 0}]}
+        for context in (0, -1, True, "8192", 8192.0):
+            with self.subTest(context=context), self.assertRaises(WeaverError):
+                check_model(ROOT, "openrouter", "fixture/context-limit", snapshot, context_size=context)
+        for context in (-1, True, "0", 0.0, None, {}):
+            snapshot["models"][0]["context_length"] = context
+            for override in (None, 8192):
+                with self.subTest(context=context, override=override), self.assertRaises(WeaverError):
+                    check_model(ROOT, "openrouter", "fixture/context-limit", snapshot, context_size=override)
+
     def test_explicit_id_is_not_visibility_or_success(self) -> None:
         checked = check_model(ROOT, "openai", "unknown-future-model")
         self.assertTrue(checked["accepted_explicit_id"])
@@ -284,12 +305,12 @@ class ModelValidationTests(unittest.TestCase):
 class ModelRenderingTests(unittest.TestCase):
     def test_known_nontext_output_uses_manual_task_handoff_for_coding_hosts(self) -> None:
         snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/nontext-model", "architecture": {
-            "input_modalities": ["text"], "output_modalities": ["embeddings"]}}]}
+            "input_modalities": ["text"], "output_modalities": ["embeddings"]}, "context_length": 0}]}
         for product in ("qwen-code", "kimi-code"):
             with self.subTest(product=product):
                 artifacts = render_model_setup(get_integration(product, ROOT), "cli", root=ROOT,
                     provider_id="openrouter", model_id="fixture/nontext-model", snapshot=snapshot,
-                    protocol="openai-responses", context_size=8192)
+                    protocol="openai-responses")
                 self.assertFalse(any(artifact.kind == "model-config" for artifact in artifacts))
                 self.assertIn(b"Configuration state: `manual`", artifacts[0].content)
                 self.assertIn(b"task-specific manual handoff", artifacts[0].content)
@@ -316,6 +337,15 @@ class ModelRenderingTests(unittest.TestCase):
         value = tomllib.loads(fragment.content.decode())
         self.assertEqual(value["models"]["weaver-model"]["max_context_size"], 32000)
         self.assertEqual(value["providers"]["weaver"]["api_key_env"], "OPENAI_API_KEY")
+        snapshot = {"provider_id": "openai", "models": [{"id": "fixture/unknown-context", "context_length": 0}]}
+        manual = render_model_setup(spec, "cli", root=ROOT, provider_id="openai",
+                                    model_id="fixture/unknown-context", snapshot=snapshot)
+        self.assertIn(b"Configuration state: `manual`", manual[0].content)
+        template = next(item for item in manual if item.kind == "model-config")
+        self.assertNotIn("max_context_size", tomllib.loads(template.content.decode())["models"]["weaver-model"])
+        native = render_model_setup(spec, "cli", root=ROOT, provider_id="openai",
+                                    model_id="fixture/unknown-context", snapshot=snapshot, context_size=32000)
+        self.assertIn(b"Configuration state: `available`", native[0].content)
 
     def test_unsupported_hosts_and_reasoning_mode_use_explicit_manual_handoff(self) -> None:
         for product, surface, mode in (("jetbrains-air", "desktop", None), ("qwen-code", "cli", "pro"),

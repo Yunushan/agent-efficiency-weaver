@@ -96,6 +96,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--description', required=True)
             command.add_argument('--instructions-file', type=Path, required=True)
             command.add_argument('--model')
+            command.add_argument('--llm-profile', help='Existing OpenHands local LLM profile reference; no profile is read or created')
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
             command.add_argument('--reasoning-effort')
@@ -267,7 +268,7 @@ def _extended_inventory(args: argparse.Namespace, root: Path) -> int:
         data['mcp_transports'] = {'stdio': {
             'documented_adapters': stdio_inventory(),
             'runtime_verified': False,
-            'unestablished_file_exports': ['jetbrains-air/desktop', 'openhands/cli'],
+            'unestablished_file_exports': ['jetbrains-air/desktop'],
             'remote_only_requests': ['perplexity/agent-api', 'lm-studio/api'],
         }}
         summary = data['summary']
@@ -410,12 +411,16 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     elif args.cmd == 'agent':
         from .agents import render_agent_definition
 
+        if args.llm_profile is not None and any(value is not None for value in
+                                               (args.model, args.provider, args.catalog, args.reasoning_effort)):
+            raise WeaverError('A local LLM profile cannot be combined with model, provider, catalog or effort overrides')
         if args.catalog is not None and args.provider is None:
             raise WeaverError('A model catalog requires an explicit provider')
         artifacts = render_agent_definition(
             spec, surface, root=root, name=args.name, description=args.description,
             instructions=args.instructions_file.read_text(encoding='utf-8'), model_id=args.model,
             effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
+            llm_profile=args.llm_profile,
         )
     else:
         raise WeaverError('Unsupported command')

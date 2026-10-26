@@ -17,6 +17,7 @@ from agentweaver.adapters import render_mcp, stdio_inventory
 from agentweaver.artifacts import write_artifacts
 from agentweaver.config import WeaverError, load_json, render, select_servers, validate_catalog
 from agentweaver.integrations import load_integrations
+from tests.test_cli_exports import invoke
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "synthetic-mcp-fixture"
@@ -24,7 +25,7 @@ ARGS = ["--fixture-only", "not-an-installed-package"]
 STDIO = dict(kind="stdio", command=COMMAND, args=ARGS, default_enabled=False,
              description="Synthetic argv fixture; never installed or executed.")
 PLAIN = {"abacus", "amp", "antigravity", "claude-code", "cline", "devin", "junie", "kiro",
-         "pi", "qoder", "zed", "kimi-code", "qwen-code"}
+         "pi", "qoder", "zed", "kimi-code", "qwen-code", "openhands"}
 TYPE_STDIO = {"copilot", "cursor", "factory", "lm-studio"}
 LOCAL_ARRAY = {"kilo", "opencode"}
 SUPPORTED = PLAIN | TYPE_STDIO | LOCAL_ARRAY | {"codex", "goose", "hermes"}
@@ -154,7 +155,7 @@ class StdioConfigurationTests(unittest.TestCase):
                 self.assertEqual(parsed[root]["context7"], expected[root]["context7"])
 
     def test_user_scope_fragments_and_yaml_compatibility_are_preserved(self):
-        for product in ("cline", "zed", "goose", "hermes", "lm-studio"):
+        for product in ("cline", "zed", "goose", "hermes", "lm-studio", "openhands"):
             artifact = self.artifact(product)
             with self.subTest(product=product):
                 self.assertIn("fragments", artifact.relative_path.parts)
@@ -164,7 +165,7 @@ class StdioConfigurationTests(unittest.TestCase):
 
     def test_remote_only_request_and_unestablished_native_stdio_fail_closed(self):
         for product, surface in (("perplexity", "agent-api"), ("lm-studio", "api"),
-                                 ("jetbrains-air", "desktop"), ("openhands", "cli")):
+                                 ("jetbrains-air", "desktop")):
             with self.subTest(product=product), self.assertRaises(WeaverError) as raised:
                 self.artifact(product, surface)
             self.assertIn("stdio", str(raised.exception))
@@ -184,7 +185,7 @@ class StdioConfigurationTests(unittest.TestCase):
         command = "C:\\Program Files\\synthetic-fixture\\server.exe"
         args = ["資料", 'quoted "argument"', "", "semi;colon", "a&b"]
         self.catalog["servers"]["synthetic-stdio"].update(command=command, args=args)
-        for product in ("abacus", "codex", "kilo", "goose"):
+        for product in ("abacus", "codex", "kilo", "goose", "openhands"):
             artifact = self.artifact(product)
             parsed = tomllib.loads(artifact.content.decode()) if product == "codex" else json.loads(artifact.content)
             root = "mcp_servers" if product == "codex" else "mcp" if product == "kilo" else "extensions" if product == "goose" else "mcpServers"
@@ -193,6 +194,52 @@ class StdioConfigurationTests(unittest.TestCase):
                 self.assertEqual(entry["cmd" if product == "goose" else "command"], [command, *args] if product == "kilo" else command)
                 if product != "kilo":
                     self.assertEqual(entry["args"], args)
+
+    def test_openhands_manual_json_stdio_fragment_and_cli_dry_run_keep_native_path_safe(self):
+        command = "C:\\Program Files\\synthetic-fixture\\server.exe"
+        args = ["--fixture-only", "資料", 'quoted "argument"', "", "semi;colon", "a&b"]
+        self.catalog["servers"]["synthetic-stdio"].update(command=command, args=args)
+        empty = self.artifact("openhands", enabled=[])
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        artifact = self.artifact("openhands")
+        self.assertEqual(artifact.relative_path.as_posix(), "openhands/fragments/mcp.json")
+        self.assertEqual(artifact.kind, "mcp-fragment")
+        self.assertEqual(json.loads(artifact.content), {
+            "mcpServers": {"synthetic-stdio": {"command": command, "args": args}}})
+        metadata = stdio_inventory()["openhands"]
+        self.assertEqual(metadata["schema"], "command-args")
+        self.assertTrue(any("mcp-servers.mdx" in source for source in metadata["sources"]))
+        self.assertTrue(any("283c6ac3610f4299f405f7389f65766dcb83e12a" in source for source in metadata["sources"]))
+        self.assertEqual(metadata["runtime_checks"], [])
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            fixture_root = Path(directory)
+            (fixture_root / "catalogs").mkdir()
+            (fixture_root / "profiles").mkdir()
+            for filename in ("integrations.json", "operating-systems.json", "requested-coverage.json"):
+                (fixture_root / "catalogs" / filename).write_bytes((ROOT / "catalogs" / filename).read_bytes())
+            (fixture_root / "catalogs/mcp-servers.json").write_text(json.dumps(self.catalog), encoding="utf-8")
+            (fixture_root / "profiles/efficient.json").write_text(json.dumps(self.profile), encoding="utf-8")
+            output = fixture_root / "not-created-by-dry-run"
+            with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                    mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
+                    mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
+                    mock.patch.object(Path, "home", side_effect=AssertionError("home read")), \
+                    mock.patch("agentweaver.platforms.collect_host_facts", return_value={
+                        "system": "Windows", "sys_platform": "win32", "release": "11", "version": "fixture-build"}), \
+                    mock.patch("agentweaver.platforms.platform.machine", return_value="AMD64"):
+                code, text, error = invoke("render", "--root", str(fixture_root), "--agent", "openhands",
+                    "--profile", "efficient", "--enable", "synthetic-stdio", "--output-dir", str(output), "--dry-run")
+            self.assertEqual(code, 0, error)
+            self.assertFalse(output.exists())
+            staged = next(item for item in json.loads(text)["artifacts"] if item["kind"] == "mcp-fragment")
+            self.assertEqual(staged["path"], artifact.relative_path.as_posix())
+            self.assertEqual(json.loads(staged["content"]), json.loads(artifact.content))
+            write_artifacts(output, [artifact])
+            target = output / artifact.relative_path
+            target.write_text("user edited configuration\n", encoding="utf-8")
+            with self.assertRaises(WeaverError):
+                write_artifacts(output, [artifact], force=True)
+            self.assertEqual(target.read_text(encoding="utf-8"), "user edited configuration\n")
 
     def test_staging_never_executes_resolves_environment_or_overwrites_modified_artifacts(self):
         with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \

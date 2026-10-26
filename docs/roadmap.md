@@ -4,6 +4,8 @@
 
 The foundation includes the 31-product registry (25 agents, 4 providers, and 2 hybrids), strict validation, requested-scope aliases and evidence reports, documented MCP adapters, portable instruction and skill bundles, custom-agent definition routes, offline model snapshots and reasoning validation, legacy OpenRouter handoffs, OS diagnostics, safe staging, bundled resources, and offline quality gates. Native staged exports exist only for implemented surfaces listed in [compatibility.md](compatibility.md); every other route is manual, unsupported, unknown, or a documented vendor gap. Mapping all 23 requested groups does not resolve their unknown capabilities or pending runtime evidence.
 
+The documented OpenHands CLI 1.16.0/SDK 1.28.1 binding now supports an inheriting custom-agent file and remote/stdio MCP fragments, with model/provider/reasoning setup kept in a manual CLI handoff. The custom-agent inventory contains 18 native, 8 manual, 11 unknown, and 5 unsupported routes; stdio documentation covers 23 products and 27 matching surfaces. Cursor IDE, Claude Code CLI and Qoder CLI have constrained primary OS documentation, while all 165 requested runtime capability records remain pending. Provider-reported zero context limits remain unknown for configuration; no usable limit is invented.
+
 ## Near term
 
 - Record real installed-client and native-device runtime evidence per product, surface, version, OS variant, and architecture without turning simulations into verification.

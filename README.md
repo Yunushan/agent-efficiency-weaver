@@ -43,13 +43,17 @@ Every capability record in the requested scope now has reviewed documentation so
 
 `models --provider ID --input snapshot.json` reads a model response captured separately by the operator. It performs no discovery request. `model --agent PRODUCT --provider PROVIDER --model ID` stages model setup; optional reasoning controls are validated for the selected provider, protocol, and documented model or snapshot capabilities. Catalog visibility is not successful inference, installed-version compatibility, or account access. Missing availability, token, or cost data stays unknown.
 
+A provider-reported context length of zero stays visible in inventory as the reported value and produces an unknown usable context size. It does not configure a zero-length context window. Explicit `--context-size` values must be positive; Kimi native model configuration still requires an established positive limit.
+
 For a separately captured OpenRouter inventory across model types, use its documented `output_modalities=all` filter; the endpoint otherwise defaults to text output. Imported conditional prices remain conditional, unresolved prices remain unknown, and modality metadata helps distinguish task-specific models from language-agent model choices. See the [model snapshot contract](docs/compatibility.md#models-and-reasoning).
 
 `models --agent PRODUCT --surface SURFACE` inspects that host's documented model chooser and reasoning controls. This host inventory is separate from importing a provider snapshot with `--input`.
 
-The host-control inventory covers all 42 registered surfaces and preserves unknown reasoning overrides and unknown availability. A documented effort, budget, toggle, variant, or mode remains specific to the selected host and model. The inventory does not enable additional native exporters or prove access to a listed model.
+The host-control inventory covers all 42 registered surfaces and preserves unknown availability. JetBrains Air's shared reasoning override remains unknown. OpenHands CLI has model-dependent effort and thinking-budget controls through its pinned SDK configuration; those controls remain separate from custom-agent fields. A documented effort, budget, toggle, variant, or mode remains specific to the selected host and model. The inventory does not enable additional native exporters or prove access to a listed model.
 
 `agents inventory` reports custom-agent definition support separately from project instructions and Skills. `agent --agent PRODUCT --name NAME --description TEXT --instructions-file instructions.md` stages a documented definition or a manual handoff. Optional model and reasoning fields follow that definition format's restrictions. No definition is installed or launched, and no permissions are granted by generating it.
+
+The OpenHands route is scoped to audited CLI 1.16.0 with SDK 1.28.1: it stages `.agents/agents/<name>.md` with `model: inherit` by default and `tools: []`. Use `agent --agent openhands ... --llm-profile NAME` to reference an existing named local LLM profile instead. Weaver records that reference without reading the profile, checking its existence, or creating it. A profile reference cannot be combined with raw `--model`, provider, catalog, or effort overrides; profile availability, compatibility, and inference remain unknown. Its user MCP fragment supports remote URLs and structured stdio for manual import; model/provider setup remains a CLI Settings handoff. See the [OpenHands boundaries](docs/compatibility.md#custom-agent-definitions).
 
 Normal wheel and sdist installs read public assets with `importlib.resources`; there is no checkout or CWD fallback. For editable or other source development, pass `--root .` and set `PYTHONPATH=src`:
 

@@ -86,7 +86,7 @@ class ModelHostTests(unittest.TestCase):
 
     def test_unknown_reasoning_is_explicit_without_exporter_or_effort_claim(self) -> None:
         hosts = {(host["product_id"], host["surface_id"]): host for host in load_model_hosts(ROOT)}
-        for pair in (("jetbrains-air", "desktop"), ("openhands", "cli")):
+        for pair in (("jetbrains-air", "desktop"),):
             self.assertEqual(hosts[pair]["reasoning"]["state"], "unknown")
             self.assertEqual(hosts[pair]["reasoning"]["controls"], [])
         self.assertTrue(all(host["selection"]["state"] == "manual" for host in hosts.values()))
@@ -96,6 +96,27 @@ class ModelHostTests(unittest.TestCase):
         self.assertEqual(hosts[("devin", "desktop-local")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertNotIn("/effort", hosts[("antigravity", "ide")]["selection"]["commands"])
         self.assertNotIn("/effort", hosts[("kiro", "ide")]["selection"]["commands"])
+
+    def test_openhands_pinned_cli_loads_manual_model_dependent_reasoning_controls(self) -> None:
+        host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("openhands", "cli"))
+        self.assertEqual(host["selection"]["state"], "manual")
+        self.assertIn("llm.model", host["selection"]["fields"])
+        self.assertNotIn("unmaintained", host["selection"]["mechanism"])
+        self.assertIn("CLI 1.16.0", host["selection"]["mechanism"])
+        self.assertIn("SDK 1.28.1", host["selection"]["mechanism"])
+        self.assertIn("subscription route", host["selection"]["mechanism"])
+        self.assertIn("capped below max_output_tokens", host["selection"]["mechanism"])
+        self.assertEqual(host["reasoning"]["state"], "manual")
+        effort, budget = host["reasoning"]["controls"]
+        self.assertEqual(effort, {"kind": "effort", "field": "llm.reasoning_effort",
+                                  "values": ["low", "medium", "high", "xhigh", "none"], "model_dependent": True})
+        self.assertEqual(budget, {"kind": "budget", "field": "llm.extended_thinking_budget",
+                                  "values": None, "model_dependent": True})
+        sources = host["reasoning"]["sources"]
+        self.assertTrue(any("283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py" in url for url in sources))
+        self.assertTrue(any("edaac806d1599a4ee1662fd4008fbcd7b537ecd1" in url and url.endswith("llm/options/chat_options.py") for url in sources))
+        self.assertEqual(host["availability"], "unknown")
+        self.assertEqual(host["runtime_checks"], [])
 
     def test_perplexity_web_reasoning_presets_are_not_native_app_or_api_controls(self) -> None:
         host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("perplexity", "app"))

@@ -57,6 +57,7 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'kilo': ('mcp.type-remote', 'local-command-array', 'https://kilo.ai/docs/automate/mcp/using-in-cli'),
     'kiro': ('mcpServers.url', 'command-args', 'https://kiro.dev/docs/mcp/configuration/'),
     'opencode': ('mcp.type-remote', 'local-command-array', 'https://opencode.ai/docs/mcp-servers/'),
+    'openhands': ('mcpServers.url', 'command-args', 'https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/mcp-servers.mdx'),
     'pi': ('mcpServers.url-or-type-http', 'command-args', 'https://pi.dev/docs/latest/mcp'),
     'qoder': ('mcpServers.type-http', 'command-args', 'https://docs.qoder.com/cli/mcp-reference'),
     'zed': ('context_servers.url', 'command-args', 'https://zed.dev/docs/ai/mcp'),
@@ -83,6 +84,14 @@ def stdio_inventory() -> dict[str, dict[str, Any]]:
                       'checked_on': '2026-10-26', 'fixture_tests': ['tests/test_stdio_adapters.py'],
                       'runtime_checks': []}
             for product, (dialect, shape, source) in _STDIO_ROUTES.items()}
+    inventory['openhands']['sources'].append(
+        'https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/mcp/mcp_utils.py#L15-L58'
+    )
+    inventory['openhands']['documentation_note'] = (
+        'The CLI manual JSON format documents command/args in ~/.openhands/mcp.json; '
+        'pinned CLI 1.16.0 source confirms file loading. This fragment declares no environment '
+        'or credentials and performs no installed-client check.'
+    )
     for (product, dialect), (shape, source) in _STDIO_ADDITIONAL_ROUTES.items():
         inventory[product]['additional_routes'] = [
             {'mcp_dialect': dialect, 'schema': shape, 'sources': [source],

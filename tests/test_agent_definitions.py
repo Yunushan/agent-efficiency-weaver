@@ -35,6 +35,7 @@ NATIVE_PATHS = {
     ("qoder", "ide"): ".qoder/agents/reviewer.md",
     ("antigravity", "ide"): ".agents/agents/reviewer.md",
     ("devin", "desktop-local"): ".devin/agents/reviewer.md",
+    ("openhands", "cli"): ".agents/agents/reviewer.md",
 }
 
 
@@ -251,6 +252,101 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         self.assertIn("https://docs.devin.ai/desktop/devin-local", row["evidence"]["sources"])
         self.assertIn("https://docs.devin.ai/cli/subagents", row["evidence"]["sources"])
 
+    def test_openhands_cli_pinned_format_inherits_without_external_tools_or_ignored_overrides(self):
+        artifacts = self.render("openhands")
+        fields, body = parse_definition(artifacts[0].content, NATIVE_PATHS["openhands", "cli"])
+        self.assertEqual(fields, {"name": "reviewer", "description": "Review small changes.",
+                                  "model": "inherit", "tools": []})
+        self.assertIn("Inspect the requested code", body)
+        self.assertEqual(artifacts, self.render("openhands", model_id="inherit"))
+        text = artifacts[1].content.decode()
+        for caveat in ("CLI 1.16.0", "SDK 1.28.1", "not installed-client", "Only top-level",
+                       ".agents/agents/*.md before .openhands/agents/*.md", "Base finish/think",
+                       "named local LLM profile, not a provider model ID", "does not establish an OS sandbox"):
+            self.assertIn(caveat, text)
+        for options in (dict(model_id="fixture/raw-model"), dict(model_id="local-profile"),
+                        dict(provider_id="openrouter"), dict(model_id="inherit", provider_id="openrouter"),
+                        dict(effort="high"), dict(snapshot={"provider_id": "openrouter", "models": []})):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("openhands", **options)
+        for name in ("readme", "general-purpose", "code-explorer", "bash-runner", "web-researcher"):
+            with self.subTest(name=name), self.assertRaises(WeaverError):
+                self.render("openhands", name=name)
+        row = next(row for row in agent_inventory(ROOT)["definitions"] if row["product_id"] == "openhands")
+        sources = row["evidence"]["sources"]
+        self.assertTrue(any("283c6ac3610f4299f405f7389f65766dcb83e12a" in source for source in sources))
+        self.assertTrue(any("edaac806d1599a4ee1662fd4008fbcd7b537ecd1" in source for source in sources))
+        self.assertEqual(row["evidence"]["runtime_checks"], [])
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            destination = Path(directory).resolve()
+            write_artifacts(destination, artifacts)
+            write_artifacts(destination, artifacts, force=True)
+            target = destination / artifacts[0].relative_path
+            target.write_text("user edited definition\n", encoding="utf-8")
+            with self.assertRaises(WeaverError):
+                write_artifacts(destination, artifacts, force=True)
+            self.assertEqual(target.read_text(encoding="utf-8"), "user edited definition\n")
+
+    def test_openhands_explicit_local_profile_preserves_sdk_reference_as_yaml_data(self):
+        for reference in ("Research.v2_profile-1.json", "Inherit", "inherit.json", "con", "NUL.json",
+                          "a" * 64, "a" * 64 + ".json"):
+            with self.subTest(reference=reference):
+                artifacts = self.render("openhands", llm_profile=reference)
+                fields, body = parse_definition(artifacts[0].content, NATIVE_PATHS["openhands", "cli"])
+                self.assertEqual(fields, {"name": "reviewer", "description": "Review small changes.",
+                                          "model": reference, "tools": []})
+                self.assertIn("Inspect the requested code", body)
+                handoff = artifacts[1].content.decode()
+                self.assertIn(f"Explicit local LLM profile reference: {reference}", handoff)
+                self.assertNotIn("Explicit native model selection:", handoff)
+                self.assertNotIn("Model validation provider:", handoff)
+                self.assertIn("profile availability and reasoning behavior remain unknown", handoff)
+                self.assertIn("without reading its configuration or credentials", handoff)
+        row = next(row for row in agent_inventory(ROOT)["definitions"] if row["product_id"] == "openhands")
+        self.assertEqual((row["model_style"], row["model_field"]), ("local-profile", "model"))
+        self.assertTrue(any("llm_profile_store.py#L29-L102" in source for source in row["evidence"]["sources"]))
+
+    def test_local_profile_rejects_conflicts_other_hosts_paths_and_secretlike_values(self):
+        for options in (dict(model_id="inherit"), dict(model_id="fixture/raw-model"),
+                        dict(provider_id="openrouter"), dict(effort="high"), dict(snapshot={})):
+            with self.subTest(options=options), self.assertRaisesRegex(WeaverError, "conflicts"):
+                self.render("openhands", llm_profile="fixture-profile", **options)
+        for product, surface in (("codex", "cli"), ("hermes", "cli"), ("perplexity", "agent-api")):
+            with self.subTest(product=product), self.assertRaisesRegex(WeaverError, "only for OpenHands CLI"):
+                self.render(product, surface, llm_profile="fixture-profile")
+        for reference in ("", [], "inherit", "../profile", ".profile", "/profile", "C:/profile",
+                          "C:\\profile", "a/profile", "a\\profile", "$PROFILE", "%PROFILE%", "two words",
+                          "a\nmodel: other", 'a"', "a;command", "a" * 65, "a" * 65 + ".json",
+                          "sk-proj-synthetic-secret", "BearerSyntheticToken", "github_pat_synthetic-token",
+                          "AKIA" + "0" * 16):
+            with self.subTest(reference=reference), self.assertRaises(WeaverError) as raised:
+                self.render("openhands", llm_profile=reference)
+            if isinstance(reference, str) and reference:
+                self.assertNotIn(reference, str(raised.exception))
+
+    def test_local_profile_export_never_reads_or_creates_ambient_profiles_or_validates_provider(self):
+        original_open = Path.open
+        allowed = {ROOT / "catalogs/integrations.json", ROOT / "catalogs/custom-agents.json"}
+        reads = []
+
+        def catalog_only_open(path, *args, **kwargs):
+            self.assertIn(path, allowed, "profile or other ambient file inspected")
+            self.assertEqual(args[0] if args else kwargs.get("mode", "r"), "r")
+            reads.append(path)
+            return original_open(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "open", catalog_only_open), \
+                mock.patch.object(Path, "home", side_effect=AssertionError("ambient home inspected")), \
+                mock.patch.object(Path, "glob", side_effect=AssertionError("profile store listed")), \
+                mock.patch("os.getenv", side_effect=AssertionError("ambient environment inspected")), \
+                mock.patch("agentweaver.agents.check_model", side_effect=AssertionError("provider model validated")), \
+                mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")):
+            first = self.render("openhands", llm_profile="unverified-fixture-profile.json")
+            self.assertEqual(first, self.render("openhands", llm_profile="unverified-fixture-profile.json"))
+        self.assertEqual(set(reads), allowed)
+
     def test_perplexity_profile_handoff_has_reference_schema_without_native_export(self):
         artifacts = self.render("perplexity", "agent-api")
         self.assertEqual(len(artifacts), 1)
@@ -275,7 +371,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.render("perplexity", "agent-api", **options)
 
     def test_reviewed_requested_gaps_are_bounded_unknowns_with_first_party_sources(self):
-        expected = {("openhands", "cli"), ("perplexity", "app"), ("perplexity", "orchestrator"),
+        expected = {("perplexity", "app"), ("perplexity", "orchestrator"),
                     ("lm-studio", "desktop"), ("lm-studio", "bionic"), ("lm-studio", "api")}
         rows = {(row["product_id"], row["surface_id"]): row for row in agent_inventory(ROOT)["definitions"]}
         for key in expected:
@@ -339,21 +435,27 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         for field, value in (("path_template", "../../{name}.md"), ("format", "guessed-yaml"),
                              ("product_id", "not-a-product"), ("surface_id", "not-a-surface"),
                              ("state", []), ("format", []), ("model_style", []),
+                             ("model_style", "local-profile"),
                              ("model_field", "approval_policy"), ("effort_field", "permissionMode"),
                              ("extra", "unknown")):
             catalog = copy.deepcopy(original)
             catalog["definitions"][native_index][field] = value
             with self.subTest(field=field), mock.patch("agentweaver.agents.load_json", return_value=catalog), self.assertRaises(WeaverError):
                 agent_inventory(ROOT)
+        openhands = next(row for row in original["definitions"] if row["product_id"] == "openhands")
+        openhands["model_style"] = "bare"
+        with mock.patch("agentweaver.agents.load_json", return_value=original), self.assertRaises(WeaverError):
+            agent_inventory(ROOT)
 
     def test_rendering_is_deterministic_offline_and_uses_the_safe_staged_writer(self):
         with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
                 mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
                 mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
                 mock.patch.object(Path, "home", side_effect=AssertionError("ambient home inspected")):
-            first = self.render() + self.render("devin", "desktop-local") + self.render("perplexity", "agent-api")
+            first = (self.render() + self.render("devin", "desktop-local") + self.render("perplexity", "agent-api") +
+                     self.render("openhands"))
             self.assertEqual(first, self.render() + self.render("devin", "desktop-local") +
-                             self.render("perplexity", "agent-api"))
+                             self.render("perplexity", "agent-api") + self.render("openhands"))
             self.assertTrue(agent_inventory(ROOT)["definitions"])
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             destination = Path(directory).resolve()
