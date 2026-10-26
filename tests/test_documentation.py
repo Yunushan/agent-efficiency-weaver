@@ -16,6 +16,7 @@ DOCUMENTS = (
     "docs/architecture.md",
     "docs/compatibility.md",
     "docs/roadmap.md",
+    "docs/readiness.md",
     "CONTRIBUTING.md",
     "AGENTS.md",
     "SECURITY.md",
