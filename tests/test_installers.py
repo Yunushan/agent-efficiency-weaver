@@ -58,7 +58,10 @@ class VerificationScriptTests(unittest.TestCase):
             calls.append((list(command), kwargs))
             return SimpleNamespace(returncode=0, stdout="ok", stderr="")
 
-        with mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+        facts = {"system": "Linux", "release": "fixture", "version": "fixture", "machine": "x86_64"}
+        with mock.patch("agentweaver.platforms.collect_host_facts", return_value=facts), \
+             mock.patch.object(module.platform, "machine", return_value="x86_64"), \
+             mock.patch.object(module.subprocess, "run", side_effect=fake_run):
             report = module.build_report(root, 30)
 
         self.assertEqual(len(calls), 2)
@@ -72,6 +75,7 @@ class VerificationScriptTests(unittest.TestCase):
         self.assertNotIn("from agentweaver.platforms import", source.split("def build_report")[0])
         self.assertEqual([check["status"] for check in report["checks"]], ["passed", "passed"])
         self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["host"]["detected_os"], "linux")
 
     def test_no_module_import_follows_sys_path_mutation(self):
         source = (ROOT / "scripts/verify-platform.py").read_text(encoding="utf-8")

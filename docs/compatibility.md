@@ -110,9 +110,11 @@ The CLI provides `inventory`, `render`, `bundle`, `provider`, `doctor`, `report`
 
 ## Staging ownership, overwrite, and limits
 
-Every output is a staging artifact. `--force` may replace only artifacts recorded as owned in `.agentweaver-manifest.json` whose current SHA-256 still matches the recorded hash. Manually edited or unmanaged files are refused. The manifest records deterministic relative paths, hashes, kinds, and generator and schema identifiers. It excludes secrets and absolute user paths. Entries for untouched outputs are preserved.
+Outputs from `render`, `bundle`, and `provider` are staged vendor configuration and instruction artifacts. Their `--force` option may replace only artifacts recorded as owned in `.agentweaver-manifest.json` whose current SHA-256 still matches the recorded hash. Manually edited or unmanaged files are refused. The manifest records deterministic relative paths, hashes, kinds, and generator and schema identifiers. It excludes secrets and absolute user paths. Entries for untouched outputs are preserved.
 
-Symbolic links, junctions and other reparse points, path traversal, absolute paths, and conflicting paths are refused. Hash matching is change detection, **not a signature** and not audit evidence of tampering. The writer is not a bundle-wide atomic transaction and is not a cross-process race guarantee.
+For those staged artifacts, symbolic links, junctions and other reparse points, traversal, absolute artifact paths, and conflicting paths are refused. Hash matching is change detection, **not a signature** and not audit evidence of tampering. The writer is not a bundle-wide atomic transaction and is not a cross-process race guarantee.
+
+Benchmark `report` and `compare` output is an ordinary report document, outside the staging manifest. An explicit `--output` writes or replaces that report using normal filesystem semantics. See [benchmark-methodology.md](benchmark-methodology.md) for this separate output contract.
 
 ## Security defaults
 

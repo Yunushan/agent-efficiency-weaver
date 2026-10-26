@@ -175,11 +175,11 @@ def _emit(args: argparse.Namespace, artifacts: list[RenderedArtifact]) -> None:
 def _benchmark(args: argparse.Namespace) -> int:
     if args.cmd == 'report':
         result = summarize(read_runs(args.input))
-        body = json.dumps(result, indent=2) + '\\n' if args.format == 'json' else as_markdown(result)
+        body = json.dumps(result, indent=2) + '\n' if args.format == 'json' else as_markdown(result)
     else:
         result = compare_runs(read_runs(args.input), agent=args.agent, source=args.source,
                               baseline=args.baseline, candidate=args.candidate)
-        body = json.dumps(result, indent=2) + '\\n'
+        body = json.dumps(result, indent=2) + '\n'
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(body, encoding='utf-8')

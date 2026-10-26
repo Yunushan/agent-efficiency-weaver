@@ -89,6 +89,40 @@ class ArtifactWriteTests(unittest.TestCase):
         self.assertEqual(manifest_path(self.root).read_bytes(), first)
         self.assertEqual((self.root / "a.txt").read_bytes(), b"same\n")
 
+    def test_force_accepts_writable_files_without_execute_permission(self):
+        write_artifacts(self.root, [artifact("nested/a.txt", "old\n")])
+
+        def posix_access(path, mode):
+            return Path(path).is_dir() or not mode & os.X_OK
+
+        with mock.patch("agentweaver.artifacts.os.access", side_effect=posix_access):
+            write_artifacts(self.root, [artifact("nested/a.txt", "new\n")], force=True)
+        self.assertEqual((self.root / "nested/a.txt").read_bytes(), b"new\n")
+        entries = json.loads(manifest_path(self.root).read_text(encoding="utf-8"))["entries"]
+        self.assertEqual(entries[0]["sha256"], hashlib.sha256(b"new\n").hexdigest())
+
+    @unittest.skipIf(os.name == "nt", "POSIX file permission semantics")
+    def test_force_replaces_mode_0600_artifact_and_manifest(self):
+        write_artifacts(self.root, [artifact("a.txt", "old\n")])
+        (self.root / "a.txt").chmod(0o600)
+        manifest_path(self.root).chmod(0o600)
+        write_artifacts(self.root, [artifact("a.txt", "new\n")], force=True)
+        self.assertEqual((self.root / "a.txt").read_bytes(), b"new\n")
+
+    def test_parent_requires_directory_search_permission_before_writes(self):
+        write_artifacts(self.root, [artifact("nested/a.txt", "old\n")])
+        before_manifest = manifest_path(self.root).read_bytes()
+        parent = self.root / "nested"
+
+        def deny_search(path, mode):
+            return Path(path) != parent or not mode & os.X_OK
+
+        with mock.patch("agentweaver.artifacts.os.access", side_effect=deny_search):
+            with self.assertRaisesRegex(WeaverError, "Artifact parent is not writable"):
+                write_artifacts(self.root, [artifact("nested/a.txt", "new\n")], force=True)
+        self.assertEqual((self.root / "nested/a.txt").read_bytes(), b"old\n")
+        self.assertEqual(manifest_path(self.root).read_bytes(), before_manifest)
+
     def test_rejects_invalid_content_before_writing(self):
         cases = [
             b"line\r\n",
