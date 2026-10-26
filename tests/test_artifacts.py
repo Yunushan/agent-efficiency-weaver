@@ -52,7 +52,7 @@ def make_junction(case, junction, target):
 class ArtifactWriteTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
 
     def tearDown(self):
         self.temp.cleanup()
@@ -131,7 +131,7 @@ class ArtifactWriteTests(unittest.TestCase):
         for content in cases:
             with self.subTest(content=content):
                 with tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
+                    root = Path(directory).resolve()
                     items = [
                         artifact("good.txt"),
                         RenderedArtifact(PurePosixPath("bad.txt"), content, "text"),
@@ -178,7 +178,7 @@ class ArtifactWriteTests(unittest.TestCase):
         for value in cases:
             with self.subTest(path=value):
                 with tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
+                    root = Path(directory).resolve()
                     items = [artifact("safe.txt"), artifact(value)]
                     with self.assertRaises(WeaverError):
                         write_artifacts(root, items)
@@ -193,7 +193,7 @@ class ArtifactWriteTests(unittest.TestCase):
         for items in cases:
             with self.subTest(items=items):
                 with tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
+                    root = Path(directory).resolve()
                     with self.assertRaises(WeaverError):
                         write_artifacts(root, items)
                     self.assertEqual(list(root.rglob("*")), [])
@@ -312,7 +312,7 @@ class ArtifactWriteTests(unittest.TestCase):
         for text in cases:
             with self.subTest(manifest=text):
                 with tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
+                    root = Path(directory).resolve()
                     manifest_path(root).write_text(text, encoding="utf-8")
                     with self.assertRaises(WeaverError):
                         write_artifacts(root, [artifact("out.txt")])

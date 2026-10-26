@@ -29,6 +29,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_no_overwrite_by_default(self):
         with tempfile.TemporaryDirectory() as directory:
-            write_generated(Path(directory), "kilo", {"mcp": {}})
+            root = Path(directory).resolve()
+            write_generated(root, "kilo", {"mcp": {}})
             with self.assertRaises(WeaverError):
-                write_generated(Path(directory), "kilo", {"mcp": {}})
+                write_generated(root, "kilo", {"mcp": {}})

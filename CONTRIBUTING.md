@@ -23,6 +23,8 @@ PyYAML==6.0.3
 
 Development tools are not runtime dependencies. The quality gates are offline once those tools are installed.
 
+GitHub CI runs the full Windows/macOS/Linux and Python 3.11–3.13 matrix for pull requests, pushes to `main`, and manual dispatches. Feature-branch pushes rely on their pull request run, avoiding duplicate matrices for the same update.
+
 ## Required gates
 
 Run every gate before opening a pull request:

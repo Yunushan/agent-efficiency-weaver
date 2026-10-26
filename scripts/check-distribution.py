@@ -591,7 +591,9 @@ def main(argv=None):
         _check_wheel(wheel_files, name, version, expected, modules)
         print(f"Archive checks passed for {sdist.name} and {wheel.name}")
         with tempfile.TemporaryDirectory(prefix="agentweaver dist ") as directory:
-            base = Path(directory)
+            # Canonicalize this harness-owned allocation, including macOS /var temp aliases.
+            # The staged writer must still reject links in user-selected output paths.
+            base = Path(directory).resolve()
             extracted = base / "sdist"
             _extract_sdist(sdist.resolve(), extracted)
             source = extracted / f"{name}-{version}"
