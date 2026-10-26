@@ -144,9 +144,10 @@ def _is_read_only(st: os.stat_result) -> bool:
     return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_READONLY", 0))
 
 
-def _is_writable(path: Path) -> bool:
+def _is_writable(path: Path, *, directory: bool = False) -> bool:
     try:
-        return os.access(path, os.W_OK | os.X_OK)
+        mode = os.W_OK | os.X_OK if directory else os.W_OK
+        return os.access(path, mode)
     except (OSError, ValueError):
         return False
 
@@ -202,7 +203,7 @@ def _inspect_root(root: Path) -> list[Path]:
     if not existing:
         _fail("Unable to locate output root anchor")
     nearest = existing[-1]
-    if not _is_writable(nearest):
+    if not _is_writable(nearest, directory=True):
         _fail("Output root ancestor is not writable")
     return missing
 
@@ -303,7 +304,7 @@ def _preflight_destination(
             _fail("Refusing to write through a link")
         if not stat.S_ISDIR(st.st_mode):
             _fail("Artifact parent is not a directory")
-        if not _is_writable(current):
+        if not _is_writable(current, directory=True):
             _fail("Artifact parent is not writable")
 
     relative = "/".join(parts)

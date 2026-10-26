@@ -151,6 +151,15 @@ def _canonical_hashes():
     return {relative: _sha256(_read(ROOT / relative)) for relative in _asset_paths()}
 
 
+def _check_canonical_files(files, prefix, canonical_root, relatives, label):
+    for relative in relatives:
+        archive_path = prefix + relative
+        if archive_path not in files:
+            _fail(f"{label} is missing canonical file: {relative}")
+        if _sha256(files[archive_path]) != _sha256(_read(canonical_root / relative)):
+            _fail(f"{label} canonical file hash mismatch: {relative}")
+
+
 def _is_control_or_surrogate(character):
     return unicodedata.category(character) in ("Cc", "Cs")
 
@@ -312,6 +321,9 @@ def _check_sdist(files, name, version, expected, modules):
             _fail(f"Source distribution is missing {required}")
     _check_assets(relative, "", expected, "sdist")
     _check_license(relative, "sdist")
+    _check_canonical_files(relative, "", ROOT, ("build_helpers.py", "pyproject.toml"), "sdist")
+    _check_canonical_files(relative, "src/agentweaver/", ROOT / "src/agentweaver",
+                           [*modules, "py.typed"], "sdist")
     source_modules = {
         item[len("src/agentweaver/") :]
         for item in relative
@@ -350,6 +362,7 @@ def _check_wheel(files, name, version, expected, modules):
     extra = package_files - set(modules) - {"py.typed"}
     if missing or extra:
         _fail(f"Wheel package files differ; missing={sorted(missing)} extra={sorted(extra)}")
+    _check_canonical_files(files, "agentweaver/", ROOT / "src/agentweaver", [*modules, "py.typed"], "wheel")
     for item in files:
         if item.startswith("agentweaver/") and not item.startswith("agentweaver/_data/"):
             relative = item[len("agentweaver/") :]
@@ -578,7 +591,9 @@ def main(argv=None):
         _check_wheel(wheel_files, name, version, expected, modules)
         print(f"Archive checks passed for {sdist.name} and {wheel.name}")
         with tempfile.TemporaryDirectory(prefix="agentweaver dist ") as directory:
-            base = Path(directory)
+            # Canonicalize this harness-owned allocation, including macOS /var temp aliases.
+            # The staged writer must still reject links in user-selected output paths.
+            base = Path(directory).resolve()
             extracted = base / "sdist"
             _extract_sdist(sdist.resolve(), extracted)
             source = extracted / f"{name}-{version}"

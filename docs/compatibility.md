@@ -45,15 +45,17 @@ Only Qoder IDE is a provider-only surface: it has an OpenRouter setup handoff bu
 
 | OS family | Contract in this release | Evidence |
 |---|---|---|
-| `windows` | Primary CI target for the core CLI on Python 3.11+ (GitHub matrix) | CI configuration only; runtime pending |
-| `macos` | Primary CI target for the core CLI on Python 3.11+ (GitHub matrix) | CI configuration only; runtime pending |
-| `linux` | Primary CI target for the core CLI on Python 3.11+ (GitHub and GitLab matrices) | CI configuration only; runtime pending |
+| `windows` | Primary CI target for the core CLI on Python 3.11+ (GitHub matrix) | Core CLI CI recorded for Python 3.11–3.13; see [readiness evidence](readiness.md#recorded-core-cli-ci-evidence). Native vendor runtime pending |
+| `macos` | Primary CI target for the core CLI on Python 3.11+ (GitHub matrix) | Core CLI CI recorded for Python 3.11–3.13; see [readiness evidence](readiness.md#recorded-core-cli-ci-evidence). Native vendor runtime pending |
+| `linux` | Primary CI target for the core CLI on Python 3.11+ (GitHub and GitLab matrices) | GitHub core CLI CI recorded for Python 3.11–3.13; see [readiness evidence](readiness.md#recorded-core-cli-ci-evidence). Native vendor runtime pending |
 | `bsd` | Conditional CLI target. Variants freebsd, openbsd, netbsd, and dragonflybsd are named separately; Python 3.11+ on a real host is pending. Evidence never crosses variants | pending |
 | `solaris` | Conditional CLI target. Variants solaris and illumos are named separately; Python 3.11+ on a real host is pending | pending |
 | `android` | Conditional Termux or compatible Python core workflow, plus a remote handoff. Not a general native CLI or phone-local agent claim | pending |
 | `ios` | Remote and artifact handoff only, through a separate supported host. No on-device CLI or native mobile application is provided | pending |
 
 Only Windows, macOS, and Linux are primary CI targets. A cross-OS unit simulation is detector coverage, not runtime evidence.
+
+The recorded core CLI CI run builds and installs Weaver's own distributions and runs offline smoke checks. It does not install or verify any vendor agent. Its evidence is recorded separately from the registry's vendor capability `runtime_checks`; those remain pending. CI runner images are specific environments and do not establish support for every OS variant or architecture.
 
 ## OpenRouter provider handoffs
 
@@ -110,9 +112,11 @@ The CLI provides `inventory`, `render`, `bundle`, `provider`, `doctor`, `report`
 
 ## Staging ownership, overwrite, and limits
 
-Every output is a staging artifact. `--force` may replace only artifacts recorded as owned in `.agentweaver-manifest.json` whose current SHA-256 still matches the recorded hash. Manually edited or unmanaged files are refused. The manifest records deterministic relative paths, hashes, kinds, and generator and schema identifiers. It excludes secrets and absolute user paths. Entries for untouched outputs are preserved.
+Outputs from `render`, `bundle`, and `provider` are staged vendor configuration and instruction artifacts. Their `--force` option may replace only artifacts recorded as owned in `.agentweaver-manifest.json` whose current SHA-256 still matches the recorded hash. Manually edited or unmanaged files are refused. The manifest records deterministic relative paths, hashes, kinds, and generator and schema identifiers. It excludes secrets and absolute user paths. Entries for untouched outputs are preserved.
 
-Symbolic links, junctions and other reparse points, path traversal, absolute paths, and conflicting paths are refused. Hash matching is change detection, **not a signature** and not audit evidence of tampering. The writer is not a bundle-wide atomic transaction and is not a cross-process race guarantee.
+For those staged artifacts, symbolic links, junctions and other reparse points, traversal, absolute artifact paths, and conflicting paths are refused. Hash matching is change detection, **not a signature** and not audit evidence of tampering. The writer is not a bundle-wide atomic transaction and is not a cross-process race guarantee.
+
+Benchmark `report` and `compare` output is an ordinary report document, outside the staging manifest. An explicit `--output` writes or replaces that report using normal filesystem semantics. See [benchmark-methodology.md](benchmark-methodology.md) for this separate output contract.
 
 ## Security defaults
 

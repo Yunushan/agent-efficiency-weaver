@@ -427,7 +427,7 @@ class InstructionBundleTests(unittest.TestCase):
                 spec, "ide", self.profile, ["security-review"], source
             )
             with tempfile.TemporaryDirectory() as output_directory:
-                output = Path(output_directory)
+                output = Path(output_directory).resolve()
                 write_artifacts(output, artifacts)
                 shutil.rmtree(source)
                 self.assertEqual(
@@ -587,7 +587,7 @@ class InstructionBundleTests(unittest.TestCase):
         )
         self.assertEqual(first, second)
         with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary)
+            output = Path(temporary).resolve()
             write_artifacts(output, first)
             with self.assertRaises(WeaverError):
                 write_artifacts(output, first)

@@ -43,7 +43,7 @@ On POSIX shells, use `PYTHONPATH=src python -m agentweaver validate --root .` fo
 ## Safety contract
 
 - MCP is default-off. The `enterprise-secure` profile generates zero MCP selections for generated artifacts. Ambient and global vendor configuration is not inspected, and profile retrieval advice is advisory, not tool enforcement.
-- `--force` replaces only owned artifacts whose current SHA-256 matches the manifest record. Links, junctions, traversal, absolute paths, secrets in manifests, and unmanaged files are refused. Hashes are not signatures and the writer is not a bundle-wide atomic transaction or a cross-process race guarantee.
+- For staged vendor configuration and instruction artifacts, `--force` replaces only owned artifacts whose current SHA-256 matches the manifest record. Links, junctions, traversal, absolute artifact paths, secrets in manifests, and unmanaged files are refused. Hashes are not signatures and the writer is not a bundle-wide atomic transaction or a cross-process race guarantee. Benchmark report output has the separate ordinary-file contract in [docs/benchmark-methodology.md](docs/benchmark-methodology.md).
 - `--dry-run` prints a `schema_version: 1` envelope containing an `artifacts` list with each `path`, `kind`, and `content`. It writes nothing.
 - Provider commands require an explicit `--model`, use documented environment-variable references where available, and never accept API-key values as arguments. Provider setup never reads credential environment-variable values; generated setup text names variables only. OS detection may consult platform indicators.
 - No network requests, paid calls, agent execution, credential discovery, live configuration writes, or production changes occur during ordinary validation, rendering, bundling, diagnostics, or tests.
@@ -68,7 +68,9 @@ python -m build --no-isolation
 python scripts/check-distribution.py
 ```
 
-`scripts/verify-platform.py` is opt-in, requires an explicit `--output` path, and records local checks only. Native vendor installation and configuration-consumption checks remain a separate manual check.
+For a repeatable score, run `python scripts/check-readiness.py`. It emits a JSON report with a score of 100 only when all six offline release gates pass with the pinned development tools and unchanged source inputs. The score applies to the recorded host, Python version, and architecture. See [docs/readiness.md](docs/readiness.md) for the rubric, rerun instructions, and evidence limits.
+
+`scripts/verify-platform.py` is opt-in, requires an explicit `--output` path, and records local checks only. It records the selected source tree's version and rejects linked report destinations. Native vendor installation and configuration-consumption checks remain a separate manual check.
 
 ## License
 

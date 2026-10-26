@@ -71,16 +71,17 @@ class ExportCliTests(unittest.TestCase):
 
     def test_manifest_force_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
             args = ('render', '--root', str(ROOT), '--agent', 'codex', '--profile', 'balanced',
-                    '--output-dir', directory, '--enable', 'context7')
+                    '--output-dir', str(root), '--enable', 'context7')
             self.assertEqual(invoke(*args)[0], 0)
             self.assertNotEqual(invoke(*args)[0], 0)
             self.assertEqual(invoke(*args, '--force')[0], 0)
-            target = Path(directory) / 'codex/.codex/config.toml'
+            target = root / 'codex/.codex/config.toml'
             target.write_bytes(b'changed\n')
             self.assertNotEqual(invoke(*args, '--force')[0], 0)
             self.assertEqual(target.read_bytes(), b'changed\n')
-            manifest = json.loads((Path(directory) / '.agentweaver-manifest.json').read_text())
+            manifest = json.loads((root / '.agentweaver-manifest.json').read_text())
             self.assertEqual(manifest['schema_version'], 1)
 
     def test_argument_errors_never_echo_credentials(self):

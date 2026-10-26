@@ -1,4 +1,5 @@
 """Paired baseline/candidate comparison, never conflate unmatched tasks."""
+import math
 from typing import Any
 
 from .config import WeaverError
@@ -27,7 +28,12 @@ def compare_runs(
     recoveries = [str(k) for k in sorted(base) if base[k]["status"] != "passed" and trial[k]["status"] == "passed"]
     def improvement(name: str) -> float | None:
         x, y = baseline_summary[name], candidate_summary[name]
-        return (x - y) / x * 100 if x is not None and y is not None and x != 0 else None
+        if x is None or y is None or x == 0:
+            return None
+        reduction = (x - y) / x * 100
+        if not math.isfinite(reduction):
+            raise WeaverError("Comparison percentage exceeds finite numeric range")
+        return reduction
     return {"agent": agent, "source": source, "baseline": baseline, "candidate": candidate,
             "matched_attempts": len(base), "regressions": regressions, "recoveries": recoveries,
             "success_rate_delta_pp": (candidate_summary["success_rate"] - baseline_summary["success_rate"]) * 100,

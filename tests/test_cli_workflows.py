@@ -46,7 +46,7 @@ class WorkflowCliTests(unittest.TestCase):
 
     def test_bundle_and_provider_are_staging_only(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / 'new output Ω'
+            root = Path(directory).resolve() / 'new output Ω'
             code, out, err = invoke('bundle', '--root', str(ROOT), '--agent', 'aider', '--profile', 'efficient',
                                     '--skill', 'token-efficient-retrieval', '--output-dir', str(root))
             self.assertEqual(code, 0, err)
