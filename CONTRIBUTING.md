@@ -66,6 +66,8 @@ MCP catalog entries may be remote HTTPS or stdio. Stdio requires a bounded execu
 
 Keep the Perplexity API and Computer MCP services separate. Computer uses account OAuth and credits, can expose connected-service write actions, and discovers model/effort options per authenticated account through `models_list`. Never add authentication material, automatic OAuth or task execution to staged configuration; shipped profiles must not implicitly allow either service.
 
+Computer `models_list` snapshots are caller-supplied and account-scoped. Keep offline inspection and mode/model/effort validation separate from provider API discovery; missing effort lists stay unknown. Use synthetic fixtures, reject credential-bearing input and do not commit real account snapshots.
+
 The remote CI runs in [docs/readiness.md](docs/readiness.md) identify separate immutable checkpoints for the earlier 20-product release and the initial 31-product expansion. Neither substitutes for validating later model, alias, request-fragment, custom-agent, or documentation-evidence changes.
 
 Preserve documented unknown states when first-party sources establish a boundary without establishing a schema. OS `available` means a documented route on the constrained platform, while `manual` can mean conditional or remote access; neither supplies runtime verification. Keep version, architecture, OS variant and account conditions visible. App-scope MCP fragments must not become guessed persistent settings paths, and manual Skill imports must retain the vendor-required `SKILL.md` filename without being described as native discovery.

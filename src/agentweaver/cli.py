@@ -51,6 +51,12 @@ def _parser() -> argparse.ArgumentParser:
     models.add_argument('--surface')
     models.add_argument('--input', type=Path)
     models.add_argument('--format', choices=['json', 'text'], default='json')
+    computer = subs.add_parser('computer-models', help='Inspect a saved Perplexity Computer models_list response')
+    computer.add_argument('--input', type=Path, required=True)
+    computer_selection = computer.add_mutually_exclusive_group()
+    computer_selection.add_argument('--model')
+    computer_selection.add_argument('--mode')
+    computer.add_argument('--reasoning-effort')
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -268,7 +274,7 @@ def _extended_inventory(args: argparse.Namespace, root: Path) -> int:
         data['mcp_transports'] = {'stdio': {
             'documented_adapters': stdio_inventory(),
             'runtime_verified': False,
-            'unestablished_file_exports': ['jetbrains-air/desktop'],
+            'unestablished_file_exports': ['jetbrains-air/desktop', 'jetbrains-air/ide'],
             'remote_only_requests': ['perplexity/agent-api', 'lm-studio/api'],
         }}
         summary = data['summary']
@@ -435,6 +441,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.cmd in ('report', 'compare'):
             return _benchmark(args)
+        if args.cmd == 'computer-models':
+            from .computer_models import inspect_computer_models
+
+            result = inspect_computer_models(args.input, model=args.model, mode=args.mode,
+                                             effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
         with resource_root(args.root, paths=_paths(args)) as root:
             return _run(args, root)
     except WeaverError as exc:

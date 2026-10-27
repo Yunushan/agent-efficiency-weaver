@@ -44,6 +44,8 @@ Every capability record in the requested scope now has reviewed documentation so
 
 `models --provider ID --input snapshot.json` reads a model response captured separately by the operator. It performs no discovery request. `model --agent PRODUCT --provider PROVIDER --model ID` stages model setup; optional reasoning controls are validated for the selected provider, protocol, and documented model or snapshot capabilities. Catalog visibility is not successful inference, installed-version compatibility, or account access. Missing availability, token, or cost data stays unknown.
 
+`computer-models --input snapshot.json` separately inspects a caller-saved Perplexity Computer MCP `models_list` response. Add `--mode NAME` or `--model ID` and optional `--reasoning-effort VALUE` to check an explicit choice against that snapshot. It does not connect, authenticate or start a task; captured account choices may change and do not prove current access or inference.
+
 A provider-reported context length of zero stays visible in inventory as the reported value and produces an unknown usable context size. It does not configure a zero-length context window. Explicit `--context-size` values must be positive; Kimi native model configuration still requires an established positive limit.
 
 For a separately captured OpenRouter inventory across model types, use its documented `output_modalities=all` filter; the endpoint otherwise defaults to text output. Imported conditional prices remain conditional, unresolved prices remain unknown, and modality metadata helps distinguish task-specific models from language-agent model choices. See the [model snapshot contract](docs/compatibility.md#models-and-reasoning).

@@ -29,6 +29,8 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertIn('model_catalogs', data)
         self.assertIn('custom_agents', data)
         self.assertFalse(data['mcp_transports']['stdio']['runtime_verified'])
+        self.assertEqual(data['mcp_transports']['stdio']['unestablished_file_exports'],
+                         ['jetbrains-air/desktop', 'jetbrains-air/ide'])
         self.assertIn('codex', data['mcp_transports']['stdio']['documented_adapters'])
         self.assertEqual(invoke('coverage', *ROOT_ARGS, '--strict')[0], 1)
 
