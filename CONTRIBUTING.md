@@ -48,6 +48,36 @@ Distribution verification requires runtime modules, the `py.typed` marker, and p
 
 Documentation changes must stay aligned with the registries. Tests read the actual catalogs and fail when a product, surface, OS family, evidence state, or provider gap is missing or misrepresented. Do not document a native exporter for a manual surface, do not describe fixture tests as installed-version verification, and do not add vendor entitlement, SSO, compliance certification, native mobile, autonomous execution, or numerical performance claims without reproducible evidence.
 
+The current registry contains 31 products: 25 agents, 4 providers, and 2 hybrids. Product and surface IDs must come from `catalogs/integrations.json`. Keep requested labels and aliases in `catalogs/requested-coverage.json`; every target must resolve and a group alias must not silently select an exporter. A mapped request is not evidence that all its capabilities work. Hybrid provider interfaces and application/MCP-host surfaces are separate contracts.
+
+Model/provider routes belong in `catalogs/model-providers.json`. Add documented protocols, snapshot formats, and model-specific reasoning evidence rather than a supposedly exhaustive list of evolving model IDs. Treat a caller-supplied listing as catalog visibility, not successful inference or account access. Keep missing availability, token, and cost data unknown. Never commit captured private account catalogs, real credentials, or provenance containing private paths. Synthetic model snapshots must be clearly identified in tests.
+
+Preserve a provider-reported zero context length in inventory while leaving the derived usable context unknown. Explicit `--context-size` must be a positive integer. Do not turn a sentinel into a configured zero window or bypass Kimi's positive context requirement; keep its output a manual template when the usable limit is unknown.
+
+Maintain one `catalogs/model-hosts.json` row per registered product/surface. Host picker, field, session-command, and UI evidence must stay specific to that surface. A manual documented control does not activate a native exporter; null allowed values require selected-model discovery. Do not transfer a CLI-only effort command to an IDE or treat an API model response as the app's account catalog. Host availability remains unknown until separately recorded evidence establishes more.
+
+Keep Air desktop and Air in IDEs separate. The IDE plugin documents manual UI presets, injected instructions, host Skills selection and agent-dependent model/effort controls; its selected portable Skills are ordinary read-file context. No native preset file, Skill import loader, arbitrary OpenRouter endpoint, or complete IDE OS matrix is established. Documented agent-dependent MCP use does not activate an MCP file exporter.
+
+Custom-agent definitions are separate from portable Skills and project instructions. Test their native/manual/unknown/unsupported outcomes, actual model and reasoning fields, and permission limitations. New Python behavior requires unit tests. New packaged catalogs must be added to both runtime/build asset allowlists, `MANIFEST.in`, resource tests, installed-package smoke checks as appropriate, and `validate`. Run every portable Skill validator through the documented gates.
+
+When an application consumes an SDK format, record the pinned application-to-SDK loader chain. OpenHands CLI 1.16.0/SDK 1.28.1 is one such scoped contract: its exported file inherits the parent model by default and declares no external tools, while non-inherit vendor file-agent model values name saved local LLM profiles. Manual host reasoning controls and raw provider model IDs are separate contracts. Preserve exact source and fixture references when updating these routes; source inspection is not an installed-client check.
+
+MCP catalog entries may be remote HTTPS or stdio. Stdio requires a bounded executable string and a separate bounded argument array; do not add raw shell-command, credential, environment, or permission fields. Keep default selection off and require explicit profile permission and `--enable`. Product-specific stdio documentation and fixture evidence are separate from remote URL evidence. Tests must never launch the staged executable, install a package, or expand runtime variables. Perplexity Agent API and LM Studio ephemeral MCP request formats remain remote HTTPS only.
+
+Keep the Perplexity API and Computer MCP services separate. Computer uses account OAuth and credits, can expose connected-service write actions, and discovers model/effort options per authenticated account through `models_list`. Never add authentication material, automatic OAuth or task execution to staged configuration; shipped profiles must not implicitly allow either service.
+
+GitHub's default and all-toolset MCP URLs have distinct read-only variants. Preserve the exact documented URL for each route, keep all of them outside shipped allowlists and default-off, and disclose that non-read-only routes can expose write tools. The read-only filter applies only to that GitHub server connection; profile advice and other servers are separate boundaries.
+
+Keep OpenAI's documentation-only MCP endpoint separate from the historical Codex MCP server. The current removal guidance does not make the experimental JSON-RPC app server an MCP replacement. Do not install, configure or start either service as part of validation.
+
+Computer `models_list` snapshots are caller-supplied and account-scoped. Keep offline inspection and mode/model/effort validation separate from provider API discovery; missing effort lists stay unknown. Use synthetic fixtures, reject credential-bearing input and do not commit real account snapshots.
+
+Kimi web model-list snapshots are caller-supplied configured-alias observations, not provider catalogs. Keep aliases, model-specific effort lists, optional replacement metadata and unknown states distinct; use synthetic fixtures and never collect provider details or tokens. The documented provider-detail endpoint can reveal a stored API key.
+
+The remote CI runs in [docs/readiness.md](docs/readiness.md) identify separate immutable checkpoints for the earlier 20-product release and the initial 31-product expansion. Neither substitutes for validating later model, alias, request-fragment, custom-agent, or documentation-evidence changes.
+
+Preserve documented unknown states when first-party sources establish a boundary without establishing a schema. OS `available` means a documented route on the constrained platform, while `manual` can mean conditional or remote access; neither supplies runtime verification. Keep version, architecture, OS variant and account conditions visible. App-scope MCP fragments must not become guessed persistent settings paths, and manual Skill imports must retain the vendor-required `SKILL.md` filename without being described as native discovery.
+
 ## Platform verification
 
 `scripts/verify-platform.py` is opt-in and requires an explicit `--output` path:

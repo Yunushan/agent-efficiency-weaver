@@ -2,11 +2,15 @@ import json
 import re
 import tomllib
 import unittest
+from collections import Counter
 from pathlib import Path
 
-from agentweaver.adapters import render_mcp
+from agentweaver.adapters import render_mcp, stdio_inventory
+from agentweaver.agents import agent_inventory
 from agentweaver.config import WeaverError
+from agentweaver.coverage import coverage_report, load_requested_scope
 from agentweaver.integrations import load_integrations, load_operating_systems
+from agentweaver.models import load_model_hosts, load_model_providers
 from agentweaver.providers import render_provider_setup
 from agentweaver.skills import render_instruction_bundle
 
@@ -82,7 +86,7 @@ CATALOG = json.loads(read_document("catalogs/mcp-servers.json"))
 
 def expected_mcp(agent, surface):
     try:
-        render_mcp(agent, surface.id, PROFILE, CATALOG, [])
+        artifacts = render_mcp(agent, surface.id, PROFILE, CATALOG, [])
     except WeaverError:
         state = surface.capabilities["mcp"].state
         if state == "unknown":
@@ -90,8 +94,10 @@ def expected_mcp(agent, surface):
         if state == "unsupported":
             return "Unsupported"
         return "Not exported"
-    if surface.config_scope == "user":
+    if artifacts[0].kind == "mcp-fragment":
         return "Fragment export; manual import"
+    if surface.config_scope == "request":
+        return "Request fragment"
     return "Native staged"
 
 
@@ -99,7 +105,9 @@ class DocumentationDriftTests(unittest.TestCase):
     def setUp(self):
         self.integrations = load_integrations(ROOT)
         self.agents = [item for item in self.integrations.values() if item.kind == "agent"]
-        self.agent_surfaces = [(agent, surface) for agent in self.agents for surface in agent.surfaces]
+        self.hybrids = [item for item in self.integrations.values() if item.kind == "hybrid"]
+        self.providers = [item for item in self.integrations.values() if item.kind == "provider"]
+        self.agent_surfaces = [(agent, surface) for agent in (*self.agents, *self.hybrids) for surface in agent.surfaces]
 
     def product_rows(self):
         text = section(read_document("docs/compatibility.md"), "Product and surface table")
@@ -113,15 +121,30 @@ class DocumentationDriftTests(unittest.TestCase):
 
     def test_counts_and_gateway_are_documented(self):
         text = read_document("docs/compatibility.md")
-        self.assertEqual(len(self.agents), 19)
-        self.assertEqual(len(self.agent_surfaces), 21)
-        self.assertEqual(
-            [item.id for item in self.integrations.values() if item.kind == "provider"],
-            ["openrouter"],
-        )
+        self.assertIn(f"{len(self.integrations)} products", text)
         self.assertIn(f"{len(self.agents)} agent integrations", text)
-        self.assertIn(f"{len(self.agent_surfaces)} agent surfaces", text)
-        self.assertIn("one OpenRouter provider gateway", text)
+        self.assertIn(f"{len(self.providers)} provider integrations", text)
+        self.assertIn(f"{len(self.hybrids)} hybrid integrations", text)
+        agent_count = sum(len(item.surfaces) for item in self.agents)
+        hybrid_count = sum(len(item.surfaces) for item in self.hybrids)
+        self.assertIn(f"{agent_count} agent surfaces", text)
+        self.assertIn(f"{hybrid_count} hybrid surfaces", text)
+        self.assertIn("25 agents, 4 providers, and 2 hybrids", read_document("README.md"))
+
+    def test_pure_provider_table_covers_every_gateway_surface_and_metadata(self):
+        text = section(read_document("docs/compatibility.md"), "Provider surfaces")
+        rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
+                if len(row) == 6 and PRODUCT_CELL.fullmatch(row[0])}
+        expected = {(item.id, surface.id) for item in self.providers for surface in item.surfaces}
+        self.assertEqual(set(rows), expected)
+        for product in self.providers:
+            for surface in product.surfaces:
+                row = rows[(product.id, surface.id)]
+                self.assertIn(surface.provider["base_url"], row[2])
+                self.assertIn(surface.provider["endpoint"], row[3])
+                if surface.provider["secret_env"]:
+                    self.assertIn(surface.provider["secret_env"], row[4])
+                self.assertIn("runtime pending", row[5])
 
     def test_every_agent_surface_has_exactly_one_row_and_no_extra_rows(self):
         rows = self.product_rows()
@@ -175,19 +198,29 @@ class DocumentationDriftTests(unittest.TestCase):
                 else:
                     self.assertIn("runtime pending", row[6])
 
-    def test_provider_only_surface_is_represented_with_bundle_gap(self):
+    def test_qoder_ide_distinguishes_app_mcp_fragment_from_native_instructions_and_skills(self):
         rows = self.product_rows()
         qoder = self.integrations["qoder"]
         self.assertIn("ide", qoder.surface_ids())
         ide = qoder.surface("ide")
-        self.assertEqual(ide.capabilities["mcp"].state, "unknown")
-        self.assertEqual(ide.capabilities["instructions"].state, "unknown")
-        self.assertEqual(ide.capabilities["skills"].state, "unknown")
+        self.assertEqual(ide.config_scope, "app")
+        self.assertIsNone(ide.native_path_hint)
+        self.assertEqual(ide.capabilities["mcp"].state, "manual")
+        self.assertEqual(ide.capabilities["instructions"].state, "available")
+        self.assertEqual(ide.capabilities["skills"].state, "available")
+        self.assertEqual(ide.skills_path, ".qoder/skills")
         self.assertEqual(ide.capabilities["provider"].state, "manual")
         row = rows[("qoder", "ide")]
-        self.assertTrue(row[2].startswith("Unknown"))
-        self.assertIn("bundle gap", row[3])
+        self.assertTrue(row[2].startswith("Fragment export; manual import"))
+        self.assertNotIn("bundle gap", row[3])
         self.assertIn("`manual`", row[5])
+        mcp = render_mcp(qoder, "ide", PROFILE, CATALOG, [])
+        self.assertEqual(mcp[0].kind, "mcp-fragment")
+        self.assertEqual(mcp[0].relative_path.as_posix(), "qoder/fragments/mcp.ide.json")
+        bundle = render_instruction_bundle(qoder, "ide", PROFILE, ["token-efficient-retrieval"], ROOT)
+        self.assertIn("qoder/AGENTS.md", [item.relative_path.as_posix() for item in bundle])
+        self.assertIn("qoder/.qoder/skills/token-efficient-retrieval/SKILL.md",
+                      [item.relative_path.as_posix() for item in bundle])
 
     def test_vocabulary_distinguishes_fragments_from_absent_export(self):
         text = read_document("docs/compatibility.md")
@@ -196,6 +229,44 @@ class DocumentationDriftTests(unittest.TestCase):
             if surface.config_scope == "user" and expected_mcp(agent, surface).startswith("Fragment"):
                 row = self.product_rows()[(agent.id, surface.id)]
                 self.assertIn("Fragment export; manual import", row[2])
+
+    def test_stdio_table_matches_documented_transport_routes_and_evidence(self):
+        text = section(read_document("docs/compatibility.md"), "MCP transports and stdio staging")
+        rows = {clean(row[0]): row for row in table_rows(text)
+                if len(row) == 4 and PRODUCT_CELL.fullmatch(row[0])}
+        routes = stdio_inventory()
+        self.assertEqual(set(rows), set(routes))
+        for product, route in routes.items():
+            row = rows[product]
+            documented = [route, *route.get("additional_routes", [])]
+            self.assertEqual(set(backticked(row[1])), {item["mcp_dialect"] for item in documented})
+            self.assertEqual(set(backticked(row[2])), {item["schema"] for item in documented})
+            self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", row[3])),
+                             {url for item in documented for url in item["sources"]})
+            self.assertEqual(set(backticked(row[3])),
+                             {reference for item in documented for reference in item["fixture_tests"]})
+            for item in documented:
+                self.assertIn(item["checked_on"], row[3])
+                self.assertEqual(item["runtime_checks"], [])
+            self.assertIn("runtime pending", row[3])
+        surface_count = sum(surface.mcp_dialect in {
+                                item["mcp_dialect"] for item in
+                                [routes[product.id], *routes[product.id].get("additional_routes", [])]}
+                            for product in self.integrations.values() if product.id in routes
+                            for surface in product.surfaces)
+        self.assertIn(f"{len(routes)} products", text)
+        self.assertIn(f"{surface_count} matching registry surfaces", text)
+
+    def test_stdio_guide_keeps_argv_staged_default_off_and_request_routes_remote(self):
+        text = section(read_document("docs/compatibility.md"), "MCP transports and stdio staging")
+        for token in ("default_enabled: false", "profile permission", "--enable", "structured `args` array",
+                      "1,024", "128 arguments", "4,096", "32,768", "environment maps", "variable expansion",
+                      "never executes", "invokes a shell", "installs a package", "credential-looking",
+                      "Perplexity Agent API", "LM Studio ephemeral", "remote HTTPS only", "reject selected stdio",
+                      "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "not installed-client evidence",
+                      "manual user MCP fragment", "CLI 1.16.0 source"):
+            self.assertIn(token, text)
+        self.assertNotIn("OpenHands retain stdio file-export gaps", text)
 
     def test_operating_system_table_covers_seven_families(self):
         systems = load_operating_systems(ROOT)
@@ -364,6 +435,264 @@ class DocumentationDriftTests(unittest.TestCase):
                       "--root .", "pythonpath=src", "no checkout or cwd fallback", "--skill", "--model",
                       "--dry-run", "api-key values are never accepted as arguments"):
             self.assertIn(token, lowered)
+
+    def test_requested_scope_is_accounting_and_preserves_product_boundaries(self):
+        text = section(read_document("docs/compatibility.md"), "Requested scope and aliases")
+        scope = load_requested_scope(ROOT)
+        targets = {(target.product_id, target.surface_id) for item in scope for target in item.targets}
+        self.assertIn(f"{len(scope)} requested groups", text)
+        self.assertIn(f"{len(targets)} distinct registry surfaces", text)
+        summary = coverage_report(ROOT)["summary"]
+        self.assertIn(f"{summary['missing_documentation_capabilities']} missing documentation records", text)
+        self.assertIn(f"All {summary['pending_runtime_capabilities']} requested capability runtime records remain pending", text)
+        for state, count in summary["capability_states"].items():
+            self.assertIn(f"{count} {state}", text)
+        for token in ("unknown", "missing documentation", "runtime", "not a native support result",
+                      "VSCodeagents", "concrete product", "JetBrainsAir", "never `junie`"):
+            self.assertIn(token, text)
+
+    def test_computer_mcp_guide_keeps_service_auth_and_account_scope_separate(self):
+        text = section(read_document("docs/compatibility.md"), "MCP transports and stdio staging")
+        entry = CATALOG["servers"]["perplexity-computer"]
+        self.assertIs(entry["default_enabled"], False)
+        self.assertIn(entry["url"], text)
+        self.assertIn(CATALOG["servers"]["perplexity"]["url"], text)
+        source = "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
+        self.assertIn(source, entry["description"])
+        self.assertIn(source, text)
+        for token in ("default-off", "profile allowlisting", "explicit `--enable`", "OAuth 2.0",
+                      "rather than an API key", "account credits", "connected-service write actions",
+                      "exports no authentication material", "starts no task", "Authenticated `models_list`",
+                      "plan, region and organization policy", "chooses `mode` or `model`",
+                      "`effort` requires `model`", "not universal model availability",
+                      "account access remain unverified"):
+            self.assertIn(token, text)
+
+    def test_requested_os_table_matches_all_surface_states_constraints_and_sources(self):
+        text = section(read_document("docs/compatibility.md"), "Requested surface OS workflows")
+        rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
+                if len(row) == 10 and PRODUCT_CELL.fullmatch(row[0])}
+        targets = {(target.product_id, target.surface_id)
+                   for item in load_requested_scope(ROOT) for target in item.targets}
+        self.assertEqual(set(rows), targets)
+        symbols = {"available": "A", "manual": "M", "unknown": "?", "unsupported": "X"}
+        for product, surface_id in targets:
+            row = rows[(product, surface_id)]
+            surface = self.integrations[product].surface(surface_id)
+            self.assertEqual([clean(cell) for cell in row[2:9]],
+                             [symbols[surface.os_workflows[os_id]] for os_id in OPERATING_SYSTEMS])
+            evidence = surface.capabilities["os"]
+            if evidence.version_constraint:
+                self.assertIn(evidence.version_constraint, row[9])
+            for source in evidence.sources:
+                self.assertIn(source, row[9])
+        for token in ("documented installation/platform route", "All vendor runtime checks remain pending",
+                      "BSD and Solaris remain unknown", "FreeBSD", "every BSD variant", "aarch64 Termux",
+                      "not a general mobile app claim", "Bionic is a separate app", "approved reachable endpoint",
+                      "without", "Windows 10 1809+", "x64/ARM64"):
+            self.assertIn(token, text)
+
+    def test_manual_vendor_skill_imports_keep_standard_filename_and_declared_limits(self):
+        text = section(read_document("docs/compatibility.md"), "Instruction and skill bundles")
+        for product, surface in (("perplexity", "app"), ("lm-studio", "bionic")):
+            artifacts = render_instruction_bundle(self.integrations[product], surface, PROFILE,
+                                                ["token-efficient-retrieval"], ROOT)
+            imports = [item for item in artifacts if item.kind == "skill-import"]
+            self.assertEqual(len(imports), 1)
+            self.assertEqual(imports[0].relative_path.as_posix(),
+                             f"{product}/imports/skills/token-efficient-retrieval/SKILL.md")
+        for token in ("imports/skills/<name>/SKILL.md", "skill-import", "not a native discovery path",
+                      "No upload or import is performed"):
+            self.assertIn(token, text)
+
+    def test_model_provider_route_table_matches_declared_protocols(self):
+        text = section(read_document("docs/compatibility.md"), "Models and reasoning")
+        rows = {clean(row[0]): row for row in table_rows(text)
+                if len(row) == 3 and PRODUCT_CELL.fullmatch(row[0])}
+        providers = load_model_providers(ROOT)
+        self.assertEqual(set(rows), set(providers))
+        for identifier, provider in providers.items():
+            row = rows[identifier]
+            self.assertEqual(backticked(row[1]), [provider["integration_id"], provider["surface"]])
+            self.assertEqual(backticked(row[2]), provider["protocols"])
+        lowered = text.lower()
+        for token in ("not an exhaustive", "explicit model", "snapshot", "every supplied page",
+                      "catalog completeness stays unknown", "not establish current access",
+                      "reasoning-effort", "reasoning-budget", "reasoning-mode", "--context-size",
+                      "different wire formats", "fails", "never read credential", "paid calls"):
+            self.assertIn(token, lowered)
+
+    def test_custom_agent_guide_separates_definitions_skills_and_permissions(self):
+        text = section(read_document("docs/compatibility.md"), "Custom agent definitions")
+        for token in ("agents inventory", "instructions-file", "agent-definition", "agent-handoff",
+                      "HANDOFF.md", "portable Skills", "unknown", "unsupported", "fail closed",
+                      "do not grant permissions", "reasoning", "manual"):
+            self.assertIn(token, text)
+
+    def test_air_ide_guide_preserves_manual_surface_and_exact_contract_sources(self):
+        text = section(read_document("docs/compatibility.md"), "Air IDE manual handoffs")
+        ide = self.integrations["jetbrains-air"].surface("ide")
+        self.assertEqual(ide.config_scope, "app")
+        self.assertIsNone(ide.native_path_hint)
+        self.assertIsNone(ide.skills_path)
+        self.assertEqual(ide.instruction_paths, ())
+        for capability in ("mcp", "instructions", "skills"):
+            self.assertEqual(ide.capabilities[capability].state, "manual")
+        for capability in ("provider", "os"):
+            self.assertEqual(ide.capabilities[capability].state, "unknown")
+        self.assertEqual(set(ide.os_workflows.values()), {"unknown"})
+        route = next(row for row in agent_inventory(ROOT)["definitions"]
+                     if (row["product_id"], row["surface_id"]) == ("jetbrains-air", "ide"))
+        self.assertEqual(route["state"], "manual")
+        self.assertIsNone(route["path_template"])
+        host = next(row for row in load_model_hosts(ROOT)
+                    if (row["product_id"], row["surface_id"]) == ("jetbrains-air", "ide"))
+        sources = {url for evidence in ide.capabilities.values() for url in evidence.sources}
+        sources.update(route["evidence"]["sources"])
+        sources.update(host["selection"]["sources"])
+        sources.update(host["reasoning"]["sources"])
+        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", text)), sources)
+        for token in ("separately from `jetbrains-air/desktop`", "2026.2", "2026.3 EAP",
+                      "every IDE OS workflow remains unknown", "desktop requirements are not inherited",
+                      "Manage Agents > Manage Presets > New Preset", "Advanced > Injected instructions",
+                      "selected agent's own behavior", "not a native saved subagent file",
+                      "ACP executable registration", "Weaver emits no `acp.json`",
+                      "jetbrains-air/read/<name>.md", "ordinary file context", "Add context > Skills",
+                      "Skills already exposed by the host", "portable Skill import loader",
+                      "allowed values require model-specific discovery", "arbitrary OpenRouter",
+                      "no established MCP file exporter", "runtime checks remain pending"):
+            self.assertIn(token, text)
+    def test_current_readiness_counts_follow_registry_without_rewriting_ci_history(self):
+        text = section(read_document("docs/readiness.md"), "Separate evidence requirements")
+        summary = coverage_report(ROOT)["summary"]
+        self.assertIn(f"{summary['referenced_surfaces']} distinct surfaces", text)
+        self.assertIn(f"{summary['capability_states']['unknown']} unknown capability states", text)
+        self.assertIn(f"{summary['pending_runtime_capabilities']} pending runtime records", text)
+        self.assertIn(f"{len(load_model_hosts(ROOT))} registered surfaces", text)
+        for token in ("Air in IDEs", "separate manual UI-preset", "Perplexity Computer MCP",
+                      "default-off", "account-scoped `models_list`", "runtime support"):
+            self.assertIn(token, text)
+
+    def test_host_model_controls_table_covers_every_surface_and_declared_control(self):
+        text = section(read_document("docs/compatibility.md"), "Host model controls")
+        rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
+                if len(row) == 5 and PRODUCT_CELL.fullmatch(row[0])}
+        hosts = load_model_hosts(ROOT)
+        self.assertEqual(set(rows), {(row["product_id"], row["surface_id"]) for row in hosts})
+        self.assertIn(f"{len(hosts)} registered surfaces", text)
+        for host in hosts:
+            row = rows[(host["product_id"], host["surface_id"])]
+            selection, reasoning = host["selection"], host["reasoning"]
+            self.assertIn(f"`{selection['state']}`", row[2])
+            self.assertIn(selection["mechanism"], row[2])
+            for field in (*selection["fields"], *selection["commands"]):
+                self.assertIn(f"`{field}`", row[2])
+            for step in selection["ui_steps"]:
+                self.assertIn(step, row[2])
+            self.assertIn(f"`{reasoning['state']}`", row[3])
+            for control in reasoning["controls"]:
+                self.assertIn(f"`{control['kind']}`", row[3])
+                self.assertIn(f"`{control['field']}`", row[3])
+                if control["values"] is None:
+                    self.assertIn("model-specific discovery", row[3])
+                else:
+                    for value in control["values"]:
+                        self.assertIn(f"`{value}`", row[3])
+            self.assertIn(f"`{host['availability']}`", row[4])
+            self.assertIn(host["checked_on"], row[4])
+            self.assertIn("runtime pending", row[4])
+        for token in ("do not enable a native exporter", "Null control values", "model-dependent",
+                      "unknown shared reasoning override", "external agents", "project-local provider keys are ignored"):
+            self.assertIn(token, text)
+
+    def test_custom_agent_table_covers_all_registry_surfaces_and_declared_fields(self):
+        text = section(read_document("docs/compatibility.md"), "Custom agent definitions")
+        rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
+                if len(row) == 5 and PRODUCT_CELL.fullmatch(row[0])}
+        definitions = agent_inventory(ROOT)["definitions"]
+        self.assertEqual(set(rows), {(row["product_id"], row["surface_id"]) for row in definitions})
+        counts = Counter(row["state"] for row in definitions)
+        for state, count in counts.items():
+            phrase = "native definition routes" if state == "native" else f"{state} routes"
+            self.assertIn(f"{count} {phrase}", text)
+        for definition in definitions:
+            row = rows[(definition["product_id"], definition["surface_id"])]
+            self.assertEqual(clean(row[2]), definition["state"])
+            self.assertEqual(clean(row[3]), definition["path_template"] or "none")
+            for field in ("model_field", "effort_field"):
+                if definition[field]:
+                    self.assertIn(f"`{definition[field]}`", row[4])
+        for token in ("inherit", "ignore model selection", "explicit model", "provider",
+                      "No maximum effort", "Permission defaults", "runtime checks remain pending"):
+            self.assertIn(token, text)
+        for token in ("not the parent model", "router", "admin-pinned", "rejects an explicit `inherit`",
+                      "Subagents (Preview)", "experimental", "true tool restriction", "auto-approval semantics",
+                      "authorized project admin", "versioned Profile", "not a complete Profile JSON schema",
+                      "not an authorization boundary", "does not revoke ambient Profile access",
+                      "five requested custom-definition routes", "no distinct registration contract"):
+            self.assertIn(token, text)
+
+    def test_openhands_guide_binds_cli_loaders_without_promoting_profiles_or_runtime(self):
+        compatibility = read_document("docs/compatibility.md")
+        definitions = section(compatibility, "Custom agent definitions")
+        for token in ("CLI 1.16.0/SDK 1.28.1", "model: inherit", "tools: []",
+                      "saved local LLM profiles", "not raw provider model IDs", "top-level Markdown",
+                      "base finish/think", "No MCP, hooks, permission modes or OS sandbox",
+                      "not installed-client verification", "--llm-profile NAME", "by default",
+                      "existing named local LLM profile", "preserves the exact supplied reference",
+                      "without reading the profile store or credentials", "checking existence",
+                      "creating a profile", "1–64 ASCII", "optional lowercase `.json`",
+                      "keeps its suffix and case", "literal case-sensitive `inherit`",
+                      "`inherit.json` and `Inherit`", "other products reject `--llm-profile`",
+                      "conflicts with `--model`, `--provider`, `--catalog`, and `--reasoning-effort`"):
+            self.assertIn(token, definitions)
+        route = next(row for row in agent_inventory(ROOT)["definitions"]
+                     if (row["product_id"], row["surface_id"]) == ("openhands", "cli"))
+        self.assertEqual((route["model_style"], route["model_field"]), ("local-profile", "model"))
+        profile_source = next(source for source in route["evidence"]["sources"]
+                              if "llm_profile_store.py" in source)
+        self.assertIn(profile_source, definitions)
+        skills = section(compatibility, "Instruction and skill bundles")
+        for token in ("working directory and then Git root", "immediate child directories",
+                      "no general ancestor or category recursion", "not installed-client discovery"):
+            self.assertIn(token, skills)
+        evidence = self.integrations["openhands"].surface("cli").capabilities["skills"]
+        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", skills)), set(evidence.sources))
+        controls = section(compatibility, "Host model controls")
+        for token in ("JetBrains Air desktop alone", "unknown shared reasoning override", "Agent.llm",
+                      "llm.reasoning_effort", "llm.extended_thinking_budget", "model-feature dependent",
+                      "Responses subscription route", "capped below `max_output_tokens`"):
+            self.assertIn(token, controls)
+        provider = section(compatibility, "OpenRouter provider handoffs")
+        for token in ("press `Ctrl+P`", "choose Settings", "--override-with-envs", "not persisted",
+                      "llm.model", "llm.base_url", "exports no complete settings file"):
+            self.assertIn(token, provider)
+        self.assertNotIn("README marks this CLI unmaintained", controls)
+
+    def test_zero_context_inventory_is_distinct_from_usable_configuration(self):
+        text = section(read_document("docs/compatibility.md"), "Models and reasoning")
+        for token in ("context_length: 0", "remains in normalized inventory", "context_size",
+                      "`None` (unknown)", "not a configured zero-length window", "--context-size 0",
+                      "invalid", "positive", "Kimi native configuration", "manual template"):
+            self.assertIn(token, text)
+        self.assertIn("derived usable `context_size` remains `None`", read_document("docs/architecture.md"))
+
+    def test_recorded_ci_checkpoint_is_explicitly_historical_for_expansion(self):
+        text = section(read_document("docs/readiness.md"), "Recorded core CLI CI evidence")
+        for token in ("historical evidence", "earlier 20-product", "does not verify", "31-product expansion",
+                      "cf5bcdc2b1bacc03df355f24e3f6e6ab55998dad", "40278860777"):
+            self.assertIn(token, text)
+
+    def test_expanded_ci_and_runtime_record_contract_remain_commit_and_host_scoped(self):
+        readiness = read_document("docs/readiness.md")
+        text = section(readiness, "Recorded expanded CLI CI evidence")
+        for token in ("40295841872", "b2ef30fe02974a24bf8d0f4c804e908fd9ba338d", "PR #2",
+                      "subsequent changes require their own", "pending vendor runtime"):
+            self.assertIn(token, text)
+        for token in ("product_version", "os_variant", "architecture", "checked_on", "artifact_sha256",
+                      "configuration-consumption", "operator-supplied attestations", "Conflicting aliases",
+                      "regardless of input order", "no latest-date rule"):
+            self.assertIn(token, readiness)
 
 
 if __name__ == "__main__":

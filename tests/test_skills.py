@@ -33,21 +33,40 @@ NATIVE_TARGETS = {
     ("claude-code", "cli"): "CLAUDE.md",
     ("cline", "ide"): "AGENTS.md",
     ("codex", "cli"): "AGENTS.md",
+    ("codex", "desktop"): "AGENTS.md",
+    ("codex", "ide"): "AGENTS.md",
     ("copilot", "vscode"): ".github/copilot-instructions.md",
     ("cursor", "ide"): "AGENTS.md",
     ("devin", "desktop-local"): "AGENTS.md",
     ("goose", "cli"): ".goosehints",
+    ("factory", "cli"): "AGENTS.md",
+    ("hermes", "cli"): "AGENTS.md",
+    ("jetbrains-air", "desktop"): "AGENTS.md",
     ("junie", "cli"): ".junie/AGENTS.md",
     ("kilo", "cli"): "AGENTS.md",
     ("kilo", "ide"): "AGENTS.md",
+    ("kimi-code", "cli"): "AGENTS.md",
     ("opencode", "cli"): "AGENTS.md",
     ("openhands", "cli"): "AGENTS.md",
     ("pi", "cli"): "AGENTS.md",
+    ("qwen-code", "cli"): "QWEN.md",
+    ("qoder", "ide"): "AGENTS.md",
     ("zed", "ide"): ".rules",
 }
 
 MANUAL_TARGETS = {
+    ("jetbrains-air", "ide"),
+    ("chatgpt", "desktop"),
+    ("chatgpt", "web"),
+    ("chatgpt", "work-local"),
+    ("chatgpt", "work-cloud"),
     ("kiro", "ide"),
+    ("lm-studio", "bionic"),
+    ("lm-studio", "api"),
+    ("lm-studio", "desktop"),
+    ("perplexity", "agent-api"),
+    ("perplexity", "app"),
+    ("perplexity", "orchestrator"),
     ("qoder", "cli"),
 }
 
@@ -289,11 +308,10 @@ class InstructionBundleTests(unittest.TestCase):
         expected = {
             (agent_id, surface.id)
             for agent_id, spec in self.integrations.items()
-            if spec.kind == "agent"
+            if spec.kind in {"agent", "hybrid"}
             for surface in (spec.surfaces.values() if isinstance(spec.surfaces, dict) else spec.surfaces)
         }
         self.assertEqual(covered, expected)
-        self.assertEqual(len({agent for agent, _ in covered}), 19)
         self.assertEqual(gaps & set(NATIVE_TARGETS), set())
         self.assertEqual(gaps & MANUAL_TARGETS, set())
 
@@ -393,7 +411,7 @@ class InstructionBundleTests(unittest.TestCase):
         self.assertNotIn("skills directory", folded)
 
     def test_manual_skills_are_staged_as_portable_read_files(self):
-        for agent_id in ("aider", "abacus", "cline", "cursor"):
+        for agent_id in ("aider", "abacus"):
             spec = get_integration(agent_id, ROOT)
             with self.subTest(agent=agent_id):
                 artifacts = render_instruction_bundle(
@@ -422,21 +440,21 @@ class InstructionBundleTests(unittest.TestCase):
             source = Path(source_directory)
             copy_canonical(source)
             expected = skill_path(source, "security-review").read_bytes().replace(b"\r\n", b"\n")
-            spec = get_integration("cline", ROOT)
+            spec = get_integration("abacus", ROOT)
             artifacts = render_instruction_bundle(
-                spec, "ide", self.profile, ["security-review"], source
+                spec, "desktop", self.profile, ["security-review"], source
             )
             with tempfile.TemporaryDirectory() as output_directory:
                 output = Path(output_directory).resolve()
                 write_artifacts(output, artifacts)
                 shutil.rmtree(source)
                 self.assertEqual(
-                    (output / "cline/read/security-review.md").read_bytes(),
+                    (output / "abacus/read/security-review.md").read_bytes(),
                     expected,
                 )
                 self.assertIn(
                     "read/security-review.md",
-                    (output / "cline/AGENTS.md").read_text(encoding="utf-8"),
+                    (output / "abacus/AGENTS.md").read_text(encoding="utf-8"),
                 )
 
     def test_direct_api_enforces_profile_contract_and_enterprise_zero(self):
@@ -485,9 +503,9 @@ class InstructionBundleTests(unittest.TestCase):
                 with self.subTest(label=label), self.assertRaises(WeaverError):
                     render_instruction_bundle(spec, "cli", profile, [], root)
 
-    def test_provider_only_surface_without_instruction_evidence_reports_gap(self):
-        qoder = get_integration("qoder", ROOT)
-        base = qoder.surface("cli")
+    def test_synthetic_surface_without_instruction_evidence_reports_gap(self):
+        original = get_integration("codex", ROOT)
+        base = original.surface("cli")
         unknown = CapabilityEvidence(
             state="unknown",
             sources=(),
@@ -511,7 +529,7 @@ class InstructionBundleTests(unittest.TestCase):
             skills_path=None,
             capabilities=capabilities,
         )
-        spec = replace(qoder, default_surface="ide", surfaces=(provider_only,))
+        spec = replace(original, default_surface="ide", surfaces=(provider_only,))
         with self.assertRaises(WeaverError) as raised:
             render_instruction_bundle(spec, "ide", self.profile, [], ROOT)
         message = str(raised.exception).casefold()

@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "checked_on": "2026-10-26",
+  "providers": [
+    {
+      "id": "openrouter",
+      "integration_id": "openrouter",
+      "surface": "gateway",
+      "base_url": "https://openrouter.ai/api/v1",
+      "secret_env": "OPENROUTER_API_KEY",
+      "protocols": [
+        "openrouter-chat",
+        "openai-chat",
+        "openai-responses"
+      ],
+      "discovery": {
+        "endpoint": "/models",
+        "format": "openrouter",
+        "auth": "Bearer API key documented for the current model-list route; no key is read by Weaver",
+        "scope": "Public catalog defaults to text output; capture output_modalities=all for all exposed model types. Omit both offset and limit for the full filtered response, or capture every page. Public visibility is not account access or inference.",
+        "pagination": "offset/limit and links/total_count; omitted offset/limit returns full filtered list; completeness remains unknown"
+      },
+      "sources": [
+        "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
+        "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+        "https://openrouter.ai/docs/api_reference/responses/overview",
+        "https://openrouter.ai/docs/api_reference/responses/reasoning",
+        "https://github.com/OpenRouterTeam/terraform-provider-openrouter/blob/main/docs/data-sources/model.md"
+      ],
+      "known_models": []
+    },
+    {
+      "id": "openai",
+      "integration_id": "openai",
+      "surface": "api",
+      "base_url": "https://api.openai.com/v1",
+      "secret_env": "OPENAI_API_KEY",
+      "protocols": [
+        "openai-responses",
+        "openai-chat"
+      ],
+      "discovery": {
+        "endpoint": "/models",
+        "format": "openai",
+        "auth": "Bearer API key; credential and project access determine visibility",
+        "scope": "API account/project model visibility; no ChatGPT subscription inference",
+        "pagination": "List response; catalog visibility is not successful inference"
+      },
+      "sources": [
+        "https://developers.openai.com/api/reference/resources/models/methods/list",
+        "https://developers.openai.com/api/docs/guides/reasoning"
+      ],
+      "known_models": [
+        {
+          "id": "gpt-6.1-sol",
+          "reasoning": {
+            "efforts": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "toggle": false,
+            "modes": [
+              "standard",
+              "pro"
+            ]
+          },
+          "sources": [
+            "https://developers.openai.com/api/docs/guides/deployment-checklist",
+            "https://developers.openai.com/api/docs/guides/reasoning"
+          ]
+        },
+        {
+          "id": "gpt-6-astra",
+          "reasoning": {
+            "efforts": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "toggle": false,
+            "modes": [
+              "standard",
+              "pro"
+            ]
+          },
+          "sources": [
+            "https://developers.openai.com/api/docs/guides/deployment-checklist",
+            "https://developers.openai.com/api/docs/guides/reasoning"
+          ]
+        },
+        {
+          "id": "gpt-6-sol",
+          "reasoning": {
+            "efforts": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "toggle": true,
+            "on_value": "medium",
+            "off_value": "none",
+            "modes": [
+              "standard",
+              "pro"
+            ]
+          },
+          "sources": [
+            "https://developers.openai.com/api/docs/guides/deployment-checklist",
+            "https://developers.openai.com/api/docs/guides/reasoning"
+          ]
+        },
+        {
+          "id": "gpt-6-luna",
+          "reasoning": {
+            "efforts": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "toggle": true,
+            "on_value": "medium",
+            "off_value": "none",
+            "modes": [
+              "standard",
+              "pro"
+            ]
+          },
+          "sources": [
+            "https://developers.openai.com/api/docs/guides/deployment-checklist",
+            "https://developers.openai.com/api/docs/guides/reasoning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anthropic",
+      "integration_id": "anthropic",
+      "surface": "api",
+      "base_url": "https://api.anthropic.com/v1",
+      "secret_env": "ANTHROPIC_API_KEY",
+      "protocols": [
+        "anthropic-messages"
+      ],
+      "discovery": {
+        "endpoint": "/models",
+        "format": "anthropic",
+        "auth": "Bearer key/token or supported x-api-key fallback; API version and workspace selection apply",
+        "scope": "Claude API workspace model visibility; cloud-platform catalogs are separate",
+        "pagination": "after_id/before_id/limit; has_more/first_id/last_id; lifecycle filter affects visibility"
+      },
+      "sources": [
+        "https://platform.claude.com/docs/en/api/models/list",
+        "https://platform.claude.com/docs/en/api/overview",
+        "https://platform.claude.com/docs/en/build-with-claude/effort",
+        "https://platform.claude.com/docs/en/build-with-claude/extended-thinking"
+      ],
+      "known_models": [
+        {
+          "id": "claude-sonnet-4-6",
+          "reasoning": {
+            "efforts": [
+              "low",
+              "medium",
+              "high",
+              "max"
+            ],
+            "budget_tokens": {
+              "minimum": 1024,
+              "maximum": null
+            }
+          },
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/effort",
+            "https://platform.claude.com/docs/en/build-with-claude/extended-thinking"
+          ]
+        },
+        {
+          "id": "claude-opus-5",
+          "reasoning": {
+            "efforts": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          },
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/effort"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "integration_id": "google",
+      "surface": "api",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "secret_env": "GEMINI_API_KEY",
+      "protocols": [
+        "google-generate-content"
+      ],
+      "discovery": {
+        "endpoint": "/models",
+        "format": "google",
+        "auth": "Gemini API key through x-goog-api-key; Google Cloud Vertex auth/catalog is separate",
+        "scope": "Gemini Developer API models; supportedGenerationMethods describe actions",
+        "pagination": "pageSize/pageToken; nextPageToken; preserve all pages and caller filters"
+      },
+      "sources": [
+        "https://ai.google.dev/api/models",
+        "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+      ],
+      "known_models": [
+        {
+          "id": "models/gemini-3.8-flash",
+          "reasoning": {
+            "efforts": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "toggle": false
+          },
+          "sources": [
+            "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+          ]
+        },
+        {
+          "id": "models/gemini-2.5-flash",
+          "reasoning": {
+            "budget_tokens": {
+              "minimum": 0,
+              "maximum": 24576
+            },
+            "toggle": true
+          },
+          "sources": [
+            "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+          ]
+        },
+        {
+          "id": "models/gemini-2.5-pro",
+          "reasoning": {
+            "budget_tokens": {
+              "minimum": 128,
+              "maximum": 32768
+            },
+            "toggle": false
+          },
+          "sources": [
+            "https://ai.google.dev/gemini-api/docs/generate-content/thinking"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lm-studio",
+      "integration_id": "lm-studio",
+      "surface": "api",
+      "base_url": "http://localhost:1234",
+      "secret_env": null,
+      "protocols": [
+        "lmstudio-chat",
+        "openai-chat",
+        "openai-responses",
+        "anthropic-messages"
+      ],
+      "discovery": {
+        "endpoint": "/api/v1/models",
+        "format": "lmstudio",
+        "auth": "Local server API token if authentication enabled; no automatic service startup",
+        "scope": "Local available models, variants and loaded instances; no hardware/inference guarantee",
+        "pagination": "Native response has models array; static snapshot completeness remains unknown"
+      },
+      "sources": [
+        "https://lmstudio.ai/docs/developer/rest/list",
+        "https://lmstudio.ai/docs/developer/rest/chat",
+        "https://lmstudio.ai/docs/developer/openai-compat/responses",
+        "https://lmstudio.ai/docs/developer/anthropic-compat"
+      ],
+      "known_models": []
+    },
+    {
+      "id": "perplexity-agent",
+      "integration_id": "perplexity",
+      "surface": "agent-api",
+      "base_url": "https://api.perplexity.ai",
+      "secret_env": "PERPLEXITY_API_KEY",
+      "protocols": [
+        "perplexity-agent"
+      ],
+      "discovery": {
+        "endpoint": "/v1/models",
+        "format": "openai",
+        "auth": "Model-list documentation omits auth; inference requires Perplexity API key and project access",
+        "scope": "Agent API catalog; app model picker and Orchestrator are separate",
+        "pagination": "OpenAI list shape; no static snapshot completeness or entitlement claim"
+      },
+      "sources": [
+        "https://docs.perplexity.ai/api-reference/models-get",
+        "https://docs.perplexity.ai/docs/agent-api/models",
+        "https://docs.perplexity.ai/docs/agent-api/effort"
+      ],
+      "known_models": [
+        {
+          "id": "perplexity/kimi-k3",
+          "reasoning": {
+            "efforts": [
+              "minimal",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          },
+          "sources": [
+            "https://docs.perplexity.ai/docs/agent-api/models"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "perplexity-orchestrator",
+      "integration_id": "perplexity",
+      "surface": "orchestrator",
+      "base_url": "https://api.perplexity.ai/orchestrator/v1",
+      "secret_env": "PERPLEXITY_API_KEY",
+      "protocols": [
+        "openai-chat",
+        "openai-responses",
+        "anthropic-messages"
+      ],
+      "discovery": {
+        "endpoint": "/models",
+        "format": "openai",
+        "auth": "Perplexity API key as Bearer token",
+        "scope": "Orchestrator allowlist including base token prices; separate from Agent API and app",
+        "pagination": "Sorted model list; listing does not establish inference or reasoning options"
+      },
+      "sources": [
+        "https://docs.perplexity.ai/api-reference/gateway-models-get",
+        "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
+        "https://docs.perplexity.ai/api-reference/gateway-responses-post",
+        "https://docs.perplexity.ai/api-reference/gateway-messages-post"
+      ],
+      "known_models": []
+    }
+  ]
+}

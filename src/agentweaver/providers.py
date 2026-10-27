@@ -273,7 +273,7 @@ def _markdown(
             "",
             "## Evidence",
             "",
-            f"- Checked on: {CHECKED_ON}",
+            f"- Checked on: {'2026-10-26' if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON}",
             "- Sources:",
         ]
     )
@@ -296,6 +296,8 @@ def _toml(model_id: str) -> str:
             'name = "OpenRouter"',
             f"base_url = {_toml_string(DEFAULT_BASE_URL)}",
             f"env_key = {_toml_string(DEFAULT_SECRET_ENV)}",
+            'wire_api = "responses"',
+            "supports_websockets = false",
             "",
         ]
     )
@@ -312,8 +314,9 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
     return {
         "state": "available" if route.native_toml else "manual",
         "sources": list(route.sources),
-        "checked_on": CHECKED_ON,
-        "fixture_tests": ["tests/test_providers.py"],
+        "checked_on": "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON,
+        "fixture_tests": (["tests/test_providers.py", "tests/test_expanded_providers.py"] if agent_id == "codex" else
+                          ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"]),
     }
 
 
@@ -356,6 +359,8 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
+_REFRESHED_ROUTE_IDS = _EXPANDED_ROUTE_IDS | {"openhands"}
 _ROUTES = {
     "kilo": _Route(
         None,
@@ -477,21 +482,33 @@ _ROUTES = {
     "openhands": _Route(
         ("cli",),
         "openrouter/",
-        "Use `openrouter/<raw>` when a model is not in the selector and must be "
-        "entered in the Advanced tab.",
+        "Use the SDK's LiteLLM model ID `openrouter/<raw>` in `llm.model`, or in "
+        "`LLM_MODEL` with `--override-with-envs`. A file-agent model field instead names a saved LLM profile.",
         (
-            "Open Settings > LLM and select OpenRouter as the provider.",
-            "Select a model and enter the key in the settings profile.",
-            "For an unlisted model, use Advanced and enter `openrouter/<raw>`.",
+            "Run `openhands`, press `Ctrl+P`, and select Settings to configure the CLI model and credentials.",
+            "Review the existing `~/.openhands/agent_settings.json`: use `openrouter/<raw>` for "
+            "`llm.model` and the OpenRouter API base for `llm.base_url`. No complete settings file is exported.",
+            "For temporary process overrides, explicitly use `--override-with-envs`; "
+            "`LLM_MODEL`, `LLM_BASE_URL`, and `LLM_API_KEY` overrides are not persisted.",
         ),
-        (),
-        "Enter the key in Settings > LLM. The OpenRouter route page documents no "
-        "OpenRouter-specific environment variable.",
+        (("LLM_MODEL", "SDK model ID; used only with --override-with-envs."),
+         ("LLM_BASE_URL", "Custom API base; used only with --override-with-envs."),
+         ("LLM_API_KEY", "Provider credential; used only with --override-with-envs.")),
+        "Supply the credential through CLI Settings or a controlled process environment with "
+        "`LLM_API_KEY` and `--override-with-envs`. Environment overrides do not change saved settings. "
+        "The generator reads no credential and writes no credential or live settings.",
         None,
-        "Use the documented OpenRouter base URL and chat completions endpoint.",
-        ("The model prefix is `openrouter/<raw>` for unlisted model IDs.",),
+        "The pinned CLI loads its SDK LLM configuration directly; the SDK passes the model ID "
+        "and API base to LiteLLM's OpenRouter route.",
+        ("This is a manual CLI handoff; Agent Canvas Settings > LLM and Advanced tabs are a separate interface.",
+         "Model access, supported reasoning values, tool compatibility, and inference remain unverified."),
         (
             "https://docs.openhands.dev/openhands/usage/llms/openrouter",
+            "https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/command-reference.mdx",
+            "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/pyproject.toml",
+            "https://github.com/OpenHands/OpenHands-CLI/blob/283c6ac3610f4299f405f7389f65766dcb83e12a/openhands_cli/stores/agent_store.py",
+            "https://github.com/OpenHands/software-agent-sdk/blob/edaac806d1599a4ee1662fd4008fbcd7b537ecd1/openhands-sdk/openhands/sdk/llm/utils/openhands_provider.py",
+            "https://docs.litellm.ai/docs/providers/openrouter",
             _OPENROUTER,
         ),
     ),
@@ -589,13 +606,13 @@ _ROUTES = {
         ),
     ),
     "codex": _Route(
-        ("cli",),
+        ("cli", "desktop", "ide"),
         "",
         "Use the raw OpenRouter model ID for `model` in `config.toml`; the provider "
         "block supplies OpenRouter.",
         (
-            "Place the staged `config.toml` fragment in the documented Codex config "
-            "scope, or merge the equivalent keys.",
+            "Review and merge the staged `config.toml` fragment into user-level "
+            "`~/.codex/config.toml`; project-local provider definitions are ignored.",
             "Set `OPENROUTER_API_KEY` in the process environment; `env_key` tells Codex "
             "which variable to read.",
             "Do not put the key in the TOML file.",
@@ -603,18 +620,60 @@ _ROUTES = {
         (("OPENROUTER_API_KEY", "Read by Codex through `env_key`."),),
         "Use `env_key` and the process environment. Never write the key into the TOML "
         "fragment.",
-        None,
-        "`base_url` is the documented OpenRouter OpenAI-compatible endpoint.",
+        "https://openrouter.ai/api/v1/responses",
+        "The provider uses the Responses API at `https://openrouter.ai/api/v1/responses`; "
+        "WebSockets are disabled for this documented route.",
         (
             "The native TOML fragment contains no credential.",
             "Use an explicit raw OpenRouter model ID; no model is chosen automatically.",
+            "With `env_key` authentication, Codex does not fetch the OpenRouter model catalog. "
+            "Custom aliases can require matching Codex catalog metadata; a generic model-list "
+            "snapshot does not provide that client metadata or prove compatibility.",
         ),
         (
             "https://openrouter.ai/docs/cookbook/coding-agents/codex-cli",
             "https://developers.openai.com/codex/config-reference",
+            "https://openrouter.ai/docs/cookbook/coding-agents/codex-desktop",
             _OPENROUTER,
         ),
         True,
+    ),
+    "chatgpt": _Route(
+        ("desktop", "work-local"),
+        "",
+        "For local Work or Codex in the ChatGPT desktop app, use the raw OpenRouter "
+        "model ID in user-level `~/.codex/config.toml`. The managed model picker alone "
+        "does not configure a custom inference provider.",
+        (
+            "Review existing user-level configuration and deliberately merge `model`, "
+            '`model_provider = "openrouter"`, and `[model_providers.openrouter]`; '
+            "project-local provider definitions are ignored.",
+            'Set the provider table fields `name = "OpenRouter"`, '
+            '`base_url = "https://openrouter.ai/api/v1"`, `wire_api = "responses"`, '
+            '`supports_websockets = false`, and `env_key = "OPENROUTER_API_KEY"`.',
+            "Supply the credential through the documented local authentication flow so "
+            "it is visible to the desktop process, then restart the app and choose a new local Work or Codex task.",
+        ),
+        (("OPENROUTER_API_KEY", "Referenced by the user-level provider's env_key; never read or written by Weaver."),),
+        "The API/provider credential path is distinct from signing in with a ChatGPT "
+        "workspace through a gateway. Do not put an API key into this repository.",
+        "https://openrouter.ai/api/v1/responses",
+        "Local Work and Codex share local configuration. This handoff uses OpenRouter's "
+        "stateless Responses API; it does not redirect all app, MCP, plugin or browser traffic.",
+        (
+            "This is a manual local Work/Codex handoff, not a Chat conversation, web or Work Cloud provider route.",
+            "With env_key authentication, OpenRouter catalog discovery is not fetched by Codex. "
+            "Unrecognized aliases need matching Codex model metadata; account access, reasoning "
+            "subsets and tool compatibility require separate evidence.",
+            "No settings are installed, credentials read, host processes launched or inference performed.",
+        ),
+        (
+            "https://learn.chatgpt.com/docs/auth",
+            "https://learn.chatgpt.com/docs/amazon-bedrock",
+            "https://learn.chatgpt.com/docs/enterprise/connect-to-a-gateway",
+            "https://learn.chatgpt.com/docs/enterprise/gateway-compatibility",
+            "https://openrouter.ai/docs/cookbook/coding-agents/codex-desktop",
+        ),
     ),
     "abacus": _Route(
         ("desktop",),
@@ -737,3 +796,66 @@ _ROUTES = {
         ),
     ),
 }
+
+# These are deliberate manual handoffs. A documented compatible endpoint does not
+# establish installed-version validation, inference success, or native agent export.
+_ROUTES.update({
+    "factory": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Use the explicit provider model ID in customModels[].model: `{model}`.",
+        steps=(
+            "Open `/settings` > Custom models, or `/model` > Manage custom models.",
+            "Add a generic-chat-completion-api custom model with the OpenRouter base URL.",
+            "Use `{model}` as model and `${OPENROUTER_API_KEY}` as the apiKey environment reference.",
+            "Review and merge into `~/.factory/settings.json`; do not replace unrelated customModels.",
+        ),
+        env=(("OPENROUTER_API_KEY", "Referenced by Factory as ${OPENROUTER_API_KEY}."),),
+        credential_note="Factory supports environment references in apiKey; no credential is staged.",
+        endpoint=None, endpoint_note="The generic Chat Completions route uses the OpenRouter API base URL.",
+        restrictions=("This route is a manual configuration handoff for the registered CLI surface.",
+                      "No web/mobile model access or inference was verified."),
+        sources=("https://docs.factory.com/model-independence/byok", _OPENROUTER),
+    ),
+    "hermes": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Use the explicit gateway model slug `{model}`; do not rely on automatic alias resolution.",
+        steps=("Set OPENROUTER_API_KEY in the local Hermes process environment.",
+               "Choose the authenticated OpenRouter provider in the model picker or `/model`.",
+               "Set model.provider to openrouter and model.default to `{model}` in the reviewed config.yaml model mapping.",
+               "New sessions read changed settings; use `/model` to deliberately switch an existing session."),
+        env=(("OPENROUTER_API_KEY", "Credential for the authenticated OpenRouter provider."),),
+        credential_note="Use the local credential setup; never stage api_key or a dashboard session token.",
+        endpoint=None, endpoint_note="Use OpenRouter's documented OpenAI-compatible API endpoint.",
+        restrictions=("The picker is curated and does not establish coverage of every model in a raw gateway catalog.",
+                      "No dashboard service is enabled by this handoff."),
+        sources=("https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models", _OPENROUTER),
+    ),
+    "qwen-code": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Place `{model}` under modelProviders.openai[].id with an explicit endpoint and envKey.",
+        steps=("Review ~/.qwen/settings.json before changing modelProviders.",
+               "Add an OpenAI-compatible route with the OpenRouter baseUrl, envKey OPENROUTER_API_KEY and id `{model}`.",
+               "Choose the route using `/model`; provider arrays replace their matching settings scope."),
+        env=(("OPENROUTER_API_KEY", "Referenced through modelProviders.openai[].envKey."),),
+        credential_note="Keep only the environment variable name in envKey; no key is read or written.",
+        endpoint=None, endpoint_note="Explicit OpenAI-compatible Chat Completions route; other protocols are separate routes.",
+        restrictions=("An explicit model ID is accepted syntax, not proof of account access or successful inference.",
+                      "Reasoning must be supported by the selected model and protocol."),
+        sources=("https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/", _OPENROUTER),
+    ),
+    "kimi-code": _Route(
+        allowed_surfaces=("cli",), model_prefix="",
+        model_guidance="Set an explicit upstream model `{model}` in a configured model alias.",
+        steps=("Use current Kimi Code ~/.kimi-code/config.toml; legacy ~/.kimi belongs to archived Python Kimi CLI.",
+               "Configure an openai provider with the OpenRouter base_url and api_key_env OPENROUTER_API_KEY.",
+               "Declare the model alias with `{model}` and a separately documented max_context_size.",
+               "Select the alias using `/model`; do not copy OAuth credentials during legacy migration."),
+        env=(("OPENROUTER_API_KEY", "Explicitly declared by api_key_env; no automatic secret binding."),),
+        credential_note="Use api_key_env instead of a literal api_key in config.toml.",
+        endpoint=None, endpoint_note="Custom openai provider selects Chat Completions; openai_responses is separate.",
+        restrictions=("The required context limit is not inferred from a model's name.",
+                      "This model handoff does not implement a custom-agent model field; current Kimi ignores that field."),
+        sources=("https://moonshotai.github.io/kimi-code/en/configuration/providers.html",
+                 "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html", _OPENROUTER),
+    ),
+})

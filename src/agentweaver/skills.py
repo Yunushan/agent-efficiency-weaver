@@ -16,6 +16,16 @@ CANONICAL_SKILL_COUNT = 6
 CODEX_LIMIT_BYTES = 32 * 1024
 ABACUS_LIMIT_CHARACTERS = 40000
 _FIELD_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):(?:[ \t]+(.*))?$")
+_MANUAL_SKILL_IMPORTS = {
+    ("lm-studio", "bionic"): (
+        "Add each staged SKILL.md file in Bionic Settings > Skills. "
+        "Skills from other apps require a separate visibility choice in Settings > Skills."
+    ),
+    ("perplexity", "app"): (
+        "In Perplexity Computer, open Plugins > Add custom > Skill > Upload skill and upload "
+        "each staged SKILL.md file. On accounts without Plugins, use Customize > Skills > Create skill."
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -332,6 +342,13 @@ def _native_skills_path(spec: IntegrationSpec, surface: SurfaceSpec) -> str | No
     return surface.skills_path
 
 
+def _manual_skill_import(spec: IntegrationSpec, surface: SurfaceSpec) -> str | None:
+    evidence = surface.capabilities["skills"]
+    if evidence.state != "manual" or not evidence.sources:
+        return None
+    return _MANUAL_SKILL_IMPORTS.get((spec.id, surface.id))
+
+
 def _instruction_text(
     spec: IntegrationSpec,
     surface: SurfaceSpec,
@@ -339,6 +356,7 @@ def _instruction_text(
     selected: list[_Skill],
     manual: bool,
     native_skills_path: str | None,
+    manual_skill_import: str | None,
 ) -> str:
     allowed = ", ".join(facts.allowed_mcp) if facts.allowed_mcp else "none"
     lines = [
@@ -371,6 +389,45 @@ def _instruction_text(
                 *[f"- {url}" for url in surface.capabilities["instructions"].sources],
             ]
         )
+    if spec.id == "jetbrains-air" and surface.id == "ide":
+        lines.extend([
+            "", "In Air in IDEs, open Manage Agents > Manage Presets and create a New Preset. "
+            "Choose an already installed agent, expand Advanced, and review this advisory content "
+            "for the Injected instructions field. Saving a preset affects subsequent sessions. "
+            "Model, effort, mode and authorization remain choices of the selected agent and account.",
+            "Selected read/ files can be attached through Add > Project Files and Folders as manual "
+            "file context. Add > Skills or a $ reference selects Skills already available to the host; "
+            "this bundle does not register those Skills or establish a native Skill discovery path. "
+            "An ACP executable registration is separate from a preset and a subagent definition. "
+            "The desktop app's .air/mcp.json is not an IDE configuration path.",
+        ])
+    if spec.id == "chatgpt":
+        lines.extend(
+            [
+                "",
+                "ChatGPT local Work and hosted Work are separate surfaces. Apply this handoff "
+                "through the selected surface's documented controls. Hosted Work does not read "
+                "local .codex configuration, and this bundle claims no automatic repository discovery.",
+            ]
+        )
+    if spec.id == "lm-studio" and surface.id == "desktop":
+        lines.extend([
+            "", "Apply the advisory instructions as a system prompt through LM Studio's Preset "
+            "controls. This handoff is not a Preset JSON file or an AGENTS.md discovery claim. "
+            "Bionic is a separate app; its Skill import behavior is not assigned to LM Studio classic.",
+        ])
+    if spec.id == "perplexity" and surface.id == "app":
+        lines.extend([
+            "", "Apply the advisory instructions in Perplexity Project settings. Project instructions "
+            "are limited to 8,000 characters. Skill import below is specific to Perplexity Computer; "
+            "this bundle does not configure the Orchestrator API.",
+        ])
+    if spec.id == "perplexity" and surface.id == "orchestrator":
+        lines.extend([
+            "", "Apply the advisory instructions through the selected Orchestrator request's prompt "
+            "or message fields. Local instruction-file discovery, native Skills, and MCP hosting "
+            "are not established for this gateway. Staged read files do not register API Skills.",
+        ])
     if spec.id == "aider":
         read_paths = [
             "CONVENTIONS.md",
@@ -402,6 +459,21 @@ def _instruction_text(
                 f"- {skill.name}: {skill.description} "
                 f"(project path: {native_skills_path}/{skill.name}/{SKILL_FILE})"
             )
+        if spec.id == "hermes":
+            lines.append(
+                "Hermes project Skills require an explicit `hermes skills trust` decision before "
+                "discovery. This bundle does not grant project trust or modify trusted_project_dirs."
+            )
+    elif manual_skill_import is not None:
+        lines.extend([
+            "Skills: manual vendor import. Selected canonical files retain the standard SKILL.md "
+            "filename and LF-normalized content under imports/skills/. No app settings are changed "
+            "and this staging directory is not a native discovery path.",
+            manual_skill_import,
+            "Sources:",
+            *[f"- {url}" for url in surface.capabilities["skills"].sources],
+            *[f"- {skill.name}: imports/skills/{skill.name}/{SKILL_FILE}" for skill in selected],
+        ])
     else:
         lines.append(
             "Skills: manual read-file projection. Selected canonical files are staged under "
@@ -437,7 +509,7 @@ def render_instruction_bundle(
 ) -> list[RenderedArtifact]:
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
-    if spec.kind != "agent":
+    if spec.kind not in {"agent", "hybrid"}:
         raise WeaverError("Provider gateways cannot render instruction bundles; use the provider command")
     target = spec.surface(surface)
     facts = _profile_facts(profile)
@@ -456,8 +528,9 @@ def render_instruction_bundle(
     instruction_target = _instruction_target(spec, target)
     manual = instruction_evidence.state != "available" or instruction_target is None
     native_skills_path = _native_skills_path(spec, target)
+    manual_skill_import = _manual_skill_import(spec, target)
     content = _instruction_text(
-        spec, target, facts, selected, manual, native_skills_path
+        spec, target, facts, selected, manual, native_skills_path, manual_skill_import
     )
     _check_instruction_limit(spec, content)
     if manual or instruction_target is None:
@@ -467,7 +540,16 @@ def render_instruction_bundle(
         relative_path = PurePosixPath(spec.id, instruction_target)
         kind = "instructions"
     artifacts = [RenderedArtifact(relative_path, content.encode("utf-8"), kind)]
-    if native_skills_path is None:
+    if native_skills_path is None and manual_skill_import is not None:
+        for skill in selected:
+            artifacts.append(
+                RenderedArtifact(
+                    PurePosixPath(spec.id, "imports", "skills", skill.name, SKILL_FILE),
+                    skill.content,
+                    "skill-import",
+                )
+            )
+    elif native_skills_path is None:
         for skill in selected:
             artifacts.append(
                 RenderedArtifact(
