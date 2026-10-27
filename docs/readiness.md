@@ -39,6 +39,8 @@ The host model/control inventory accounts for all 43 registered surfaces, separa
 
 The Computer MCP snapshot inspector is a separate offline route with synthetic model/mode fixtures and explicit model-dependent effort validation. Caller-supplied snapshots establish neither current account access nor inference; no authenticated MCP discovery or paid task is part of the release gates.
 
+The Kimi web model-list inspector also operates only on caller-supplied synthetic-testable snapshots. Its aliases and effort metadata do not establish current provider access or inference, and release gates do not start Kimi or contact its authenticated API.
+
 The candidate includes Air in IDEs as a separate manual UI-preset and file-context route, with agent-dependent model/effort controls and unestablished MCP file export, arbitrary OpenRouter configuration and OS matrix. The distinct Perplexity Computer MCP entry remains default-off; account OAuth, credits, connected-service permissions and account-scoped `models_list` are separate prerequisites. Neither addition installs a client, authenticates, connects, starts a task or establishes runtime support.
 
 For a release decision covering all primary CI targets, require successful runs of the exact candidate on Windows, macOS, and Linux across Python 3.11, 3.12, and 3.13. One Windows run cannot establish this matrix, and skipped platform tests remain unverified on that host. If the candidate is uncommitted, older remote CI results cannot stand in for its validation. Commit and push still require explicit authorization under AGENTS.md.

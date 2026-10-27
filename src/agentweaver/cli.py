@@ -57,6 +57,10 @@ def _parser() -> argparse.ArgumentParser:
     computer_selection.add_argument('--model')
     computer_selection.add_argument('--mode')
     computer.add_argument('--reasoning-effort')
+    kimi_models = subs.add_parser('kimi-models', help='Inspect a saved Kimi web configured-model response')
+    kimi_models.add_argument('--input', type=Path, required=True)
+    kimi_models.add_argument('--model', help='Configured Kimi model alias')
+    kimi_models.add_argument('--reasoning-effort')
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -446,6 +450,12 @@ def main(argv: list[str] | None = None) -> int:
 
             result = inspect_computer_models(args.input, model=args.model, mode=args.mode,
                                              effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'kimi-models':
+            from .kimi_models import inspect_kimi_models
+
+            result = inspect_kimi_models(args.input, model=args.model, effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:
