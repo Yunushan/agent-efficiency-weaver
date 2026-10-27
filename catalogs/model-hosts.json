@@ -996,6 +996,47 @@
       "availability": "unknown"
     },
     {
+      "product_id": "jetbrains-air",
+      "surface_id": "ide",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose an installed agent and its model through Manage Presets or session Agent settings. Default Model follows the selected agent; compatible providers and agent login are configured separately. This IDE plugin is distinct from the Air desktop app; no shared model inheritance or account availability is asserted.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open Manage Agents > Manage Presets and choose an agent and Model",
+          "For the current session open Agent settings below the request field",
+          "Inspect Tools > Air > Accounts for compatible authorization sources"
+        ],
+        "sources": [
+          "https://www.jetbrains.com/help/air/air-in-ides-presets.html",
+          "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html",
+          "https://www.jetbrains.com/help/air/air-in-ides-authorization.html"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Air in IDEs preset Effort or session Agent settings > Reasoning effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://www.jetbrains.com/help/air/air-in-ides-presets.html",
+          "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
+        ]
+      },
+      "checked_on": "2026-10-27",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "junie",
       "surface_id": "cli",
       "selection": {
@@ -1616,16 +1657,20 @@
       "surface_id": "app",
       "selection": {
         "state": "manual",
-        "mechanism": "In Computer on the web, choose an effort preset or Custom model and reasoning level. Desktop retains the regular model picker; custom API credentials authenticate tools, not a replacement inference provider.",
+        "mechanism": "In Computer on the web, choose an effort preset or Custom model and reasoning level. After a separately authorized Computer MCP connection, models_list returns allowed modes and models for the account's plan, region and organization policy. Choose either mode or model; effort requires model and one of that model's returned efforts. Desktop retains the regular model picker; custom API credentials authenticate tools, not a replacement inference provider. Weaver does not connect, authenticate, discover account models or perform inference.",
         "fields": [],
-        "commands": [],
+        "commands": [
+          "models_list"
+        ],
         "ui_steps": [
           "On Computer web, open the effort selector in the prompt box",
-          "Choose a preset or Custom to inspect available models and supported reasoning levels"
+          "Choose a preset or Custom to inspect available models and supported reasoning levels",
+          "For a separately authorized Computer MCP connection, inspect the account-scoped models_list result before selecting mode, model or effort"
         ],
         "sources": [
           "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
-          "https://www.perplexity.ai/help-center/en/articles/20260716-using-custom-api-credentials-in-computer"
+          "https://www.perplexity.ai/help-center/en/articles/20260716-using-custom-api-credentials-in-computer",
+          "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
         ]
       },
       "reasoning": {
@@ -1650,10 +1695,11 @@
           }
         ],
         "sources": [
-          "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer"
+          "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
+          "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-10-27",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],

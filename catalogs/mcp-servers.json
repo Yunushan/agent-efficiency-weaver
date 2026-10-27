@@ -11,6 +11,12 @@
       "kind": "remote",
       "url": "https://api.perplexity.ai/mcp",
       "default_enabled": false
+    },
+    "perplexity-computer": {
+      "description": "Official Perplexity Computer MCP, separate from the API MCP. Authenticate through a compatible host using Perplexity-account OAuth 2.0; no API key is used. Task usage consumes account credits and can involve connected-service write actions. Model and effort options require authenticated account-scoped models_list discovery; runtime access and availability remain unverified. Weaver does not authenticate, connect or start tasks. Source: https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server",
+      "kind": "remote",
+      "url": "https://www.perplexity.ai/rest/computer/mcp",
+      "default_enabled": false
     }
   }
 }

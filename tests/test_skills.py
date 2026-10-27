@@ -55,6 +55,7 @@ NATIVE_TARGETS = {
 }
 
 MANUAL_TARGETS = {
+    ("jetbrains-air", "ide"),
     ("chatgpt", "desktop"),
     ("chatgpt", "web"),
     ("chatgpt", "work-local"),

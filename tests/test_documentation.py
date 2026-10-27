@@ -451,6 +451,23 @@ class DocumentationDriftTests(unittest.TestCase):
                       "VSCodeagents", "concrete product", "JetBrainsAir", "never `junie`"):
             self.assertIn(token, text)
 
+    def test_computer_mcp_guide_keeps_service_auth_and_account_scope_separate(self):
+        text = section(read_document("docs/compatibility.md"), "MCP transports and stdio staging")
+        entry = CATALOG["servers"]["perplexity-computer"]
+        self.assertIs(entry["default_enabled"], False)
+        self.assertIn(entry["url"], text)
+        self.assertIn(CATALOG["servers"]["perplexity"]["url"], text)
+        source = "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
+        self.assertIn(source, entry["description"])
+        self.assertIn(source, text)
+        for token in ("default-off", "profile allowlisting", "explicit `--enable`", "OAuth 2.0",
+                      "rather than an API key", "account credits", "connected-service write actions",
+                      "exports no authentication material", "starts no task", "Authenticated `models_list`",
+                      "plan, region and organization policy", "chooses `mode` or `model`",
+                      "`effort` requires `model`", "not universal model availability",
+                      "account access remain unverified"):
+            self.assertIn(token, text)
+
     def test_requested_os_table_matches_all_surface_states_constraints_and_sources(self):
         text = section(read_document("docs/compatibility.md"), "Requested surface OS workflows")
         rows = {(clean(row[0]), clean(row[1])): row for row in table_rows(text)
@@ -510,6 +527,50 @@ class DocumentationDriftTests(unittest.TestCase):
         for token in ("agents inventory", "instructions-file", "agent-definition", "agent-handoff",
                       "HANDOFF.md", "portable Skills", "unknown", "unsupported", "fail closed",
                       "do not grant permissions", "reasoning", "manual"):
+            self.assertIn(token, text)
+
+    def test_air_ide_guide_preserves_manual_surface_and_exact_contract_sources(self):
+        text = section(read_document("docs/compatibility.md"), "Air IDE manual handoffs")
+        ide = self.integrations["jetbrains-air"].surface("ide")
+        self.assertEqual(ide.config_scope, "app")
+        self.assertIsNone(ide.native_path_hint)
+        self.assertIsNone(ide.skills_path)
+        self.assertEqual(ide.instruction_paths, ())
+        for capability in ("mcp", "instructions", "skills"):
+            self.assertEqual(ide.capabilities[capability].state, "manual")
+        for capability in ("provider", "os"):
+            self.assertEqual(ide.capabilities[capability].state, "unknown")
+        self.assertEqual(set(ide.os_workflows.values()), {"unknown"})
+        route = next(row for row in agent_inventory(ROOT)["definitions"]
+                     if (row["product_id"], row["surface_id"]) == ("jetbrains-air", "ide"))
+        self.assertEqual(route["state"], "manual")
+        self.assertIsNone(route["path_template"])
+        host = next(row for row in load_model_hosts(ROOT)
+                    if (row["product_id"], row["surface_id"]) == ("jetbrains-air", "ide"))
+        sources = {url for evidence in ide.capabilities.values() for url in evidence.sources}
+        sources.update(route["evidence"]["sources"])
+        sources.update(host["selection"]["sources"])
+        sources.update(host["reasoning"]["sources"])
+        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", text)), sources)
+        for token in ("separately from `jetbrains-air/desktop`", "2026.2", "2026.3 EAP",
+                      "every IDE OS workflow remains unknown", "desktop requirements are not inherited",
+                      "Manage Agents > Manage Presets > New Preset", "Advanced > Injected instructions",
+                      "selected agent's own behavior", "not a native saved subagent file",
+                      "ACP executable registration", "Weaver emits no `acp.json`",
+                      "jetbrains-air/read/<name>.md", "ordinary file context", "Add context > Skills",
+                      "Skills already exposed by the host", "portable Skill import loader",
+                      "allowed values require model-specific discovery", "arbitrary OpenRouter",
+                      "no established MCP file exporter", "runtime checks remain pending"):
+            self.assertIn(token, text)
+    def test_current_readiness_counts_follow_registry_without_rewriting_ci_history(self):
+        text = section(read_document("docs/readiness.md"), "Separate evidence requirements")
+        summary = coverage_report(ROOT)["summary"]
+        self.assertIn(f"{summary['referenced_surfaces']} distinct surfaces", text)
+        self.assertIn(f"{summary['capability_states']['unknown']} unknown capability states", text)
+        self.assertIn(f"{summary['pending_runtime_capabilities']} pending runtime records", text)
+        self.assertIn(f"{len(load_model_hosts(ROOT))} registered surfaces", text)
+        for token in ("Air in IDEs", "separate manual UI-preset", "Perplexity Computer MCP",
+                      "default-off", "account-scoped `models_list`", "runtime support"):
             self.assertIn(token, text)
 
     def test_host_model_controls_table_covers_every_surface_and_declared_control(self):

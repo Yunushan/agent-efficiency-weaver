@@ -77,7 +77,9 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertFalse(row["evidence"]["runtime_checks"])
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
-                    self.assertEqual(row["evidence"]["checked_on"], "2026-10-26")
+                    expected_date = ("2026-10-27" if (row["product_id"], row["surface_id"]) ==
+                                     ("jetbrains-air", "ide") else "2026-10-26")
+                    self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
 
     def test_every_native_file_independently_parses_and_has_separate_handoff(self):

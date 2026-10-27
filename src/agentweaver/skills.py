@@ -389,6 +389,18 @@ def _instruction_text(
                 *[f"- {url}" for url in surface.capabilities["instructions"].sources],
             ]
         )
+    if spec.id == "jetbrains-air" and surface.id == "ide":
+        lines.extend([
+            "", "In Air in IDEs, open Manage Agents > Manage Presets and create a New Preset. "
+            "Choose an already installed agent, expand Advanced, and review this advisory content "
+            "for the Injected instructions field. Saving a preset affects subsequent sessions. "
+            "Model, effort, mode and authorization remain choices of the selected agent and account.",
+            "Selected read/ files can be attached through Add > Project Files and Folders as manual "
+            "file context. Add > Skills or a $ reference selects Skills already available to the host; "
+            "this bundle does not register those Skills or establish a native Skill discovery path. "
+            "An ACP executable registration is separate from a preset and a subagent definition. "
+            "The desktop app's .air/mcp.json is not an IDE configuration path.",
+        ])
     if spec.id == "chatgpt":
         lines.extend(
             [

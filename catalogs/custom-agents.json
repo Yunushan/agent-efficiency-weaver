@@ -631,6 +631,34 @@
       }
     },
     {
+      "product_id": "jetbrains-air",
+      "surface_id": "ide",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "In Air in IDEs, open Manage Agents > Manage Presets > New Preset. Select an installed agent and its supported model, or keep Default Model for that agent's own default. Expand Advanced and apply the supplied role as Injected instructions. This UI preset is not a native saved subagent file or an ACP executable registration.",
+      "reasoning_behavior": "Select the preset or session Effort only when the chosen agent exposes it; Default follows that agent's own behavior. This handoff applies no model, provider or reasoning overrides, and no shared effort vocabulary is inferred.",
+      "permission_behavior": "The preset's Mode values and optional Plan mode are supplied by the selected agent. Existing sessions keep their previous settings. Injected instructions and ACP registration do not grant tools, change organization policy or create a sandbox; no configuration is installed or enabled.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://www.jetbrains.com/help/air/air-in-ides-presets.html",
+          "https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html"
+        ],
+        "checked_on": "2026-10-27",
+        "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent.",
+        "fixture_tests": [
+          "tests/test_air_ide.py",
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "junie",
       "surface_id": "cli",
       "state": "unknown",

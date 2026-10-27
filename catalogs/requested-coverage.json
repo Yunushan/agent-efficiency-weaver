@@ -39,7 +39,7 @@
     },
     {
       "id": "jetbrains-air", "label": "JetBrains Air", "aliases": ["jetbrains-air", "JetBrainsAir", "JetBrains Air"],
-      "targets": [{"product_id": "jetbrains-air", "surface_id": "desktop"}]
+      "targets": [{"product_id": "jetbrains-air", "surface_id": "desktop"}, {"product_id": "jetbrains-air", "surface_id": "ide"}]
     },
     {
       "id": "copilot", "label": "GitHub Copilot", "aliases": ["copilot", "GitHubCopilot", "GitHub Copilot"],

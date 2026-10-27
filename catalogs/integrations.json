@@ -3053,6 +3053,90 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "ide",
+          "mcp_dialect": null,
+          "config_fields": [],
+          "config_scope": "app",
+          "native_path_hint": null,
+          "documented_location": null,
+          "instruction_mode": "manual",
+          "instruction_paths": [],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "unknown",
+            "macos": "unknown",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://www.jetbrains.com/help/air/air-in-ides-key-concepts.html",
+                "https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html"
+              ],
+              "checked_on": "2026-10-27",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. MCP use is agent-dependent; no native MCP configuration-file export contract is established.",
+              "fixture_tests": [
+                "tests/test_air_ide.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "manual",
+              "sources": [
+                "https://www.jetbrains.com/help/air/air-in-ides-presets.html"
+              ],
+              "checked_on": "2026-10-27",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. Preset Advanced > Injected instructions; no host-specific project instruction-file target is established.",
+              "fixture_tests": [
+                "tests/test_air_ide.py",
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "manual",
+              "sources": [
+                "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
+              ],
+              "checked_on": "2026-10-27",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. Add context > Skills or a $ reference; no portable Skill discovery directory or import format is established.",
+              "fixture_tests": [
+                "tests/test_air_ide.py",
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [
+                "https://www.jetbrains.com/help/air/air-in-ides-authorization.html",
+                "https://www.jetbrains.com/help/air/air-in-ides-settings.html"
+              ],
+              "checked_on": "2026-10-27",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. Compatible configured providers and agent login are documented; an arbitrary OpenRouter or custom OpenAI-compatible endpoint contract is not established.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "unknown",
+              "sources": [
+                "https://www.jetbrains.com/help/air/air-in-ides-overview.html"
+              ],
+              "checked_on": "2026-10-27",
+              "version_constraint": "Air in IDEs is a separate IDE plugin for 2026.2 or bundled in 2026.3 EAP. The reviewed page does not establish a complete OS, minimum-version or architecture matrix; desktop Air requirements are not inherited.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

@@ -400,6 +400,19 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "tools: [] declares no external tools. Base finish/think behavior may remain, and this "
                       "does not establish an OS sandbox. No MCP servers, hooks or permission modes are emitted. "
                       "Host and parent policy still apply."])
+    if spec.id == "jetbrains-air" and surface == "ide" and state == "manual":
+        lines.extend(["", "## Manual Air IDE preset", "",
+                      "Open Manage Agents > Manage Presets, add a New Preset, and choose an already "
+                      "installed agent. Set the preset Name, then expand Advanced and review the user "
+                      "supplied instructions below for Injected instructions. Save with OK; the preset "
+                      "applies to subsequent sessions, not sessions already running.",
+                      "Model and Effort choices depend on the selected agent. Default Model and Default "
+                      "preserve that agent's own choices. Mode and Plan mode are also agent-dependent; "
+                      "this handoff changes none of those controls or authorizations.",
+                      "A preset is not a registered subagent file. User-level .jetbrains/acp.json "
+                      "registers external ACP executables separately; no registration or executable "
+                      "is generated or launched here. The desktop app's .air/mcp.json is not an IDE "
+                      "configuration path."])
     if spec.id == "perplexity" and surface == "agent-api" and state == "manual":
         lines.extend(["", "## Manual Agent API Profile", "",
                       "In the API Portal, open Profiles > Create profile. Set the model, system instructions, "

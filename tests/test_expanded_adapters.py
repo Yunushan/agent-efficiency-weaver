@@ -169,7 +169,9 @@ class ExpandedAdapterTests(unittest.TestCase):
                     for evidence in surface.capabilities.values():
                         self.assertFalse(evidence.runtime_checks)
                         if evidence.sources:
-                            self.assertEqual(evidence.checked_on, "2026-10-26")
+                            expected_date = ("2026-10-27" if (identifier, surface.id) ==
+                                             ("jetbrains-air", "ide") else "2026-10-26")
+                            self.assertEqual(evidence.checked_on, expected_date)
 
 
 if __name__ == "__main__":
