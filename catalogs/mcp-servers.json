@@ -30,6 +30,12 @@
       "url": "https://api.githubcopilot.com/mcp/x/all/readonly",
       "default_enabled": false
     },
+    "openai-docs": {
+      "description": "OpenAI's public documentation-only MCP server provides search and page content without calling the OpenAI API. A future connection sends search queries to the service; no connection or client configuration is performed by Weaver. Source: https://developers.openai.com/learn/docs-mcp",
+      "kind": "remote",
+      "url": "https://developers.openai.com/mcp",
+      "default_enabled": false
+    },
     "perplexity": {
       "description": "Official hosted Perplexity MCP. Authenticate manually with OAuth or an API key through the host; API organization billing and tool permissions require review. Source: https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server",
       "kind": "remote",

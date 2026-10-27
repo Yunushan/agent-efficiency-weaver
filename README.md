@@ -40,6 +40,8 @@ agentweaver doctor --agent kilo --os windows --format text
 
 GitHub's hosted MCP server is available as four opt-in catalog entries: `github` and `github-all` for the default and all toolsets, and `github-readonly` and `github-all-readonly` for GitHub's read-only tool filters. The non-read-only routes can expose write tools. Choose a route deliberately, add it to a reviewed profile allowlist, and explicitly select it when staging; authentication and account permissions are managed separately by the host.
 
+`openai-docs` is an opt-in entry for OpenAI's documentation-only MCP endpoint. It is separate from the removed historical Codex MCP server and does not run Codex or call an inference API.
+
 Aliases such as `OpenAIcodex`, `kiloAI`, `FactoryDroid`, and `LMStudio` resolve through the requested-scope catalog. `VSCodeagents` is a group of named extension surfaces; inspect it with `coverage` and select a concrete product before rendering. JetBrains Air and Junie are separate products; Air desktop and Air in IDEs are distinct `desktop` and `ide` surfaces. ChatGPT Work local/cloud, Perplexity app/API, and LM Studio desktop/Bionic/API are separate surfaces.
 
 Every capability record in the requested scope now has reviewed documentation sources. The report still contains unknown and unsupported states, manual routes, and pending vendor runtime checks. The per-surface OS table in [compatibility.md](docs/compatibility.md#requested-surface-os-workflows) records documented routes and constraints without claiming installed or native-device verification.

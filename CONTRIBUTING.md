@@ -68,6 +68,8 @@ Keep the Perplexity API and Computer MCP services separate. Computer uses accoun
 
 GitHub's default and all-toolset MCP URLs have distinct read-only variants. Preserve the exact documented URL for each route, keep all of them outside shipped allowlists and default-off, and disclose that non-read-only routes can expose write tools. The read-only filter applies only to that GitHub server connection; profile advice and other servers are separate boundaries.
 
+Keep OpenAI's documentation-only MCP endpoint separate from the historical Codex MCP server. The current removal guidance does not make the experimental JSON-RPC app server an MCP replacement. Do not install, configure or start either service as part of validation.
+
 Computer `models_list` snapshots are caller-supplied and account-scoped. Keep offline inspection and mode/model/effort validation separate from provider API discovery; missing effort lists stay unknown. Use synthetic fixtures, reject credential-bearing input and do not commit real account snapshots.
 
 The remote CI runs in [docs/readiness.md](docs/readiness.md) identify separate immutable checkpoints for the earlier 20-product release and the initial 31-product expansion. Neither substitutes for validating later model, alias, request-fragment, custom-agent, or documentation-evidence changes.
