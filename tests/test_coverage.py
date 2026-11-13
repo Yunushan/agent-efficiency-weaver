@@ -106,7 +106,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 3)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 18)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 20)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
@@ -129,7 +129,7 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         item = next(item for item in report["requested_items"] if item["id"] == "copilot")
         target, = item["targets"]
-        observation, tool_call = target["runtime_observations"]
+        observation, tool_call, model_load = target["runtime_observations"]
         self.assertEqual(observation["product_version"], "1.146.0")
         self.assertEqual(observation["extension_version"], "0.74.0")
         self.assertEqual(observation["engine_version"], "1.0.73")
@@ -139,6 +139,8 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(tool_call["interface"], "bundled-runtime")
         self.assertEqual(tool_call["checks"][0]["check"], "workspace-stdio-tool-call")
         self.assertEqual(tool_call["checks"][0]["capability"], "mcp")
+        self.assertEqual([check["check"] for check in model_load["checks"]],
+                         ["agent-model-effort-config-load", "agent-model-array-rejected"])
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):

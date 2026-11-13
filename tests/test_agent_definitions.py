@@ -272,6 +272,25 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             fields, _ = parse_definition(agent["content"].encode(), agent["path"])
             self.assertEqual(fields["reasoning-effort"], "deep-think")
             self.assertEqual(fields["model"], "copilot/primary")
+            code, output, errors = invoke(*args, "--copilot-model-policy", "required",
+                                          "--copilot-fallback-model", "configured-provider/fallback",
+                                          "--reasoning-effort", "high")
+            self.assertEqual(code, 0, errors)
+            artifacts = json.loads(output)["artifacts"]
+            agent = next(item for item in artifacts if item["kind"] == "agent-definition")
+            fields, _ = parse_definition(agent["content"].encode(), agent["path"])
+            self.assertEqual(fields["model"], ["copilot/primary", "configured-provider/fallback"])
+            self.assertEqual(fields["model-policy"], "required")
+            handoff = next(item["content"] for item in artifacts if item["kind"] == "agent-handoff")
+            self.assertIn("requires a scalar model", handoff)
+            self.assertIn("policy applies to the editor-selected agent", handoff)
+            code, output, errors = invoke(*args, "--copilot-model-policy", "preferred")
+            self.assertEqual(code, 0, errors)
+            agent = next(item for item in json.loads(output)["artifacts"] if item["kind"] == "agent-definition")
+            fields, _ = parse_definition(agent["content"].encode(), agent["path"])
+            self.assertEqual(fields["model-policy"], "preferred")
+            self.assertEqual(invoke(*args[:-2], "--copilot-model-policy", "required")[0], 2)
+            self.assertEqual(invoke(*args, "--copilot-model-policy", "unknown")[0], 2)
             for model, effort in (("disabled-model", "high"), ("missing-effort", "high"),
                                   ("copilot/primary", "high"), ("configured-provider/fallback", "low")):
                 with self.subTest(model=model, effort=effort):

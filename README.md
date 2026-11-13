@@ -71,6 +71,8 @@ Use `--surface desktop` for Cline Desktop. Weaver stages configured agents and p
 
 `copilot-models --input FILE` inspects that saved catalog offline, including policy state, supported and default reasoning efforts, and token limits. Repeat `--model ID` to check an ordered selection and add `--reasoning-effort EFFORT` to validate it against every selected model. [GitHub Copilot SDK model discovery](https://docs.github.com/en/copilot/how-tos/copilot-sdk/troubleshooting/compatibility)
 
+Add `--copilot-model-policy required` to a catalog-backed custom-agent export to restrict model selection for that agent in the VS Code chat picker. Default behavior permits other available models. [VS Code model preferences](https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference#_model-preferences)
+
 For the VS Code Copilot harness, add `--copilot-portable` to `render --agent copilot --profile efficient` to stage a workspace-root `.mcp.json`. Explicitly select approved servers with `--enable ID` and review their tool access before merging. [VS Code MCP configuration](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)
 
 OpenRouter model snapshots retain each model's advertised endpoints. For embeddings, for example, use `model --agent openrouter --provider openrouter --model ID --catalog FILE --protocol openrouter-embeddings` to stage a selector for a model that advertises the embeddings route. The compatibility guide lists the other supported task routes. [OpenRouter model-list endpoint reference](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)

@@ -41,6 +41,12 @@ _OBSERVATION_CHECKS = {
     ),
     "model-catalog": ("models", "The client listed model IDs and advertised reasoning efforts across its catalog pages."),
     "agent-model-effort-selection": ("reasoning", "The selected child model and effort reached a scripted local endpoint."),
+    "agent-model-effort-config-load": (
+        "reasoning", "The direct runtime loader read the scalar model and effort into the selected agent definition.",
+    ),
+    "agent-model-array-rejected": (
+        "models", "The direct runtime loader rejected the generated fallback array because it expected a scalar model.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",

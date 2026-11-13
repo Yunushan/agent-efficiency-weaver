@@ -165,6 +165,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
             command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
+            command.add_argument('--copilot-model-policy', choices=['preferred', 'required'],
+                                 help='Set the model picker policy for a VS Code Copilot agent')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant from the saved OpenCode V2 or Kilo model list')
@@ -602,6 +604,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
             llm_profile=args.llm_profile, codex_catalog=args.codex_catalog,
             copilot_catalog=args.copilot_catalog, copilot_fallbacks=args.copilot_fallback_model,
+            copilot_model_policy=args.copilot_model_policy,
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             kilo_catalog=args.kilo_catalog,
             factory_catalog=args.factory_catalog,

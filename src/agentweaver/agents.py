@@ -291,7 +291,7 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
             model: str | list[str] | None, effort: str | None, *, opencode_v2: bool = False,
             skill_ids: tuple[str, ...] = (), copilot_catalog: bool = False,
-            cline_provider: str | None = None) -> bytes:
+            cline_provider: str | None = None, copilot_model_policy: str | None = None) -> bytes:
     format_name = row["format"]
     if format_name == "codex-toml":
         fields = {"name": name, "description": description, "developer_instructions": instructions}
@@ -317,6 +317,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields_any["tools"] = ["read", "search"]
         if copilot_catalog:
             fields_any["target"] = "github-copilot"
+            if copilot_model_policy is not None:
+                fields_any["model-policy"] = copilot_model_policy
             if skill_ids:
                 fields_any["skills"] = list(skill_ids)
     elif format_name == "claude-markdown":
@@ -378,7 +380,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             profile_mcp: list[str] | None = None,
                             profile_context_size: int | None = None,
                             hermes_profile_route: bool = False, copilot_catalog: Path | None = None,
-                            copilot_fallbacks: list[str] | None = None,
+                            copilot_fallbacks: list[str] | None = None, copilot_model_policy: str | None = None,
                             kilo_catalog: Path | None = None,
                             factory_catalog: Path | None = None,
                             qoder_catalog: Path | None = None,
@@ -430,6 +432,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Agent Skill selection requires Cline CLI/Desktop or an OpenCode V2 or Copilot SDK catalog")
     if copilot_fallbacks and copilot_catalog is None:
         raise WeaverError("Copilot fallback models require --copilot-catalog")
+    if copilot_model_policy is not None:
+        if copilot_catalog is None:
+            raise WeaverError("Copilot model policy requires --copilot-catalog")
+        if copilot_model_policy not in ("preferred", "required"):
+            raise WeaverError("Unknown Copilot model policy")
     if copilot_catalog is not None and (spec.id, surface) != ("copilot", "vscode"):
         raise WeaverError("A Copilot SDK catalog requires the Copilot VS Code target")
     if profile_skills and not hermes_profile:
@@ -679,6 +686,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.extend(["", f"Saved Copilot SDK listModels() SHA-256: {copilot_digest}",
                       "Use the Copilot session target and review exact runtime model IDs in the picker. "
                       "The saved list cannot establish current model access or prove successful inference."])
+        if copilot_models and len(copilot_models) > 1:
+            lines.append("The editor interprets the ordered model list. Bundled Copilot runtime 1.0.73 "
+                         "requires a scalar model when loading project agent files directly.")
+        if copilot_model_policy == "required":
+            lines.append("VS Code restricts the model picker for this agent and blocks sending when none of "
+                         "its models are available. Effective effort can still be changed in the picker. "
+                         "The policy applies to the editor-selected agent.")
         if skill_ids:
             lines.extend(["", "Copilot Skills to load: " + ", ".join(skill_ids) + ".",
                           "Stage matching files separately with bundle --skill for each ID."])
@@ -722,6 +736,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         content = _native(row, identifier, summary, prompt, native_model, native_effort,
                           opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
                           copilot_catalog=copilot_digest is not None,
+                          copilot_model_policy=copilot_model_policy,
                           cline_provider=provider_id if cline_configured_agent else None)
         artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
         lines.extend(["", f"Native project path: {path}"])

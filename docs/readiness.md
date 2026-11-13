@@ -41,6 +41,8 @@ An isolated check on the same Windows version exercised Copilot Chat 0.74.0 and 
 
 A follow-up on commit `6295cd04080b2b9475ed930d767d22a8d6cd896d` used the same bundled runtime to reload the generated workspace MCP file, discover the local `fixture_echo` tool, and call it directly through the MCP client. The fixture was absent on workspace reload before local workspace trust was configured and after removing the file. No model prompt was sent. VS Code UI behavior, remote MCP transport, agent-mediated tool calls and account-specific model and reasoning behavior remain pending.
 
+On commit `9840dfb5ab35258487c70d78ad578d209fbad0f2`, the same bundled runtime selected a generated agent and loaded its scalar `gpt-5.5` and `high` settings. The signed-out probe used a loopback-only provider configuration, a synthetic model list, and no model request. The parent session kept its original model and effort. The direct loader rejected a separate generated agent with an ordered model array. Editor selection and fallback behavior still require VS Code UI evidence.
+
 The host model/control inventory accounts for all 47 registered surfaces, separately from provider discovery snapshots. Its documented manual controls, null model-dependent values, unknown reasoning routes, and unknown availability must remain visible. This catalog neither enables native model exporters nor supplies account or installed-version evidence.
 
 The Computer MCP snapshot inspector is a separate offline route with synthetic model/mode fixtures and explicit model-dependent effort validation. Caller-supplied snapshots establish neither current account access nor inference; no authenticated MCP discovery or paid task is part of the release gates.
