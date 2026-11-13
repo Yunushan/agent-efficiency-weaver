@@ -233,6 +233,40 @@ class SnapshotTests(unittest.TestCase):
                 check_model(ROOT, "lm-studio", key, snapshot)
         self.assertTrue(check_model(ROOT, "lm-studio", "fixture/old", snapshot)["visible_in_snapshot"])
 
+    def test_lmstudio_nonchat_staging_requires_matching_type_and_decision_instance(self) -> None:
+        snapshot = self.read("lm-studio", {"models": [
+            {"key": "fixture/embed", "type": "embedding", "loaded_instances": []},
+            {"key": "fixture/classifier", "type": "decision", "loaded_instances": [
+                {"id": "decision-run", "config": {"context_length": 2048}},
+            ]},
+            {"key": "fixture/chat", "type": "llm", "loaded_instances": [
+                {"id": "chat-run", "config": {}},
+            ]},
+        ]})
+        spec = get_integration("lm-studio", ROOT)
+        cases = [
+            ("openai-embeddings", "fixture/embed", "embeddings"),
+            ("openai-decisions", "decision-run", "decisions"),
+            ("jev-systemone", "decision-run", "systemone"),
+        ]
+        for protocol, identifier, endpoint in cases:
+            with self.subTest(protocol=protocol):
+                artifacts = render_model_setup(spec, "api", root=ROOT, provider_id="lm-studio",
+                                               model_id=identifier, snapshot=snapshot, protocol=protocol)
+                self.assertIn(f"POST http://localhost:1234/v1/{endpoint}".encode(), artifacts[0].content)
+                self.assertEqual(json.loads(artifacts[1].content), {"model": identifier})
+                with self.assertRaises(WeaverError):
+                    check_model(ROOT, "lm-studio", identifier, protocol=protocol)
+                with self.assertRaises(WeaverError):
+                    check_model(ROOT, "lm-studio", identifier, snapshot, protocol=protocol, effort="high")
+                with self.assertRaises(WeaverError):
+                    check_model(ROOT, "lm-studio", "chat-run", snapshot, protocol=protocol)
+        with self.assertRaises(WeaverError):
+            check_model(ROOT, "lm-studio", "fixture/classifier", snapshot, protocol="openai-decisions")
+        with self.assertRaises(WeaverError):
+            render_model_setup(spec, "desktop", root=ROOT, provider_id="lm-studio", model_id="decision-run",
+                               snapshot=snapshot, protocol="jev-systemone")
+
     def test_lmstudio_rejects_inconsistent_variant_and_instance_metadata(self) -> None:
         for fields in ({"variants": ["fixture/local@q4"], "selected_variant": "fixture/local@q8"},
                        {"loaded_instances": [{"id": "run", "config": {"context_length": True}}]},

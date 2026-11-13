@@ -25,10 +25,15 @@ _MODEL = re.compile(r"^~?[A-Za-z0-9][A-Za-z0-9._:+@/-]*$")
 _ENV = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _LM_STUDIO_REASONING_OPTIONS = {"off", "on", "low", "medium", "high"}
+_LM_STUDIO_NONCHAT = {
+    "openai-embeddings": ("embedding", "/embeddings"),
+    "openai-decisions": ("decision", "/decisions"),
+    "jev-systemone": ("decision", "/systemone"),
+}
 _PROTOCOLS = {
     "openai-chat", "openai-responses", "anthropic-messages", "google-generate-content",
     "lmstudio-chat", "perplexity-agent", "openrouter-chat",
-}
+} | _LM_STUDIO_NONCHAT.keys()
 _SECRET_KEYS = {"api_key", "apikey", "authorization", "credentials", "credential", "secret", "access_token",
                 "refresh_token", "password", "headers", "apiKey", "token"}
 _SECRET = re.compile(r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})",
@@ -749,6 +754,12 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     chosen = protocol or provider["protocols"][0]
     if chosen not in provider["protocols"]:
         _fail("Protocol is not documented for this provider")
+    nonchat = _LM_STUDIO_NONCHAT.get(chosen)
+    if nonchat is not None:
+        if provider_id != "lm-studio" or snapshot is None:
+            _fail("This LM Studio route requires a saved native model list")
+        if any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
+            _fail("This LM Studio route does not accept chat reasoning or context controls")
     if (provider_id == "openrouter" and chosen == "openai-responses" and
             (budget_tokens is not None or reasoning_enabled is not None or mode is not None)):
         _fail("OpenRouter Responses budget, toggle and mode mappings are not established; use a documented effort subset")
@@ -771,6 +782,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             _fail("Expected a normalized snapshot from read_model_snapshot")
         seen: set[str] = set()
         visible = False
+        nonchat_matches = 0
         for entry in entries:
             if not isinstance(entry, dict):
                 _fail("Invalid normalized snapshot")
@@ -779,6 +791,18 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                 _fail("Duplicate model id in snapshot")
             seen.add(entry_id)
             declared_architecture = _model_architecture(entry["architecture"]) if "architecture" in entry else None
+            if nonchat is not None:
+                metadata = entry.get("lm_studio")
+                if not isinstance(metadata, dict) or metadata.get("type") != nonchat[0]:
+                    continue
+                if nonchat[0] == "embedding":
+                    nonchat_matches += entry_id == identifier
+                else:
+                    instances = metadata.get("loaded_instances")
+                    if isinstance(instances, list):
+                        nonchat_matches += sum(isinstance(instance, dict) and instance.get("id") == identifier
+                                               for instance in instances)
+                continue
             if entry_id == identifier:
                 visible = True
                 architecture = declared_architecture
@@ -805,6 +829,10 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                     evidence = {"origin": "caller-supplied-snapshot", "sources": []}
         if snapshot.get("provenance") is not None:
             provenance = _snapshot_provenance(snapshot["provenance"], normalized=True)
+        if nonchat is not None:
+            if nonchat_matches != 1:
+                _fail("Expected one matching LM Studio embedding key or loaded decision instance ID")
+            visible = True
     if chosen == "lmstudio-chat" and lmstudio_options is not None and reasoning_enabled is not None:
         if type(reasoning_enabled) is not bool:
             _fail("Reasoning toggle must be boolean")
@@ -840,13 +868,15 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     """Stage a reviewed fragment only for documented routes; otherwise give a manual handoff."""
     registered = get_integration(spec.id, root)
     registered.surface(surface)
+    if protocol in _LM_STUDIO_NONCHAT and (registered.id, surface) != ("lm-studio", "api"):
+        _fail("Non-chat LM Studio selections require the LM Studio API surface")
     checked = check_model(root, provider_id, model_id, snapshot, effort=effort, budget_tokens=budget_tokens,
                           reasoning_enabled=reasoning_enabled, protocol=protocol, mode=mode, context_size=context_size)
     provider = load_model_providers(root)[provider_id]
     prefix = f"{registered.id}/model"
     chosen = checked["protocol"]
     api_base = provider["base_url"]
-    if provider_id == "lm-studio" and chosen in {"openai-chat", "openai-responses"}:
+    if provider_id == "lm-studio" and (chosen in {"openai-chat", "openai-responses"} or chosen in _LM_STUDIO_NONCHAT):
         api_base += "/v1"
     elif chosen == "anthropic-messages":
         # Anthropic SDK clients append /v1/messages to their configured base URL.
@@ -925,6 +955,12 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
              "Model selection does not install custom agents, Skills, MCP servers, or enable autonomous operation.", "",
              f"Documentation checked on: {provider['checked_on']}", "", "Sources:", ""]
     lines.extend(f"- {source}" for source in provider["sources"])
+    if chosen in _LM_STUDIO_NONCHAT:
+        model_type, endpoint = _LM_STUDIO_NONCHAT[chosen]
+        lines.extend(["", f"Endpoint: `POST {api_base}{endpoint}`.",
+                      f"Add task-specific input using the documented {model_type} request schema. "
+                      "The selection fragment contains only the model field. Confirm the model is available "
+                      "on the target server before sending a request."])
     if registered.id == "qwen-code":
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
     if registered.id == "kimi-code":

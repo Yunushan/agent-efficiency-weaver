@@ -275,7 +275,10 @@
         "lmstudio-chat",
         "openai-chat",
         "openai-responses",
-        "anthropic-messages"
+        "anthropic-messages",
+        "openai-embeddings",
+        "openai-decisions",
+        "jev-systemone"
       ],
       "discovery": {
         "endpoint": "/api/v1/models",
@@ -288,7 +291,11 @@
         "https://lmstudio.ai/docs/developer/rest/list",
         "https://lmstudio.ai/docs/developer/rest/chat",
         "https://lmstudio.ai/docs/developer/openai-compat/responses",
-        "https://lmstudio.ai/docs/developer/anthropic-compat"
+        "https://lmstudio.ai/docs/developer/anthropic-compat",
+        "https://lmstudio.ai/docs/developer/openai-compat/embeddings",
+        "https://lmstudio.ai/docs/developer/openai-compat/decisions",
+        "https://lmstudio.ai/docs/developer/jev-compat/systemone",
+        "https://lmstudio.ai/changelog/lmstudio-v0.4.26"
       ],
       "known_models": []
     },
