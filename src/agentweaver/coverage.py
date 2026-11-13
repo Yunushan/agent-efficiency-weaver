@@ -1,11 +1,15 @@
 """Offline requested-scope mapping, separate from capability and runtime support."""
+import re
+from collections import defaultdict
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from .config import WeaverError, load_json
 from .integrations import (
     CAPABILITY_NAMES,
+    OS_IDS,
     IntegrationSpec,
     _canonical_id,
     _strict_object,
@@ -20,8 +24,23 @@ LIMITATIONS = (
     "Documentation evidence, fixture tests and recorded runtime checks are separate.",
     "Unknown capabilities and missing evidence remain unresolved; a mapping is not a native exporter.",
     "Model IDs and reasoning controls depend on the selected product, surface, provider and model.",
-    "No installed-version, device, entitlement or exhaustive model-catalog verification is performed.",
+    "Recorded observations apply to the stated version, execution surface, environment and check.",
+    "Coverage does not run clients, check account entitlement or verify exhaustive model availability.",
 )
+
+_OBSERVATION_CHECKS = {
+    "skill-discovery": ("skills", "The client listed the enabled generated project Skill."),
+    "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
+    "stdio-tool-call": ("mcp", "The parent session called a local stdio fixture from the generated configuration."),
+    "stdio-subagent-approved-tool-call": ("mcp", "The subagent called the fixture with explicit local tool approval."),
+    "remote-config-parse": ("mcp", "The client parsed the remote MCP entry without opening a connection."),
+    "model-catalog": ("models", "The client listed model IDs and advertised reasoning efforts across its catalog pages."),
+    "agent-model-effort-selection": ("reasoning", "The selected child model and effort reached a scripted local endpoint."),
+}
+_OBSERVATION_FIELDS = {
+    "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
+    "architecture", "interface", "environment", "checked_on", "source_commit", "checks",
+}
 
 
 @dataclass(frozen=True)
@@ -45,13 +64,18 @@ def _alias_key(value: object) -> str:
     return text.casefold()
 
 
-def _load_scope(root: Path, integrations: dict[str, IntegrationSpec]) -> tuple[RequestedItem, ...]:
+def _load_catalog(root: Path) -> dict[str, Any]:
     data = _strict_object(
         load_json(Path(root) / "catalogs/requested-coverage.json"),
         "requested coverage catalog", {"schema_version", "requested_items"},
+        {"runtime_observations"},
     )
     if type(data["schema_version"]) is not int or data["schema_version"] != SCHEMA_VERSION:
         raise WeaverError("Requested coverage catalog: unsupported schema version")
+    return data
+
+
+def _load_scope(data: dict[str, Any], integrations: dict[str, IntegrationSpec]) -> tuple[RequestedItem, ...]:
     entries = data["requested_items"]
     if not isinstance(entries, list) or not entries:
         raise WeaverError("Requested coverage catalog: non-empty requested_items list required")
@@ -96,14 +120,14 @@ def _load_scope(root: Path, integrations: dict[str, IntegrationSpec]) -> tuple[R
 
 def load_requested_scope(root: Path) -> tuple[RequestedItem, ...]:
     """Load explicit mappings and reject missing references or ambiguous catalog aliases."""
-    return _load_scope(root, load_integrations(root))
+    return _load_scope(_load_catalog(root), load_integrations(root))
 
 
 def resolve_product_alias(root: Path, value: str) -> str:
     """Resolve one canonical product, refusing aliases for a group of products."""
     key = _alias_key(value)
     integrations = load_integrations(root)
-    scope = _load_scope(root, integrations)
+    scope = _load_scope(_load_catalog(root), integrations)
     if key in integrations:
         return key
     for item in scope:
@@ -115,10 +139,75 @@ def resolve_product_alias(root: Path, value: str) -> str:
     raise WeaverError("Unknown product alias; inspect inventory or coverage")
 
 
+def _observation_field(value: object, pattern: str, label: str) -> str:
+    if not isinstance(value, str) or not re.fullmatch(pattern, value, flags=re.ASCII):
+        raise WeaverError(f"Runtime observation: invalid {label}")
+    return value
+
+
+def _load_observations(
+    data: dict[str, Any], scope: tuple[RequestedItem, ...],
+) -> dict[ScopeTarget, list[dict[str, Any]]]:
+    entries = data.get("runtime_observations", [])
+    if not isinstance(entries, list):
+        raise WeaverError("Runtime observations must be a list")
+    targets = {target for item in scope for target in item.targets}
+    observations: dict[ScopeTarget, list[dict[str, Any]]] = defaultdict(list)
+    seen: set[tuple[str, ...]] = set()
+    for value in entries:
+        row = _strict_object(value, "runtime observation", _OBSERVATION_FIELDS)
+        product = _canonical_id(row["product_id"], "runtime observation product")
+        surface = _canonical_id(row["surface_id"], "runtime observation surface")
+        target = ScopeTarget(product, surface)
+        if target not in targets:
+            raise WeaverError("Runtime observation must reference a requested registry surface")
+        checked_on = _observation_field(row["checked_on"], r"[0-9]{4}-[0-9]{2}-[0-9]{2}", "date")
+        try:
+            date.fromisoformat(checked_on)
+        except ValueError:
+            raise WeaverError("Runtime observation: invalid date") from None
+        os_id = _canonical_id(row["os_id"], "runtime observation OS")
+        if os_id not in OS_IDS:
+            raise WeaverError("Runtime observation: unknown OS")
+        identity = {
+            "product_version": _observation_field(row["product_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "product version"),
+            "engine_version": _observation_field(row["engine_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "engine version"),
+            "os_id": os_id,
+            "os_variant": _observation_field(row["os_variant"], rf"{os_id}:[A-Za-z0-9][A-Za-z0-9.() _:-]{{0,95}}", "OS variant"),
+            "architecture": _observation_field(row["architecture"], r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}", "architecture"),
+            "interface": _canonical_id(row["interface"], "runtime observation interface"),
+            "environment": _canonical_id(row["environment"], "runtime observation environment"),
+            "checked_on": checked_on,
+            "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
+        }
+        if (identity["interface"], identity["environment"]) != ("app-server-stdio", "isolated-signed-out"):
+            raise WeaverError("Runtime observation: unsupported interface or environment")
+        checks = row["checks"]
+        if not isinstance(checks, list) or not checks:
+            raise WeaverError("Runtime observation requires explicit checks")
+        parsed_checks = []
+        for entry in checks:
+            check = _strict_object(entry, "runtime observation check", {"check", "evidence_sha256"})
+            name = _canonical_id(check["check"], "runtime observation check")
+            if name not in _OBSERVATION_CHECKS:
+                raise WeaverError("Runtime observation: unknown check")
+            digest = _observation_field(check["evidence_sha256"], r"[0-9a-f]{64}", "evidence hash")
+            key = (product, surface, *identity.values(), name)
+            if key in seen:
+                raise WeaverError("Duplicate runtime observation check")
+            seen.add(key)
+            capability, outcome = _OBSERVATION_CHECKS[name]
+            parsed_checks.append({"check": name, "capability": capability, "outcome": outcome, "evidence_sha256": digest})
+        observations[target].append({**identity, "checks": parsed_checks})
+    return observations
+
+
 def coverage_report(root: Path) -> dict[str, Any]:
     """Describe mapping and evidence gaps without treating catalog presence as support."""
     integrations = load_integrations(root)
-    scope = _load_scope(root, integrations)
+    data = _load_catalog(root)
+    scope = _load_scope(data, integrations)
+    observations = _load_observations(data, scope)
     rows: list[dict[str, Any]] = []
     referenced: set[ScopeTarget] = set()
     states: dict[str, int] = {}
@@ -151,6 +240,7 @@ def coverage_report(root: Path) -> dict[str, Any]:
                 "product_id": target.product_id, "product_name": product.name,
                 "kind": product.kind, "surface_id": target.surface_id,
                 "config_scope": surface.config_scope, "capabilities": capabilities,
+                "runtime_observations": observations.get(target, []),
             })
             referenced.add(target)
         rows.append({
@@ -165,6 +255,9 @@ def coverage_report(root: Path) -> dict[str, Any]:
             "referenced_surfaces": len(referenced), "capability_states": states,
             "missing_documentation_capabilities": missing_documentation,
             "pending_runtime_capabilities": pending_runtime,
+            "surfaces_with_runtime_observations": len(observations),
+            "runtime_observation_checks": sum(len(record["checks"]) for records in observations.values()
+                                              for record in records),
         },
         "limitations": list(LIMITATIONS),
     }

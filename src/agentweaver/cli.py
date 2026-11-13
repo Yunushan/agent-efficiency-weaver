@@ -9,7 +9,7 @@ from .adapters import render_mcp, stdio_inventory
 from .artifacts import RenderedArtifact, validate_artifacts, write_artifacts
 from .compare import compare_runs
 from .config import WeaverError, load_json, safe_name, validate_catalog, validate_profile
-from .coverage import coverage_report, load_requested_scope, resolve_product_alias
+from .coverage import coverage_report, resolve_product_alias
 from .integrations import (
     IntegrationSpec,
     integration_inventory,
@@ -364,6 +364,8 @@ def _extended_inventory(args: argparse.Namespace, root: Path) -> int:
             print('Referenced product surfaces:', summary['referenced_surfaces'])
             print('Capability states:', json.dumps(summary['capability_states'], sort_keys=True))
             print('Pending runtime capability records:', summary['pending_runtime_capabilities'])
+            print('Scoped runtime checks:', summary['runtime_observation_checks'],
+                  'across', summary['surfaces_with_runtime_observations'], 'surfaces')
             print('Full requested support verified:', data['full_requested_support_verified'])
             print('Model inventory completeness: unknown; catalog visibility is not successful inference.')
             for item in data['requested_items']:
@@ -427,9 +429,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         catalog = load_json(root / 'catalogs/mcp-servers.json')
         errors = validate_catalog(catalog)
-        load_integrations(root)
         load_operating_systems(root)
-        load_requested_scope(root)
+        coverage_report(root)
         load_model_providers(root)
         load_model_hosts(root)
         agent_inventory(root)

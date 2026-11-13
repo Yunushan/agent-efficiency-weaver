@@ -103,6 +103,56 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(evidence["documentation_status"], "recorded")
         self.assertNotIn("verified", evidence)
 
+    def test_codex_observations_keep_interface_platform_and_check_scope(self):
+        report = coverage_report(ROOT)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 2)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 14)
+        codex = next(item for item in report["requested_items"] if item["id"] == "codex")
+        targets = {target["surface_id"]: target for target in codex["targets"]}
+        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        for surface, version in (("cli", "0.167.0-alpha.4.1"), ("desktop", "26.1106.6628.0")):
+            observation, = targets[surface]["runtime_observations"]
+            self.assertEqual(observation["product_version"], version)
+            self.assertEqual(observation["engine_version"], "0.167.0-alpha.4.1")
+            self.assertEqual(observation["interface"], "app-server-stdio")
+            self.assertEqual(observation["environment"], "isolated-signed-out")
+            self.assertEqual(observation["os_variant"], "windows:11:10.0.26300")
+            self.assertEqual(observation["architecture"], "x64")
+            checks = {check["check"]: check for check in observation["checks"]}
+            self.assertEqual({check["capability"] for check in checks.values()},
+                             {"skills", "agents", "mcp", "models", "reasoning"})
+            self.assertNotEqual(checks["stdio-tool-call"]["evidence_sha256"],
+                                checks["stdio-subagent-approved-tool-call"]["evidence_sha256"])
+            self.assertEqual(targets[surface]["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
+        original = load_json(ROOT / "catalogs/requested-coverage.json")
+        for field, value in (
+            ("surface_id", "unknown-surface"), ("product_id", "aider"),
+            ("product_version", "C:/private/client"), ("engine_version", "latest"),
+            ("os_variant", "linux:22.04"), ("os_id", "unknown"), ("architecture", []),
+            ("checked_on", "2026-02-31"), ("source_commit", "main"), ("interface", "desktop-ui"),
+            ("environment", "signed-in"), ("checks", []), ("private_path", "NEVER-ECHO"),
+            ("checks", [{"check": "successful-inference", "evidence_sha256": "a" * 64}]),
+            ("checks", [{"check": "agent-load", "evidence_sha256": "NEVER-ECHO"}]),
+        ):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                scope = copy.deepcopy(original)
+                scope["runtime_observations"][0][field] = value
+                self._write_catalogs(root, scope)
+                with self.assertRaises(WeaverError) as caught:
+                    coverage_report(root)
+                self.assertNotIn("NEVER-ECHO", str(caught.exception))
+        scope = copy.deepcopy(original)
+        duplicated = dict(scope["runtime_observations"][0]["checks"][0], evidence_sha256="b" * 64)
+        scope["runtime_observations"][0]["checks"].append(duplicated)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write_catalogs(root, scope)
+            with self.assertRaisesRegex(WeaverError, "Duplicate runtime observation check"):
+                coverage_report(root)
+
     def test_scope_records_are_frozen(self):
         item = load_requested_scope(ROOT)[0]
         with self.assertRaises(FrozenInstanceError):
