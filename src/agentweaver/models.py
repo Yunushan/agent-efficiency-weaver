@@ -1096,6 +1096,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       ("codex", "cli", "lm-studio", "openai-responses"))
     claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                        ("claude-code", "cli", "lm-studio", "anthropic-messages"))
+    copilot_byok = (
+        (registered.id, surface) == ("copilot", "cli")
+        and provider_id in {"openrouter", "lm-studio"}
+        and chosen in {"openrouter-chat", "openai-chat", "openai-responses"}
+    )
     hermes_config = None
     if (registered.id, surface) == ("hermes", "cli") and all(
         value is None for value in (budget_tokens, reasoning_enabled, mode)
@@ -1129,6 +1134,49 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "Check inherited environment settings, including ANTHROPIC_MODEL, ANTHROPIC_API_KEY, "
             "and provider flags, before launching. Managed policy still applies."
         )
+    elif copilot_byok and text_candidate and not model_id.endswith(":batch"):
+        from .copilot_models import COPILOT_CLI_EFFORT_FLAGS, copilot_cli_provider_fragment
+
+        parameters = checked["supported_parameters"]
+        if parameters is not None and "tools" not in parameters:
+            native_note = "The saved OpenRouter entry does not advertise tool calling, which Copilot CLI requires."
+        elif any(value is not None for value in (budget_tokens, reasoning_enabled, mode)):
+            native_note = "Copilot CLI provider staging supports named effort. Review budget, toggle and mode separately."
+        elif effort is not None and effort not in COPILOT_CLI_EFFORT_FLAGS:
+            native_note = "The requested effort has no documented Copilot CLI launch flag."
+        elif effort is not None and provider_id == "lm-studio" and chosen != "openai-responses":
+            native_note = "Use the LM Studio Responses route to stage a named effort for Copilot CLI."
+        elif (effort is not None and parameters is not None
+              and not {"reasoning", "reasoning_effort"}.intersection(parameters)):
+            native_note = "The saved OpenRouter entry does not advertise a reasoning parameter."
+        else:
+            fragment, selector = copilot_cli_provider_fragment(
+                provider_id, model_id, api_base, wire_api="responses" if chosen == "openai-responses" else "completions",
+                efforts=(checked["reasoning_capability"]["efforts"]
+                         if provider_id == "openrouter" or chosen == "openai-responses" else None),
+                context_size=checked["context_size"],
+                tool_calls=parameters is not None and "tools" in parameters,
+            )
+            artifacts.append(_json_artifact(f"{prefix}/{provider_id}.providers.json", fragment, "model-config"))
+            command = f"copilot --model {selector}" + (f" --effort={effort}" if effort is not None else "")
+            native = True
+            native_note = (
+                "Review the staged entries and merge them into your private providers.json, or point "
+                "COPILOT_PROVIDERS_CONFIG at a private reviewed file. Preserve existing entries and resolve "
+                f"conflicts by provider name and model ID. Select the staged model with `{command}`. "
+                "Confirm streaming, tool calling and input/output token limits for the selected model. "
+                "Capability metadata advertises available effort levels. The launch flag selects one. "
+            )
+            if provider_id == "openrouter":
+                native_note += (
+                    "Add your OpenRouter token as bearerToken to the provider entry in the private copy. "
+                    "Copilot treats environment-variable references in JSON as literal strings."
+                )
+            else:
+                native_note += (
+                    "Use an independently running, approved LM Studio server on this host. "
+                    "Add bearerToken in the private copy only if the server requires authentication."
+                )
     elif hermes_config is not None:
         identifier = hermes_config["model"]["provider"]
         artifacts.append(_json_artifact(f"{prefix}/{identifier}.model.fragment.yaml", hermes_config, "model-config"))
@@ -1283,6 +1331,14 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.extend(["- https://lmstudio.ai/docs/integrations/claude-code",
                       "- https://code.claude.com/docs/en/cli-reference",
                       "- https://code.claude.com/docs/en/settings"])
+    if copilot_byok:
+        from .copilot_models import COPILOT_PROVIDERS_DOC
+
+        lines.extend([f"- {COPILOT_PROVIDERS_DOC}",
+                      "- https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-llm-models"])
+        if provider_id == "lm-studio":
+            lines.append("- https://lmstudio.ai/docs/developer/openai-compat/responses" if chosen == "openai-responses"
+                         else "- https://lmstudio.ai/docs/developer/openai-compat/tools")
     if (registered.id, surface) == ("hermes", "cli") and provider_id in {"lm-studio", "openrouter"}:
         lines.extend(["- https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
                       "- https://hermes-agent.nousresearch.com/docs/user-guide/configuration#reasoning-effort"])

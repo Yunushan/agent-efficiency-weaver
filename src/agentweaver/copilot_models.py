@@ -1,5 +1,6 @@
 """Inspect and validate Copilot selections against a saved SDK model list."""
 
+import hashlib
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -8,6 +9,8 @@ from .config import WeaverError
 from .models import _json_artifact, _load_bounded_snapshot, _model_id, _strings, _text
 
 COPILOT_CLI_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+COPILOT_CLI_EFFORT_FLAGS = COPILOT_CLI_EFFORTS - {"none", "minimal"}
+COPILOT_PROVIDERS_DOC = "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference#providersjson"
 
 
 def _model_limits(value: object) -> tuple[dict[str, int | None], bool | None]:
@@ -111,3 +114,27 @@ def render_copilot_cli_model(path: Path, model: str, effort: str | None) -> list
         _json_artifact("copilot/.github/copilot/settings.json", settings, "model-config"),
         RenderedArtifact(PurePosixPath("copilot/model/model-setup.md"), handoff.encode(), "model-setup"),
     ]
+
+
+def copilot_cli_provider_fragment(provider: str, model: str, base_url: str, *, wire_api: str,
+                                  efforts: list[str] | None = None, context_size: int | None = None,
+                                  tool_calls: bool = False) -> tuple[dict[str, Any], str]:
+    """Render a provider entry and return its unambiguous CLI selector."""
+    provider_name = f"weaver-{provider}"
+    if wire_api == "responses":
+        provider_name += "-responses"
+    # Keep the CLI selector to two segments and preserve the exact wire ID independently.
+    alias = "model-" + hashlib.sha256(model.encode("utf-8")).hexdigest()[:16]
+    entry: dict[str, Any] = {"id": alias, "provider": provider_name, "wireModel": model}
+    if context_size is not None:
+        entry["maxContextWindowTokens"] = context_size
+    supports: dict[str, Any] = {}
+    if tool_calls:
+        supports["toolCalls"] = True
+    if efforts:
+        supports["reasoning_effort"] = [level for level in efforts if level in COPILOT_CLI_EFFORTS]
+    if supports:
+        entry["capabilities"] = {"supports": supports}
+    document = {"providers": [{"name": provider_name, "type": "openai", "baseUrl": base_url, "wireApi": wire_api}],
+                "models": [entry]}
+    return document, f"{provider_name}/{alias}"

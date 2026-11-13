@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 import subprocess
@@ -25,7 +26,7 @@ AGENT_SURFACES: dict[str, tuple[str, ...]] = {
     "claude-code": ("cli",),
     "cline": ("ide", "cli", "desktop"),
     "codex": ("cli",),
-    "copilot": ("vscode",),
+    "copilot": ("vscode", "cli"),
     "cursor": ("ide",),
     "devin": ("desktop-local", "legacy-cascade"),
     "goose": ("cli",),
@@ -131,6 +132,23 @@ class ProviderRouteTests(unittest.TestCase):
                 self.assertIn(source, text)
                 self.assertIn("2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON, text)
                 self.assertNotIn("\r", text)
+
+    def test_standalone_copilot_stages_openrouter_config_without_credentials(self) -> None:
+        artifacts = render("copilot", "cli")
+        config = next(item for item in artifacts if item.kind == "provider-config")
+        self.assertEqual(config.relative_path.as_posix(), "copilot/provider/openrouter.providers.json")
+        document = json.loads(config.content)
+        [provider], [model] = document["providers"], document["models"]
+        self.assertEqual(provider, {"name": "weaver-openrouter", "type": "openai",
+                                    "baseUrl": "https://openrouter.ai/api/v1", "wireApi": "completions"})
+        self.assertEqual(model["wireModel"], MODEL)
+        self.assertEqual(model["provider"], provider["name"])
+        self.assertIn(f"copilot --model {provider['name']}/{model['id']}", setup_text(artifacts))
+        evidence = provider_evidence("copilot", "cli")
+        self.assertEqual(evidence["state"], "available")
+        self.assertTrue(all(source in setup_text(artifacts) for source in evidence["sources"]))
+        with self.assertRaisesRegex(WeaverError, "streaming model"):
+            render("copilot", "cli", model=f"{MODEL}:batch")
 
     def test_accepts_native_integration_spec_surface_mapping(self) -> None:
         surfaces: dict[str, SurfaceSpec] = {}

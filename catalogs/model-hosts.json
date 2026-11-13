@@ -723,9 +723,11 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a Copilot CLI model for the session or pin a default in trusted repository settings.",
+        "mechanism": "Select a Copilot CLI model for the session or pin a default in trusted repository settings. For OpenRouter and LM Studio, stage provider and model entries for private providers.json.",
         "fields": [
-          "model"
+          "model",
+          "providers[].wireApi",
+          "models[].wireModel"
         ],
         "commands": [
           "--model",
@@ -734,7 +736,8 @@
         "ui_steps": [],
         "sources": [
           "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
-          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference"
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+          "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-llm-models"
         ]
       },
       "reasoning": {
@@ -744,6 +747,12 @@
             "kind": "effort",
             "field": "effortLevel",
             "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "--effort",
+            "values": ["low", "medium", "high", "xhigh", "max"],
             "model_dependent": true
           }
         ],

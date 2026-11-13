@@ -173,6 +173,8 @@ def _route(agent_id: str, surface: str) -> _Route:
         return _CLINE_CLI_ROUTE
     if (agent_id, surface) == ("cline", "desktop"):
         return _CLINE_DESKTOP_ROUTE
+    if (agent_id, surface) == ("copilot", "cli"):
+        return _COPILOT_CLI_ROUTE
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -205,9 +207,11 @@ def _markdown(
     model_id: str,
     route: _Route,
     metadata: _Metadata,
+    *,
+    selector: str | None = None,
 ) -> str:
     name = _agent_name(agent, agent_id)
-    rendered_model = _model_text(route, model_id)
+    rendered_model = selector or _model_text(route, model_id)
     endpoint = route.endpoint or _standard_endpoint(metadata)
     lines = [
         f"# OpenRouter provider setup: {name}",
@@ -277,7 +281,7 @@ def _markdown(
             "",
             "## Evidence",
             "",
-            f"- Checked on: {'2026-10-26' if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON}",
+            f"- Checked on: {_checked_on(agent_id, surface)}",
             "- Sources:",
         ]
     )
@@ -317,13 +321,19 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
     route = _route(agent_id, surface)
     companion = (agent_id, surface) == ("qwen-code", "vscode")
     return {
-        "state": "available" if route.native_toml else "manual",
+        "state": "available" if route.native_toml or (agent_id, surface) == ("copilot", "cli") else "manual",
         "sources": [*route.sources, "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/"]
         if companion else list(route.sources),
-        "checked_on": "2026-11-13" if companion else ("2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON),
+        "checked_on": _checked_on(agent_id, surface),
         "fixture_tests": (["tests/test_providers.py", "tests/test_expanded_providers.py"] if agent_id == "codex" else
                           ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"]),
     }
+
+
+def _checked_on(agent_id: str, surface: str) -> str:
+    if (agent_id, surface) in {("qwen-code", "vscode"), ("copilot", "cli")}:
+        return "2026-11-13"
+    return "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON
 
 
 def render_provider_setup(
@@ -343,8 +353,18 @@ def render_provider_setup(
     selected_surface = _surface(surface, available)
     route = _route(agent_id, selected_surface)
     metadata = _metadata(provider_metadata)
+    extra: list[RenderedArtifact] = []
+    selector = None
+    if (agent_id, selected_surface) == ("copilot", "cli"):
+        if model.endswith(":batch"):
+            _fail("Copilot CLI requires a streaming model, not an OpenRouter batch variant")
+        from .copilot_models import copilot_cli_provider_fragment
+        from .models import _json_artifact
+
+        fragment, selector = copilot_cli_provider_fragment("openrouter", model, DEFAULT_BASE_URL, wire_api="completions")
+        extra.append(_json_artifact("copilot/provider/openrouter.providers.json", fragment, "provider-config"))
     markdown = _markdown(
-        agent, agent_id, selected_surface, model, route, metadata
+        agent, agent_id, selected_surface, model, route, metadata, selector=selector
     ).encode("utf-8")
     artifacts = [
         RenderedArtifact(
@@ -361,10 +381,23 @@ def render_provider_setup(
                 "provider-config",
             )
         )
-    return artifacts
+    return artifacts + extra
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_COPILOT_CLI_ROUTE = _Route(
+    ("cli",), "", "Use the generated two-part CLI selector. The entry sends the original model slug as wireModel.",
+    ("Review and merge the staged openrouter.providers.json entries into your private Copilot providers.json.",
+     "Add your OpenRouter token to the provider entry in the private copy.",
+     "Restart Copilot CLI and select the model with copilot --model {model}."),
+    (), "Set bearerToken in the private copy. Environment-variable references in this JSON are literal strings.",
+    None, "Use OpenRouter Chat Completions through the Copilot CLI OpenAI-compatible provider type.",
+    ("Preserve existing provider and model entries and check for name and ID conflicts.",
+     "Confirm the selected model and endpoint support streaming and tool calls. Use the model command with "
+     "catalog evidence to stage optional reasoning and context settings."),
+    ("https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-llm-models",
+     "https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion"),
+)
 _CLINE_CLI_ROUTE = _Route(
     ("cli",), "", "Use the raw OpenRouter slug with the Cline CLI model flag.",
     ("Authenticate through Cline's interactive provider settings.",

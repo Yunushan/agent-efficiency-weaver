@@ -61,6 +61,68 @@ class CopilotModelsTests(unittest.TestCase):
         self.assertIn("copilot/.github/copilot-instructions.md", paths)
         self.assertIn("copilot/.github/skills/token-efficient-retrieval/SKILL.md", paths)
 
+    def test_byok_stages_exact_wire_id_and_evidence_backed_effort(self):
+        for provider, protocol, base_url, rows in (
+            ("openrouter", "openrouter-chat", "https://openrouter.ai/api/v1", {"data": [
+                {"id": "fixture/reasoner", "context_length": 8192,
+                 "supported_parameters": ["tools", "reasoning_effort"],
+                 "reasoning": {"supported_efforts": ["low", "high"]}},
+            ]}),
+            ("lm-studio", "openai-responses", "http://localhost:1234/v1", {"models": [
+                {"key": "fixture/reasoner", "type": "llm", "max_context_length": 8192,
+                 "capabilities": {"reasoning": {"allowed_options": ["low", "high"], "default": "low"}}},
+            ]}),
+        ):
+            with self.subTest(provider=provider):
+                self.write(rows)
+                args = ("model", "--root", str(ROOT), "--agent", "copilot", "--surface", "cli", "--dry-run",
+                        "--provider", provider, "--model", "fixture/reasoner", "--catalog", str(self.snapshot),
+                        "--protocol", protocol)
+                with mock.patch("socket.create_connection", side_effect=AssertionError("network")):
+                    code, out, err = invoke(*args, "--reasoning-effort", "high")
+                self.assertEqual(code, 0, err)
+                artifacts = {row["path"]: row["content"] for row in json.loads(out)["artifacts"]}
+                document = json.loads(artifacts[f"copilot/model/{provider}.providers.json"])
+                [provider_row], [model_row] = document["providers"], document["models"]
+                expected_wire = "responses" if protocol == "openai-responses" else "completions"
+                self.assertEqual(provider_row, {"name": model_row["provider"], "type": "openai",
+                                                "baseUrl": base_url, "wireApi": expected_wire})
+                self.assertEqual(model_row["wireModel"], "fixture/reasoner")
+                self.assertNotIn("/", model_row["id"])
+                self.assertEqual(model_row["maxContextWindowTokens"], 8192)
+                self.assertEqual(model_row["capabilities"]["supports"]["reasoning_effort"], ["low", "high"])
+                handoff = artifacts["copilot/model/model-setup.md"]
+                self.assertIn(f"copilot --model {provider_row['name']}/{model_row['id']} --effort=high", handoff)
+                self.assertIn("Configuration state: `available`", handoff)
+                self.assertEqual(invoke(*args, "--reasoning-effort", "medium")[0], 2)
+                alternate = "openai-chat" if protocol == "openai-responses" else "openai-responses"
+                code, out, err = invoke(*args, "--protocol", alternate)
+                self.assertEqual(code, 0, err)
+                alternate_document = next(json.loads(row["content"]) for row in json.loads(out)["artifacts"]
+                                          if row["path"].endswith(".providers.json"))
+                self.assertNotEqual(alternate_document["providers"][0]["name"], provider_row["name"])
+                self.assertEqual(alternate_document["models"][0]["wireModel"], "fixture/reasoner")
+                code, out, err = invoke(*args, "--surface", "vscode")
+                self.assertEqual(code, 0, err)
+                self.assertNotIn(".providers.json", out)
+
+    def test_byok_leaves_unsupported_copilot_settings_manual(self):
+        args = ("model", "--root", str(ROOT), "--agent", "copilot", "--surface", "cli", "--dry-run",
+                "--provider", "openrouter", "--model", "fixture/reasoner", "--catalog", str(self.snapshot))
+        rows = {"data": [{"id": "fixture/reasoner", "supported_parameters": ["tools", "reasoning"],
+                          "reasoning": {"supported_efforts": ["none", "high"], "mandatory": False}}]}
+        for options in (("--reasoning-effort", "none"), ("--reasoning", "on")):
+            with self.subTest(options=options):
+                self.write(rows)
+                code, out, err = invoke(*args, *options)
+                self.assertEqual(code, 0, err)
+                self.assertNotIn(".providers.json", out)
+        rows["data"][0]["supported_parameters"] = ["reasoning"]
+        self.write(rows)
+        code, out, err = invoke(*args)
+        self.assertEqual(code, 0, err)
+        self.assertNotIn(".providers.json", out)
+
     def test_reports_all_models_and_keeps_missing_metadata_unknown(self):
         self.write([
             {"id": "fixture/primary", "name": "OMITTED", "policy": {"state": "enabled", "terms": "OMITTED"},

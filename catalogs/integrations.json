@@ -1109,15 +1109,19 @@
               "runtime_checks": []
             },
             "provider": {
-              "state": "manual",
+              "state": "available",
               "sources": [
                 "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+                "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-llm-models",
+                "https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion",
+                "https://lmstudio.ai/docs/developer/openai-compat",
                 "https://docs.github.com/en/copilot/how-tos/copilot-sdk/troubleshooting/compatibility"
               ],
               "checked_on": "2026-11-13",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_copilot_models.py"
+                "tests/test_copilot_models.py",
+                "tests/test_providers.py"
               ],
               "runtime_checks": []
             },
