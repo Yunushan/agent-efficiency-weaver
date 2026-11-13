@@ -32,6 +32,7 @@ NATIVE_PATHS = {
     ("kilo", "cli"): ".kilo/agents/reviewer.md",
     ("kilo", "ide"): ".kilo/agents/reviewer.md",
     ("qwen-code", "cli"): ".qwen/agents/reviewer.md",
+    ("qwen-code", "vscode"): ".qwen/agents/reviewer.md",
     ("kimi-code", "cli"): ".kimi-code/agents/reviewer.md",
     ("cursor", "ide"): ".cursor/agents/reviewer.md",
     ("kiro", "cli"): ".kiro/agents/reviewer.json",
@@ -86,7 +87,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
-                                 ("qwen-code", "cli"): "2026-11-13"}
+                                 ("qwen-code", "cli"): "2026-11-13", ("qwen-code", "vscode"): "2026-11-13"}
                     expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])

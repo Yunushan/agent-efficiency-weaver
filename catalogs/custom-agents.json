@@ -1325,6 +1325,36 @@
       }
     },
     {
+      "product_id": "qwen-code",
+      "surface_id": "vscode",
+      "state": "native",
+      "format": "qwen-markdown",
+      "path_template": ".qwen/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "The default is inherit. Qwen also resolves fast, bare model IDs, and authType:model-id against the target profile. Weaver can stage an explicit Qwen authentication type.",
+      "reasoning_behavior": "The selected provider entry and session determine reasoning. The generated definition has no effort field.",
+      "permission_behavior": "Only read_file/grep_search/glob are selected. No MCP tools are named; parent approval mode and trust still apply.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/",
+          "https://github.com/QwenLM/qwen-code/blob/0207b035186e20886ccb23c80a8f546c234b7cd5/packages/core/src/utils/modelId.ts#L82-L119",
+          "https://github.com/QwenLM/qwen-code/blob/0207b035186e20886ccb23c80a8f546c234b7cd5/packages/core/src/utils/auth-type.ts#L8-L16",
+          "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts#L110-L135",
+          "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+        ],
+        "checked_on": "2026-11-13",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "zed",
       "surface_id": "ide",
       "state": "manual",

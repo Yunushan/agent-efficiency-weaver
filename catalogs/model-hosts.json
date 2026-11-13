@@ -2057,6 +2057,63 @@
       "availability": "unknown"
     },
     {
+      "product_id": "qwen-code",
+      "surface_id": "vscode",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Open a Qwen Code Companion workspace using the ACP path and select a configured model in its chat model picker.",
+        "fields": [
+          "model.name",
+          "modelProviders"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the Qwen chat model picker"
+        ],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+          "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/",
+          "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts",
+          "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "generationConfig.reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "generationConfig.reasoning.budget_tokens",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "generationConfig.reasoning",
+            "values": [
+              "false"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+          "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "zed",
       "surface_id": "ide",
       "selection": {

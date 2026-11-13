@@ -4191,6 +4191,106 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "vscode",
+          "mcp_dialect": "mcpServers.httpUrl",
+          "config_fields": [
+            "mcpServers",
+            "httpUrl"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".qwen/settings.json",
+          "documented_location": null,
+          "instruction_mode": "qwen-md",
+          "instruction_paths": [
+            "QWEN.md",
+            "AGENTS.md"
+          ],
+          "skills_path": ".qwen/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts#L110-L135",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L5970-L6012",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/memory/",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts#L110-L135",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L5970-L6012",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts#L110-L135",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771",
+                "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/webview/providers/WebViewProvider.ts#L471-L478"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+                "https://openrouter.ai/docs/quickstart",
+                "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_expanded_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/",
+                "https://code.visualstudio.com/docs/supporting/requirements"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Qwen Code Companion ACP path. Requires VS Code 1.96+ on a supported Windows, macOS, or Linux host. The pinned extension manifest declares 0.27.2; installed extension and native architecture remain unverified.",
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     }

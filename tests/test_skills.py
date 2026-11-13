@@ -53,6 +53,7 @@ NATIVE_TARGETS = {
     ("kiro", "cli"): ".kiro/steering/agentweaver.md",
     ("pi", "cli"): "AGENTS.md",
     ("qwen-code", "cli"): "QWEN.md",
+    ("qwen-code", "vscode"): "QWEN.md",
     ("qoder", "ide"): "AGENTS.md",
     ("zed", "ide"): ".rules",
 }

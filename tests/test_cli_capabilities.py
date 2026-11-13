@@ -17,6 +17,42 @@ ROOT_ARGS = ('--root', str(ROOT))
 
 
 class CapabilityCliTests(unittest.TestCase):
+    def test_qwen_vscode_companion_acp_stages_workspace_artifacts(self):
+        target = (*ROOT_ARGS, '--agent', 'qwen-code', '--surface', 'vscode', '--dry-run')
+        base = (*target, '--profile', 'efficient')
+        code, out, err = invoke('render', *base)
+        self.assertEqual(code, 0, err)
+        artifacts = json.loads(out)['artifacts']
+        mcp = next(item for item in artifacts if item['kind'] == 'mcp')
+        self.assertEqual(mcp['path'], 'qwen-code/.qwen/settings.json')
+        self.assertEqual(json.loads(mcp['content']), {'mcpServers': {}})
+        code, out, err = invoke('render', *base, '--enable', 'context7')
+        self.assertEqual(code, 0, err)
+        mcp = next(item for item in json.loads(out)['artifacts'] if item['kind'] == 'mcp')
+        self.assertEqual(json.loads(mcp['content']), {'mcpServers': {
+            'context7': {'httpUrl': 'https://mcp.context7.com/mcp'},
+        }})
+        code, out, err = invoke('bundle', *base, '--skill', 'security-review')
+        self.assertEqual(code, 0, err)
+        paths = {item['path'] for item in json.loads(out)['artifacts']}
+        self.assertTrue({'qwen-code/QWEN.md', 'qwen-code/.qwen/skills/security-review/SKILL.md'} <= paths)
+        with tempfile.TemporaryDirectory() as directory:
+            prompt = Path(directory, 'role.md')
+            prompt.write_text('Review these changes.', encoding='utf-8')
+            code, out, err = invoke('agent', *target, '--name', 'reviewer', '--description', 'Review',
+                                    '--instructions-file', str(prompt), '--model', 'claude-sonnet-4-6',
+                                    '--qwen-auth-type', 'anthropic')
+        self.assertEqual(code, 0, err)
+        definition = next(item for item in json.loads(out)['artifacts'] if item['kind'] == 'agent-definition')
+        self.assertEqual(definition['path'], 'qwen-code/.qwen/agents/reviewer.md')
+        self.assertIn('model: "anthropic:claude-sonnet-4-6"', definition['content'])
+        code, out, err = invoke('model', *target, '--provider', 'anthropic', '--model', 'claude-sonnet-4-6',
+                                '--reasoning-effort', 'high')
+        self.assertEqual(code, 0, err)
+        config = next(item for item in json.loads(out)['artifacts'] if item['kind'] == 'model-config')
+        entry = json.loads(config['content'])['modelProviders']['anthropic'][0]
+        self.assertEqual(entry['generationConfig']['reasoning'], {'effort': 'high'})
+
     def test_kiro_v3_cli_stages_project_artifacts_and_keeps_mcp_disabled(self):
         target = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run')
         base = (*target, '--profile', 'efficient')
