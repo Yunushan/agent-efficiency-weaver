@@ -62,6 +62,10 @@ def _parser() -> argparse.ArgumentParser:
     kimi_models.add_argument('--input', type=Path, required=True)
     kimi_models.add_argument('--model', help='Configured Kimi model alias')
     kimi_models.add_argument('--reasoning-effort')
+    codex_models = subs.add_parser('codex-models', help='Inspect saved Codex app-server model/list replies')
+    codex_models.add_argument('--input', type=Path, required=True)
+    codex_models.add_argument('--model')
+    codex_models.add_argument('--reasoning-effort')
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -114,7 +118,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--llm-profile', help='Existing OpenHands local LLM profile reference; no profile is read or created')
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
-            command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list JSON response')
+            command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
@@ -494,6 +498,12 @@ def main(argv: list[str] | None = None) -> int:
             from .kimi_models import inspect_kimi_models
 
             result = inspect_kimi_models(args.input, model=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'codex-models':
+            from .codex_models import inspect_codex_models
+
+            result = inspect_codex_models(args.input, model=args.model, effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:

@@ -567,9 +567,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "Provider validation does not change the parent's provider or prove availability, entitlement, "
                       "successful inference, or installed-host compatibility."])
     if codex_digest is not None:
-        lines.extend(["", f"Saved Codex model/list page SHA-256: {codex_digest}",
-                      "This selection matches a picker-visible model in a caller-supplied Codex catalog page. "
-                      "The page may be partial or stale. It does not prove account access, inference, or "
+        lines.extend(["", f"Saved Codex model/list snapshot SHA-256: {codex_digest}",
+                      "This selection matches a picker-visible model in the caller-supplied Codex catalog. "
+                      "The snapshot may be partial or stale. It does not prove account access, inference, or "
                       "compatibility with the target client. The parent's provider is unchanged."])
     if opencode_digest is not None:
         lines.extend(["", f"Saved OpenCode V2 GET /api/model response SHA-256: {opencode_digest}",
