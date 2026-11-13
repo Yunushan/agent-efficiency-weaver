@@ -893,6 +893,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       ("codex", "cli", "lm-studio", "openai-responses"))
     claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                        ("claude-code", "cli", "lm-studio", "anthropic-messages"))
+    hermes_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
+                       ("hermes", "cli", "lm-studio", "openai-chat"))
     if codex_lmstudio and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
         profile = ['# Staged Codex CLI profile for LM Studio.',
                    f'model = {json.dumps(model_id)}', 'model_provider = "lmstudio"']
@@ -920,6 +922,21 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "For a server without authentication, LM Studio documents the placeholder lmstudio. "
             "Check inherited environment settings, including ANTHROPIC_MODEL, ANTHROPIC_API_KEY, "
             "and provider flags, before launching. Managed policy still applies."
+        )
+    elif hermes_lmstudio and all(value is None for value in (effort, budget_tokens, reasoning_enabled, mode)):
+        lines = ["model:", '  provider: "lmstudio"', f"  default: {json.dumps(model_id)}",
+                 f"  base_url: {json.dumps(api_base)}", '  api_mode: "chat_completions"']
+        if context_size is not None:
+            lines.append(f"  context_length: {context_size}")
+        artifacts.append(RenderedArtifact(PurePosixPath(f"{prefix}/lmstudio.model.fragment.yaml"),
+                                          ("\n".join(lines) + "\n").encode(), "model-config"))
+        native = True
+        native_note = (
+            "Review and merge the model fields into your chosen Hermes profile's config.yaml. "
+            "Review existing model authentication, LM_BASE_URL, auxiliary routes and fallbacks before use. "
+            "Supply LM_API_KEY separately if your already running LM Studio server requires a token. "
+            "Hermes may load a model when used. A loopback URL must resolve to the same host or network namespace "
+            "as the server. A saved model maximum does not set the loaded context."
         )
     elif (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
@@ -994,6 +1011,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.extend(["- https://lmstudio.ai/docs/integrations/claude-code",
                       "- https://code.claude.com/docs/en/cli-reference",
                       "- https://code.claude.com/docs/en/settings"])
+    if hermes_lmstudio:
+        lines.extend(["- https://hermes-agent.nousresearch.com/docs/integrations/providers#lm-studio--desktop-app-with-local-models",
+                      "- https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
+                      "- https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example"])
     if chosen in _LM_STUDIO_NONCHAT:
         model_type, endpoint = _LM_STUDIO_NONCHAT[chosen]
         lines.extend(["", f"Endpoint: `POST {api_base}{endpoint}`.",

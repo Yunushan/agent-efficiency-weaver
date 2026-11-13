@@ -56,6 +56,8 @@ The LM Studio API surface can also stage selections for embedding and decision m
 
 `model --agent claude-code --surface cli --provider lm-studio --protocol anthropic-messages --model ID` stages a credential-free Claude Code settings file for the local LM Studio Messages endpoint. Review the file before passing it to `claude --settings` and supply authentication separately. [LM Studio's Claude Code integration](https://lmstudio.ai/docs/integrations/claude-code)
 
+`model --agent hermes --surface cli --provider lm-studio --protocol openai-chat --model ID` stages the built-in Hermes LM Studio provider configuration. Review the fragment before merging it into the intended profile. A context override is written only when explicitly supplied. [Hermes LM Studio configuration](https://hermes-agent.nousresearch.com/docs/integrations/providers#lm-studio--desktop-app-with-local-models)
+
 `computer-models --input snapshot.json` separately inspects a caller-saved Perplexity Computer MCP `models_list` response. Add `--mode NAME` or `--model ID` and optional `--reasoning-effort VALUE` to check an explicit choice against that snapshot. It does not connect, authenticate or start a task; captured account choices may change and do not prove current access or inference.
 
 `kimi-models --input snapshot.json` separately inspects a caller-saved successful Kimi web `GET /api/v1/models` response. Its model identifiers are configured aliases, including aliases with spaces, not necessarily upstream provider model IDs. Optional `--model ALIAS --reasoning-effort VALUE` checks the alias and its supported thinking effort without changing Kimi settings. The snapshot does not establish current provider access or successful inference.

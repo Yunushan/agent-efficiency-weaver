@@ -8,6 +8,8 @@ import urllib.request
 from pathlib import Path
 from unittest import mock
 
+import yaml
+
 from agentweaver.config import WeaverError
 from agentweaver.integrations import get_integration
 from agentweaver.models import (
@@ -485,6 +487,26 @@ class ModelRenderingTests(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 result = render_model_setup(spec, "cli", **(options | overrides))
                 self.assertFalse(any(item.kind == "model-config" for item in result))
+
+    def test_hermes_lmstudio_stages_builtin_provider_without_implicit_context_or_auth(self) -> None:
+        spec = get_integration("hermes", ROOT)
+        options = {"root": ROOT, "provider_id": "lm-studio", "model_id": "fixture/local",
+                   "protocol": "openai-chat",
+                   "snapshot": {"provider_id": "lm-studio", "models": [
+                       {"id": "fixture/local", "context_length": 32768, "lm_studio": {"type": "llm"}},
+                   ]}}
+        expected = {"provider": "lmstudio", "default": "fixture/local",
+                    "base_url": "http://localhost:1234/v1", "api_mode": "chat_completions"}
+        for context in (None, 8192):
+            with self.subTest(context=context):
+                artifacts = render_model_setup(spec, "cli", context_size=context, **options)
+                settings = next(item for item in artifacts if item.kind == "model-config")
+                self.assertEqual(settings.relative_path.as_posix(), "hermes/model/lmstudio.model.fragment.yaml")
+                model = expected if context is None else expected | {"context_length": context}
+                self.assertEqual(yaml.safe_load(settings.content), {"model": model})
+                self.assertIn(b"LM_API_KEY separately", artifacts[0].content)
+        artifacts = render_model_setup(spec, "cli", **(options | {"protocol": "openai-responses"}))
+        self.assertFalse(any(item.kind == "model-config" for item in artifacts))
 
     def test_lmstudio_protocol_bases_do_not_duplicate_anthropic_version_prefix(self) -> None:
         bases = {"lmstudio-chat": "http://localhost:1234", "openai-chat": "http://localhost:1234/v1",
