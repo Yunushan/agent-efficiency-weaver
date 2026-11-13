@@ -573,6 +573,37 @@
           "evidence_sha256": "66993c059db39e037699b598e561a67e52ae87e12ca441f64201d1ab414e3cff"
         }
       ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "serve-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4cce6fbe45df18e4fbfdbb8296afba20e213d567",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "e57957b2846de27e8ce545618992f0ea753d65c301c6e2ed7660563fab8666ad"
+        },
+        {
+          "check": "opencode-v2-agent-variant-load",
+          "evidence_sha256": "e57957b2846de27e8ce545618992f0ea753d65c301c6e2ed7660563fab8666ad"
+        },
+        {
+          "check": "opencode-v2-stdio-discovery",
+          "evidence_sha256": "c9e2f29f9979625a456e20b534c9f0c41a5057bdd523d5b50ebe58d82ce750da"
+        }
+      ]
     }
   ]
 }

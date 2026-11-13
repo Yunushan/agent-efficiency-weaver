@@ -85,6 +85,12 @@ _OBSERVATION_CHECKS = {
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
     "opencode-v2-disabled-mcp-load": ("mcp", "The V2 server read the generated MCP entry with discovery disabled."),
     "opencode-v2-model-variant-catalog": ("models", "The V2 server listed built-in model and variant IDs."),
+    "opencode-v2-agent-variant-load": (
+        "reasoning", "The V2 server reported the generated subagent's exact provider, model, and named variant.",
+    ),
+    "opencode-v2-stdio-discovery": (
+        "mcp", "The V2 server initialized the local fixture and requested its tool list after explicit enablement.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
