@@ -46,8 +46,10 @@ class CopilotModelsTests(unittest.TestCase):
         artifact = json.loads(out)["artifacts"][0]
         self.assertEqual(artifact["path"], "copilot/.github/agents/project-reviewer.agent.md")
         content = artifact["content"]
-        self.assertIn('models: ["fixture/primary", "fixture/fallback"]', content)
-        self.assertIn('reasoningEffort: "high"', content)
+        self.assertIn('model: ["fixture/primary", "fixture/fallback"]', content)
+        self.assertNotIn("models:", content)
+        self.assertIn('reasoning-effort: "high"', content)
+        self.assertNotIn("reasoningEffort:", content)
         self.assertIn('model-policy: "required"', content)
         self.assertIn('strict-tools-list: true', content)
         self.assertNotIn("target:", content)

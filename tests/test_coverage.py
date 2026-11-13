@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 14)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 121)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 15)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 131)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -184,6 +184,31 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual([check["check"] for check in model_load["checks"]],
                          ["agent-model-effort-config-load", "agent-model-array-rejected"])
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_copilot_cli_observations_record_prompt_mode_separately(self):
+        report = coverage_report(ROOT)
+        item = next(item for item in report["requested_items"] if item["id"] == "copilot")
+        target = next(target for target in item["targets"] if target["surface_id"] == "cli")
+        record, = target["runtime_observations"]
+        self.assertEqual(record["product_version"], "1.0.111")
+        self.assertEqual(record["engine_version"], record["product_version"])
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["interface"], "prompt-mode")
+        self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertNotIn("extension_version", record)
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+            "skill-discovery": "skills",
+            "copilot-cli-skill-use": "skills",
+            "agent-load": "agents",
+            "stdio-tool-call": "mcp",
+            "copilot-cli-child-mcp-filter": "mcp",
+            "copilot-cli-byok-model-request": "models",
+            "copilot-cli-byok-effort-request": "reasoning",
+            "copilot-cli-child-model-request": "models",
+            "copilot-cli-child-model-fallback": "models",
+            "copilot-cli-child-effort-request": "reasoning",
+        })
 
     def test_claude_observations_belong_to_the_bundled_executable(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")

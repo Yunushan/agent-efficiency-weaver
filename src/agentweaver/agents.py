@@ -73,7 +73,7 @@ _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
                   "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort",
-                  "copilot-cli-markdown": "reasoningEffort", "kilo-markdown": "variant"}
+                  "copilot-cli-markdown": "reasoning-effort", "kilo-markdown": "variant"}
 
 
 def _text(value: object, label: str, *, multiline: bool = False, maximum: int = 500) -> str:
@@ -371,8 +371,7 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     else:
         raise WeaverError("Native custom-agent renderer is unavailable")
     if model is not None:
-        model_field = "models" if format_name == "copilot-cli-markdown" and isinstance(model, list) else row["model_field"]
-        fields_any[model_field] = model
+        fields_any[row["model_field"]] = model
     if effort is not None:
         fields_any[row["effort_field"]] = effort
     return _markdown(fields_any, instructions)

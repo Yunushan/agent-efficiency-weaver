@@ -561,7 +561,7 @@
       "path_template": ".github/agents/{name}.agent.md",
       "model_field": "model",
       "model_style": "bare",
-      "effort_field": "reasoningEffort",
+      "effort_field": "reasoning-effort",
       "efforts": [
         "none",
         "minimal",
@@ -571,7 +571,7 @@
         "xhigh",
         "max"
       ],
-      "model_behavior": "Uses an authored model ID or a CLI models list in priority order. Use exact provider-qualified IDs for BYOK.",
+      "model_behavior": "Uses an authored model ID or an ordered array in the model field. Use exact provider-qualified IDs for BYOK.",
       "reasoning_behavior": "Explicit effort requires a saved SDK model list advertising the effort for the selected model.",
       "permission_behavior": "Restricts the agent to the documented read, grep and glob groups using strict-tools-list. Review user-level agent precedence and effective host permissions.",
       "reserved_names": [

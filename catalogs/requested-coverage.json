@@ -1148,6 +1148,61 @@
           "evidence_sha256": "2e3505f017dcd5e97b0ebe71c44007386705bb88ed14d08d7ac919659fcb2b8a"
         }
       ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "cli",
+      "product_version": "1.0.111",
+      "engine_version": "1.0.111",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "prompt-mode",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "982f52c3ccb033c85a4c52c9d0d788a05126abb2",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-skill-use",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-mcp-filter",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-byok-model-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-byok-effort-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-model-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-model-fallback",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-effort-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        }
+      ]
     }
   ]
 }
