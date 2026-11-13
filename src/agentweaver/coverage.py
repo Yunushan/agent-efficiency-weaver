@@ -30,16 +30,23 @@ LIMITATIONS = (
 
 _OBSERVATION_CHECKS = {
     "skill-discovery": ("skills", "The client listed the enabled generated project Skill."),
+    "agent-discovery": ("agents", "The runtime discovered the generated project agent and loaded its prompt."),
     "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
     "stdio-tool-call": ("mcp", "The parent session called a local stdio fixture from the generated configuration."),
     "stdio-subagent-approved-tool-call": ("mcp", "The subagent called the fixture with explicit local tool approval."),
     "remote-config-parse": ("mcp", "The client parsed the remote MCP entry without opening a connection."),
+    "workspace-mcp-parse": ("mcp", "The native workspace parser accepted generated HTTP and stdio entries."),
     "model-catalog": ("models", "The client listed model IDs and advertised reasoning efforts across its catalog pages."),
     "agent-model-effort-selection": ("reasoning", "The selected child model and effort reached a scripted local endpoint."),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
     "architecture", "interface", "environment", "checked_on", "source_commit", "checks",
+}
+_OBSERVATION_INTERFACES = {
+    ("codex", "cli", "app-server-stdio"),
+    ("codex", "desktop", "app-server-stdio"),
+    ("copilot", "vscode", "bundled-runtime"),
 }
 
 
@@ -155,7 +162,7 @@ def _load_observations(
     observations: dict[ScopeTarget, list[dict[str, Any]]] = defaultdict(list)
     seen: set[tuple[str, ...]] = set()
     for value in entries:
-        row = _strict_object(value, "runtime observation", _OBSERVATION_FIELDS)
+        row = _strict_object(value, "runtime observation", _OBSERVATION_FIELDS, {"extension_version"})
         product = _canonical_id(row["product_id"], "runtime observation product")
         surface = _canonical_id(row["surface_id"], "runtime observation surface")
         target = ScopeTarget(product, surface)
@@ -180,8 +187,14 @@ def _load_observations(
             "checked_on": checked_on,
             "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
         }
-        if (identity["interface"], identity["environment"]) != ("app-server-stdio", "isolated-signed-out"):
+        if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
+                or identity["environment"] != "isolated-signed-out"):
             raise WeaverError("Runtime observation: unsupported interface or environment")
+        if "extension_version" in row:
+            identity["extension_version"] = _observation_field(
+                row["extension_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "extension version")
+        if (identity["interface"] == "bundled-runtime") != ("extension_version" in identity):
+            raise WeaverError("Runtime observation: extension version is required for bundled runtime observations")
         checks = row["checks"]
         if not isinstance(checks, list) or not checks:
             raise WeaverError("Runtime observation requires explicit checks")

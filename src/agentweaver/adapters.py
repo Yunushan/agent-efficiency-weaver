@@ -15,6 +15,7 @@ _JSON_DIALECTS: dict[str, tuple[str, tuple[tuple[str, Any], ...]]] = {
     'mcpServers.httpUrl': ('mcpServers', (('httpUrl', _URL),)),
     'mcpServers.type-streamableHttp': ('mcpServers', (('type', 'streamableHttp'), ('url', _URL), ('disabled', False))),
     'mcpServers.type-http': ('mcpServers', (('type', 'http'), ('url', _URL))),
+    'mcpServers.copilot-portable': ('mcpServers', (('type', 'http'), ('url', _URL), ('tools', ['*']))),
     'mcpServers.type-sse': ('mcpServers', (('type', 'sse'), ('url', _URL))),
     'mcpServers.url-or-type-http': ('mcpServers', (('url', _URL),)),
     'mcpServers.transport-http': ('mcpServers', (('transport', 'http'), ('url', _URL))),
@@ -68,6 +69,10 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'qwen-code': ('mcpServers.httpUrl', 'command-args', 'https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/'),
 }
 _STDIO_ADDITIONAL_ROUTES = {
+    ('copilot', 'mcpServers.copilot-portable'): (
+        'copilot-portable-stdio', 'https://code.visualstudio.com/docs/agents/reference/mcp-configuration',
+        '2026-11-13', 'tests/test_stdio_adapters.py',
+    ),
     ('opencode', 'mcp.servers.type-remote'): (
         'local-command-array-disabled', 'https://opencode.ai/docs/mcp-servers/',
         '2026-10-27', 'tests/test_stdio_adapters.py',
@@ -122,6 +127,8 @@ def _stdio_entry(agent_id: str | None, dialect: str, name: str, selection: Stdio
         return {'type': 'local', 'command': [command, *args], 'disabled': True}
     if shape == 'goose-stdio':
         return {'type': 'stdio', 'name': name, 'enabled': True, 'cmd': command, 'args': args}
+    if shape == 'copilot-portable-stdio':
+        return {'type': 'stdio', 'command': command, 'args': args, 'tools': ['*']}
     entry: dict[str, Any] = {'command': command, 'args': args}
     if shape == 'type-stdio':
         entry = {'type': 'stdio', **entry}
@@ -171,7 +178,8 @@ def _request_document(dialect: str, selected: Mapping[str, MCPSelection]) -> dic
 
 
 def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
-               catalog: dict[str, Any], enabled: list[str], *, opencode_v2: bool = False) -> list[RenderedArtifact]:
+               catalog: dict[str, Any], enabled: list[str], *, opencode_v2: bool = False,
+               copilot_portable: bool = False) -> list[RenderedArtifact]:
     if spec.kind not in ('agent', 'hybrid'):
         raise WeaverError('Provider gateways cannot host MCP; use the provider command')
     target = spec.surface(surface)
@@ -179,10 +187,16 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     if opencode_v2 and (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
             'opencode', 'cli', 'mcp.type-remote', 'project', 'opencode.json'):
         raise WeaverError('OpenCode V2 MCP staging requires the OpenCode CLI project target')
+    if copilot_portable and (opencode_v2 or (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
+            'copilot', 'vscode', 'servers.type-http', 'project', '.vscode/mcp.json')):
+        raise WeaverError('Portable Copilot MCP staging requires the VS Code Copilot project target')
     if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT)
             or target.capabilities['mcp'].state not in ('available', 'manual')):
         raise WeaverError('Native MCP export unavailable on this surface; use bundle for instruction handoff')
     selected = select_servers(profile, catalog, enabled)
+    if copilot_portable:
+        document = _json_document('mcpServers.copilot-portable', selected, spec.id)
+        return [RenderedArtifact(PurePosixPath(spec.id, '.mcp.json'), json_bytes(document), 'mcp')]
     if spec.id == 'pi':
         normalized = [name.replace('-', '_') for name in selected]
         if len(normalized) != len(set(normalized)):

@@ -122,6 +122,38 @@ class StdioConfigurationTests(unittest.TestCase):
             "synthetic-stdio": {"command": COMMAND, "args": ARGS, "disabled": True},
         }})
 
+    def test_copilot_portable_stages_http_and_stdio_for_the_native_workspace_format(self):
+        spec = self.integrations["copilot"]
+        selected = ["context7", "synthetic-stdio"]
+        default, = render_mcp(spec, "vscode", self.profile, self.catalog, selected)
+        self.assertEqual(default.relative_path.as_posix(), "copilot/.vscode/mcp.json")
+        self.assertEqual(set(json.loads(default.content)), {"servers"})
+        empty, = render_mcp(spec, "vscode", self.profile, self.catalog, [], copilot_portable=True)
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        portable, = render_mcp(spec, "vscode", self.profile, self.catalog, selected, copilot_portable=True)
+        self.assertEqual(portable.relative_path.as_posix(), "copilot/.mcp.json")
+        self.assertEqual(json.loads(portable.content), {"mcpServers": {
+            "context7": {"type": "http", "url": "https://mcp.context7.com/mcp", "tools": ["*"]},
+            "synthetic-stdio": {"type": "stdio", "command": COMMAND, "args": ARGS, "tools": ["*"]},
+        }})
+        with self.assertRaisesRegex(WeaverError, "VS Code Copilot project target"):
+            render_mcp(self.integrations["opencode"], "cli", self.profile, self.catalog, [], copilot_portable=True)
+        restricted = dict(self.profile, allowed_mcp=["context7"])
+        with self.assertRaises(WeaverError):
+            render_mcp(spec, "vscode", restricted, self.catalog, selected, copilot_portable=True)
+
+    def test_copilot_portable_cli_handoff_names_the_native_destination_and_tool_scope(self):
+        base = ("--root", str(ROOT), "--agent", "copilot", "--profile", "efficient", "--dry-run")
+        code, output, errors = invoke("render", *base, "--copilot-portable", "--enable", "context7")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertEqual(fragment["path"], "copilot/.mcp.json")
+        self.assertIn("workspace-root .mcp.json", handoff["content"])
+        self.assertIn("narrow tools before import", handoff["content"])
+        self.assertIn("may start in the destination", handoff["content"])
+        self.assertNotIn(".vscode/mcp.json", handoff["content"])
+        self.assertEqual(invoke("render", *base, "--copilot-portable", "--opencode-v2")[0], 2)
+
     def test_hermes_profile_mcp_disables_both_transports_without_changing_fragment_behavior(self):
         selected = ["context7", "synthetic-stdio"]
         expected = {

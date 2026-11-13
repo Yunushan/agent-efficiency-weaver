@@ -184,6 +184,34 @@
           "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
         }
       ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "1.0.73",
+      "extension_version": "0.74.0",
+      "checked_on": "2026-11-13",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "source_commit": "83684be011d212d3ba4895afab0c402c9f7ccf58",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "29f7b08f16219b4cc29df87881d8b8ab8de358fb2c7476d18515e358aa203da7"
+        },
+        {
+          "check": "workspace-mcp-parse",
+          "evidence_sha256": "fe41ef958c3fbe5f446753fd0b6f38a006bd98a57c254a7687052a7151090613"
+        }
+      ]
     }
   ]
 }

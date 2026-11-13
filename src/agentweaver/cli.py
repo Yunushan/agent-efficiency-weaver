@@ -108,8 +108,11 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--profile', required=True)
         if name == 'render':
             command.add_argument('--enable', action='append', default=[])
-            command.add_argument('--opencode-v2', action='store_true',
+            render_route = command.add_mutually_exclusive_group()
+            render_route.add_argument('--opencode-v2', action='store_true',
                                  help='Stage selected servers as disabled OpenCode V2 project entries')
+            render_route.add_argument('--copilot-portable', action='store_true',
+                                      help='Stage portable MCP configuration for the VS Code Copilot harness')
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
         elif name in ('provider', 'model'):
@@ -232,7 +235,8 @@ def _selection(args: argparse.Namespace, root: Path) -> tuple[IntegrationSpec, s
 
 
 def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
-             *, mcp: bool = False, label: str | None = None, opencode_v2: bool = False) -> RenderedArtifact:
+             *, mcp: bool = False, label: str | None = None, opencode_v2: bool = False,
+             copilot_portable: bool = False) -> RenderedArtifact:
     target = spec.surface(surface)
     workflow = describe_workflow(spec, target_os, host_os, surface_id=surface)
     sources = list(dict.fromkeys(source for evidence in target.capabilities.values() for source in evidence.sources))
@@ -259,7 +263,8 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             if target.native_path_hint is None:
                 lines.append('No persistent settings file path is established for this import route.')
         else:
-            lines.extend([f'Project target after manual review: {target.native_path_hint}.',
+            path_hint = '.mcp.json' if copilot_portable else target.native_path_hint
+            lines.extend([f'Project target after manual review: {path_hint}.',
                           'Preserve unrelated settings; review existing entries before merging.'])
         lines.extend(['Empty exports select no MCP servers; they do not disable existing global/project servers.',
                       'Vendor project trust/approval remains required; generated profiles do not bypass it.'])
@@ -267,6 +272,14 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.append('Abacus user-level same-name MCP entries override project entries.')
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
+        if spec.id == 'copilot':
+            if copilot_portable:
+                lines.extend([
+                    'Select the Copilot harness in VS Code. Review each server before manually merging it into the workspace-root .mcp.json.',
+                    'Imported entries may start in the destination. Each entry exposes all its tools by default; review and narrow tools before import.',
+                ])
+            else:
+                lines.append('This export uses editor-managed MCP configuration. Select --copilot-portable for the native Copilot workspace format.')
         if opencode_v2:
             lines.extend(['OpenCode V2 entries are staged under mcp.servers with disabled: true.',
                           'Merge only after review. OpenCode V2 replaces same-name server entries as a whole.',
@@ -467,7 +480,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         profile = load_json(root / 'profiles' / f'{args.profile}.json')
         if args.cmd == 'render':
             catalog = load_json(root / 'catalogs/mcp-servers.json')
-            artifacts = render_mcp(spec, surface, profile, catalog, args.enable, opencode_v2=args.opencode_v2)
+            artifacts = render_mcp(spec, surface, profile, catalog, args.enable,
+                                   opencode_v2=args.opencode_v2, copilot_portable=args.copilot_portable)
         else:
             from .skills import render_instruction_bundle
 
@@ -599,7 +613,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         raise WeaverError('Unsupported command')
     artifacts.append(_handoff(spec, surface, target_os, host_os, mcp=args.cmd == 'render',
                               label={'provider': 'PROVIDER-OS', 'model': 'MODEL-OS', 'agent': 'AGENT-OS'}.get(args.cmd),
-                              opencode_v2=args.cmd == 'render' and args.opencode_v2))
+                              opencode_v2=args.cmd == 'render' and args.opencode_v2,
+                              copilot_portable=args.cmd == 'render' and args.copilot_portable))
     _emit(args, artifacts)
     return 0
 

@@ -69,6 +69,8 @@ Use `--surface desktop` for Cline Desktop. Weaver stages configured agents and p
 
 `agent --agent copilot --surface vscode --model MODEL --copilot-catalog FILE` stages a custom agent using exact IDs from a saved Copilot SDK `listModels()` array. Add `--copilot-fallback-model ID` for each fallback, `--reasoning-effort EFFORT` when every selected model advertises it, and `--allow-skill ID` for each portable Skill to load. Use `bundle` and `render` to stage Skills and MCP configuration for the same workspace. [VS Code custom agent file reference](https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference)
 
+For the VS Code Copilot harness, add `--copilot-portable` to `render --agent copilot --profile efficient` to stage a workspace-root `.mcp.json`. Explicitly select approved servers with `--enable ID` and review their tool access before merging. [VS Code MCP configuration](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)
+
 OpenRouter model snapshots retain each model's advertised endpoints. For embeddings, for example, use `model --agent openrouter --provider openrouter --model ID --catalog FILE --protocol openrouter-embeddings` to stage a selector for a model that advertises the embeddings route. The compatibility guide lists the other supported task routes. [OpenRouter model-list endpoint reference](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
 
 To stage the model and request endpoint for OpenRouter Batch, use `--protocol openrouter-batch --batch-endpoint /v1/responses` with a saved catalog containing the model's batch variant. Add the request bodies separately. [OpenRouter Batch API quickstart](https://openrouter.ai/docs/batch-quickstart)

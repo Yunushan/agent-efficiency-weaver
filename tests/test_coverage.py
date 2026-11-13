@@ -105,8 +105,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 2)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 14)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 3)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 17)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
@@ -125,6 +125,19 @@ class RequestedCoverageTests(unittest.TestCase):
                                 checks["stdio-subagent-approved-tool-call"]["evidence_sha256"])
             self.assertEqual(targets[surface]["capabilities"]["mcp"]["runtime_status"], "pending")
 
+    def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
+        report = coverage_report(ROOT)
+        item = next(item for item in report["requested_items"] if item["id"] == "copilot")
+        target, = item["targets"]
+        observation, = target["runtime_observations"]
+        self.assertEqual(observation["product_version"], "1.146.0")
+        self.assertEqual(observation["extension_version"], "0.74.0")
+        self.assertEqual(observation["engine_version"], "1.0.73")
+        self.assertEqual(observation["interface"], "bundled-runtime")
+        self.assertEqual({check["check"] for check in observation["checks"]},
+                         {"agent-discovery", "skill-discovery", "workspace-mcp-parse"})
+        self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")
         for field, value in (
@@ -132,6 +145,7 @@ class RequestedCoverageTests(unittest.TestCase):
             ("product_version", "C:/private/client"), ("engine_version", "latest"),
             ("os_variant", "linux:22.04"), ("os_id", "unknown"), ("architecture", []),
             ("checked_on", "2026-02-31"), ("source_commit", "main"), ("interface", "desktop-ui"),
+            ("interface", "bundled-runtime"), ("extension_version", "0.74.0"),
             ("environment", "signed-in"), ("checks", []), ("private_path", "NEVER-ECHO"),
             ("checks", [{"check": "successful-inference", "evidence_sha256": "a" * 64}]),
             ("checks", [{"check": "agent-load", "evidence_sha256": "NEVER-ECHO"}]),

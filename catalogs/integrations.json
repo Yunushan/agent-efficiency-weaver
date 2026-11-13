@@ -1073,12 +1073,14 @@
             "mcp": {
               "state": "available",
               "sources": [
-                "https://code.visualstudio.com/docs/agents/reference/mcp-configuration"
+                "https://code.visualstudio.com/docs/agents/reference/mcp-configuration",
+                "https://code.visualstudio.com/docs/agent-customization/migrate-customizations"
               ],
-              "checked_on": "2026-10-22",
+              "checked_on": "2026-11-13",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_adapters.py"
+                "tests/test_adapters.py",
+                "tests/test_stdio_adapters.py"
               ],
               "runtime_checks": []
             },
