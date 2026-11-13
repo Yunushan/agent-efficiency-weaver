@@ -173,6 +173,18 @@ _OBSERVATION_CHECKS = {
     "factory-cli-custom-effort-request": (
         "reasoning", "Custom-model exec arguments sent low, medium, and high, and off omitted the effort field.",
     ),
+    "kimi-web-stdio-tool-discovery": (
+        "mcp", "Kimi's workspace registry loaded the project MCP entry after trust and initiated stdio tool discovery.",
+    ),
+    "kimi-web-model-catalog": (
+        "models", "The local Web API enumerated three configured fixture aliases with their advertised effort lists.",
+    ),
+    "kimi-web-session-model-effort": (
+        "reasoning", "The staged session request bound the named model and high effort in a loopback request.",
+    ),
+    "kimi-web-subagent-pool-effort": (
+        "reasoning", "A spawned custom subagent used an alternate pool model and the shared high effort.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -206,6 +218,7 @@ _OBSERVATION_INTERFACES = {
     ("cline", "desktop", "desktop-sidecar"),
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
+    ("kimi-code", "cli", "local-web-api"),
 }
 
 
@@ -354,6 +367,7 @@ def _load_observations(
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("factory", "cli"): {"isolated-release-loopback"},
+            ("kimi-code", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

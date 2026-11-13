@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 12)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 109)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 13)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 115)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -332,6 +332,28 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(checks(custom), {
             "factory-cli-custom-model-request": "models", "factory-cli-custom-effort-request": "reasoning",
         })
+
+    def test_kimi_web_api_observations_cover_the_release_and_loopback_scope(self):
+        report = coverage_report(ROOT)
+        kimi = next(item for item in report["requested_items"] if item["id"] == "kimi-code")
+        target, = kimi["targets"]
+        observation, = target["runtime_observations"]
+        self.assertEqual(target["surface_id"], "cli")
+        self.assertEqual(observation["product_version"], "2.6.2")
+        self.assertEqual(observation["engine_version"], "2.6.2")
+        self.assertEqual(observation["interface"], "local-web-api")
+        self.assertEqual(observation["environment"], "isolated-release-loopback")
+        self.assertEqual(observation["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(observation["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in observation["checks"]}, {
+            "skill-discovery": "skills",
+            "kimi-web-stdio-tool-discovery": "mcp",
+            "agent-load": "agents",
+            "kimi-web-model-catalog": "models",
+            "kimi-web-session-model-effort": "reasoning",
+            "kimi-web-subagent-pool-effort": "reasoning",
+        })
+        self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

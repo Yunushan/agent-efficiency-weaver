@@ -1024,6 +1024,45 @@
           "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
         }
       ]
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-web-api",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "5de2acba4d5e8e22fe5c55d309afd89c65b0b2ee",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "kimi-web-stdio-tool-discovery",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-model-catalog",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-session-model-effort",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-subagent-pool-effort",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        }
+      ]
     }
   ]
 }
