@@ -512,6 +512,44 @@
           "evidence_sha256": "179d29dc9ea9982c18cf324b7ac0f1129bde4f0077f6749a49e1f44ed7891f05"
         }
       ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "2d8abac5a1166a12a79a468d1bab878ea46983f6",
+      "interface": "daemon-http",
+      "checks": [
+        {
+          "check": "qwen-daemon-approved-stdio-discovery",
+          "evidence_sha256": "8450d4e3079225e6fa103b7778249e2153bb03b571d5af7cf7586ad5d2bbd3b4"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "2d8abac5a1166a12a79a468d1bab878ea46983f6",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "70e86e97a661fb8797bd7b77539ad87196031f2ca0792a2e5f9f05e71ed6e187"
+        }
+      ]
     }
   ]
 }

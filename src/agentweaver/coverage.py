@@ -78,6 +78,9 @@ _OBSERVATION_CHECKS = {
     "qwen-daemon-mcp-pending-approval": (
         "mcp", "The daemon read the generated project server and kept it disconnected pending approval.",
     ),
+    "qwen-daemon-approved-stdio-discovery": (
+        "mcp", "The daemon connected and requested the fixture tool list after approval of the exact configuration.",
+    ),
     "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
     "project-stdio-healthcheck": (
@@ -102,6 +105,7 @@ _OBSERVATION_INTERFACES = {
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
     ("qwen-code", "cli", "daemon-http"),
+    ("qwen-code", "cli", "exec-loopback"),
 }
 
 
