@@ -91,6 +91,9 @@ _OBSERVATION_CHECKS = {
     "opencode-v2-stdio-discovery": (
         "mcp", "The V2 server initialized the local fixture and requested its tool list after explicit enablement.",
     ),
+    "opencode-v2-variant-effort-request": (
+        "reasoning", "The CLI applied a named variant's reasoning effort in a request to a scripted loopback endpoint.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -115,6 +118,7 @@ _OBSERVATION_INTERFACES = {
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
     ("opencode", "cli", "serve-http"),
+    ("opencode", "cli", "exec-loopback"),
 }
 
 

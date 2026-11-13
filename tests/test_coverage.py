@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 7)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 57)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 59)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -217,17 +217,22 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertEqual(check["check"], expected)
             self.assertEqual(check["capability"], "mcp")
 
-    def test_opencode_v2_runtime_records_distinguish_disabled_config_and_active_discovery(self):
+    def test_opencode_v2_runtime_records_distinguish_config_discovery_and_execution(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "opencode")
         [target] = item["targets"]
         self.assertEqual(target["surface_id"], "cli")
-        initial, active = target["runtime_observations"]
+        initial, active, execution = target["runtime_observations"]
         self.assertEqual(initial["product_version"], active["product_version"])
         self.assertEqual(active["product_version"], "2.3.0")
         self.assertEqual(active["interface"], "serve-http")
         self.assertEqual({check["check"]: check["capability"] for check in active["checks"]},
                          {"skill-discovery": "skills", "agent-discovery": "agents",
                           "opencode-v2-agent-variant-load": "reasoning", "opencode-v2-stdio-discovery": "mcp"})
+        self.assertEqual(execution["product_version"], active["product_version"])
+        self.assertEqual(execution["interface"], "exec-loopback")
+        self.assertEqual(execution["environment"], "isolated-release-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in execution["checks"]},
+                         {"stdio-tool-call": "mcp", "opencode-v2-variant-effort-request": "reasoning"})
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
