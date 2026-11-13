@@ -66,6 +66,10 @@ def _parser() -> argparse.ArgumentParser:
     codex_models.add_argument('--input', type=Path, required=True)
     codex_models.add_argument('--model')
     codex_models.add_argument('--reasoning-effort')
+    copilot_models = subs.add_parser('copilot-models', help='Inspect a saved Copilot SDK listModels() array')
+    copilot_models.add_argument('--input', type=Path, required=True)
+    copilot_models.add_argument('--model', action='append', help='Model ID to check; repeat to check fallbacks')
+    copilot_models.add_argument('--reasoning-effort')
     factory_models = subs.add_parser('factory-models', help='Inspect a saved Factory Droid SDK listModels() array')
     factory_models.add_argument('--input', type=Path, required=True)
     factory_models.add_argument('--model')
@@ -641,6 +645,12 @@ def main(argv: list[str] | None = None) -> int:
             from .codex_models import inspect_codex_models
 
             result = inspect_codex_models(args.input, model=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'copilot-models':
+            from .copilot_models import inspect_copilot_models
+
+            result = inspect_copilot_models(args.input, models=args.model, effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         if args.cmd == 'factory-models':

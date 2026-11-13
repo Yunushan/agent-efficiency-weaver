@@ -36,6 +36,9 @@ _OBSERVATION_CHECKS = {
     "stdio-subagent-approved-tool-call": ("mcp", "The subagent called the fixture with explicit local tool approval."),
     "remote-config-parse": ("mcp", "The client parsed the remote MCP entry without opening a connection."),
     "workspace-mcp-parse": ("mcp", "The native workspace parser accepted generated HTTP and stdio entries."),
+    "workspace-stdio-tool-call": (
+        "mcp", "The bundled runtime loaded the trusted workspace file, discovered the local tool, and called it directly.",
+    ),
     "model-catalog": ("models", "The client listed model IDs and advertised reasoning efforts across its catalog pages."),
     "agent-model-effort-selection": ("reasoning", "The selected child model and effort reached a scripted local endpoint."),
 }
