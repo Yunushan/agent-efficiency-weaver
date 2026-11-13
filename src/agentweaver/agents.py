@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .artifacts import RenderedArtifact
+from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model
@@ -168,7 +169,8 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
         if (format_name == "openhands-markdown") != (row["model_style"] == "local-profile"):
             raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
-        if set(efforts) - _EFFORTS or bool(efforts) != (row["effort_field"] is not None):
+        allowed_efforts = CODEX_EFFORTS if format_name == "codex-toml" else _EFFORTS
+        if set(efforts) - allowed_efforts or bool(efforts) != (row["effort_field"] is not None):
             raise WeaverError("Invalid custom-agent effort declaration")
         if format_name == "factory-markdown" and set(efforts) - {"low", "medium", "high"}:
             raise WeaverError("Factory custom-agent effort is limited to low/medium/high")
@@ -328,7 +330,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             description: str, instructions: str, model_id: str | None = None,
                             effort: str | None = None, provider_id: str | None = None,
                             snapshot: Mapping[str, Any] | None = None,
-                            llm_profile: str | None = None) -> list[RenderedArtifact]:
+                            llm_profile: str | None = None,
+                            codex_catalog: Path | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -355,7 +358,19 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Manual custom-agent handoff cannot apply or validate native model/effort overrides")
     model: str | None
     checked: dict[str, Any] | None
-    if llm_profile is not None:
+    codex_digest: str | None = None
+    if codex_catalog is not None:
+        if spec.id != "codex" or row["format"] != "codex-toml":
+            raise WeaverError("A Codex model catalog requires a native Codex custom-agent target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile)):
+            raise WeaverError("A Codex model catalog conflicts with provider, provider catalog or LLM profile")
+        if model_id is None or model_id == "inherit":
+            raise WeaverError("A Codex model catalog requires an explicit model")
+        if effort is not None and effort not in row["efforts"]:
+            raise WeaverError("Custom-agent effort field or requested effort is unsupported or unknown")
+        model, checked = _model_selection(row, root, model_id, None, None, None)
+        codex_digest = validate_codex_selection(codex_catalog, model_id, effort)
+    elif llm_profile is not None:
         if (spec.id, surface, row["model_style"]) != ("openhands", "cli", "local-profile"):
             raise WeaverError("Local LLM profile references are supported only for OpenHands CLI custom-agent definitions")
         if any(value is not None for value in (model_id, effort, provider_id, snapshot)):
@@ -435,6 +450,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.extend(["", f"Model validation provider: {checked['provider_id']}",
                       "Provider validation does not change the parent's provider or prove availability, entitlement, "
                       "successful inference, or installed-host compatibility."])
+    if codex_digest is not None:
+        lines.extend(["", f"Saved Codex model/list page SHA-256: {codex_digest}",
+                      "This selection matches a picker-visible model in a caller-supplied Codex catalog page. "
+                      "The page may be partial or stale. It does not prove account access, inference, or "
+                      "compatibility with the target client. The parent's provider is unchanged."])
     if llm_profile is not None:
         lines.append(f"Explicit local LLM profile reference: {model}")
     elif model is not None:

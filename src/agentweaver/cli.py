@@ -109,6 +109,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--llm-profile', help='Existing OpenHands local LLM profile reference; no profile is read or created')
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
+            command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list JSON response')
             command.add_argument('--reasoning-effort')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
@@ -430,7 +431,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             spec, surface, root=root, name=args.name, description=args.description,
             instructions=args.instructions_file.read_text(encoding='utf-8'), model_id=args.model,
             effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
-            llm_profile=args.llm_profile,
+            llm_profile=args.llm_profile, codex_catalog=args.codex_catalog,
         )
     else:
         raise WeaverError('Unsupported command')

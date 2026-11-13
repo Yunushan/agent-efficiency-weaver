@@ -16,6 +16,8 @@ A provider-reported `context_length: 0` is preserved in snapshot inventory, whil
 
 `catalogs/model-hosts.json` records selection mechanisms, fields, session commands, UI guidance, and model-dependent reasoning controls for all 43 registered surfaces. `load_model_hosts` requires exactly one row per product/surface. These operator-facing documentation states are separate from provider/backend discovery and native model exporters; the catalog cannot activate an exporter. Unknown availability and pending runtime evidence remain explicit. Null allowed values require discovery in the chosen host/model rather than borrowing a vocabulary from another surface.
 
+Codex custom-agent rendering can validate an explicit model and optional effort against a saved app-server `model/list` page. This path keeps client reasoning labels separate from provider wire-protocol controls. It records the page hash in the handoff and uses only the matched model and explicitly requested effort in the staged TOML.
+
 `catalogs/operating-systems.json` records seven families: Windows, macOS, Linux, BSD, Solaris, Android, and iOS. Windows, macOS, and Linux are primary CI targets. BSD and Solaris require Python 3.11+ and real-host evidence, Android is conditional Termux/compatible Python plus remote handoff, and iOS is remote/artifact handoff only. Host detection preserves WSL, BSD variant, and illumos qualifiers.
 
 ## Rendering pipeline

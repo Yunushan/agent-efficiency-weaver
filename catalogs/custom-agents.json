@@ -314,10 +314,11 @@
         "medium",
         "high",
         "xhigh",
-        "max"
+        "max",
+        "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",
@@ -352,10 +353,11 @@
         "medium",
         "high",
         "xhigh",
-        "max"
+        "max",
+        "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",
@@ -390,10 +392,11 @@
         "medium",
         "high",
         "xhigh",
-        "max"
+        "max",
+        "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider-specific model evidence.",
+      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",

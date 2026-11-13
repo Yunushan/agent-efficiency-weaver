@@ -1,5 +1,6 @@
 """Independent parsing and safety checks for offline custom-agent definitions."""
 import copy
+import hashlib
 import json
 import socket
 import subprocess
@@ -179,6 +180,40 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                         dict(model_id="gpt-6.1-sol", provider_id="openai", effort="max")):
             with self.subTest(factory=options), self.assertRaises(WeaverError):
                 self.render("factory", **options)
+
+    def test_codex_catalog_validates_client_effort_without_provider_inference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "catalog.json"
+            catalog.write_text(json.dumps({"result": {"data": [
+                {"id": "picker-alias", "model": "client-model", "hidden": False,
+                 "supportedReasoningEfforts": [{"reasoningEffort": "ultra"}]},
+                {"id": "internal", "model": "internal", "hidden": True,
+                 "supportedReasoningEfforts": [{"reasoningEffort": "ultra"}]},
+            ], "nextCursor": "more"}}), encoding="utf-8")
+            artifacts = self.render(model_id="client-model", effort="ultra", codex_catalog=catalog)
+            parsed = tomllib.loads(artifacts[0].content.decode())
+            self.assertEqual(parsed["model"], "client-model")
+            self.assertEqual(parsed["model_reasoning_effort"], "ultra")
+            self.assertNotIn("model_provider", parsed)
+            self.assertIn(hashlib.sha256(catalog.read_bytes()).hexdigest(), artifacts[1].content.decode())
+            for model, effort in (("client-model", "low"), ("internal", "ultra"), ("picker-alias", None)):
+                with self.subTest(model=model, effort=effort), self.assertRaises(WeaverError):
+                    self.render(model_id=model, effort=effort, codex_catalog=catalog)
+            with self.assertRaisesRegex(WeaverError, "conflicts"):
+                self.render(model_id="client-model", provider_id="openai", codex_catalog=catalog)
+            with self.assertRaisesRegex(WeaverError, "native Codex"):
+                self.render("factory", model_id="client-model", codex_catalog=catalog)
+
+    def test_codex_catalog_rejects_ambiguous_unknown_or_unsafe_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "catalog.json"
+            model = {"id": "entry", "model": "model", "hidden": False}
+            for rows in ([model], [model, {**model, "id": "second"}],
+                         [{**model, "authorization": "redacted"}],
+                         [{**model, "supportedReasoningEfforts": ["high"]}]):
+                catalog.write_text(json.dumps({"result": {"data": rows}}), encoding="utf-8")
+                with self.subTest(rows=rows), self.assertRaises(WeaverError):
+                    self.render(model_id="model", effort="high", codex_catalog=catalog)
 
     def test_model_controls_preserve_host_semantics(self):
         for product, surface in (("kimi-code", "cli"), ("qoder", "ide")):
