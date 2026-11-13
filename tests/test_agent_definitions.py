@@ -182,6 +182,59 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             with self.subTest(factory=options), self.assertRaises(WeaverError):
                 self.render("factory", **options)
 
+    def test_copilot_sdk_catalog_stages_ordered_models_shared_effort_and_selected_skills(self):
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            catalog = base / "copilot-models.json"
+            models = [
+                {"id": "copilot/primary", "supportedReasoningEfforts": ["low", "high", "deep-think"],
+                 "policy": {"state": "enabled"}},
+                {"id": "configured-provider/fallback", "supportedReasoningEfforts": ["high"]},
+                {"id": "disabled-model", "supportedReasoningEfforts": ["high"], "policy": {"state": "disabled"}},
+                {"id": "missing-effort"},
+            ]
+            catalog.write_text(json.dumps(models), encoding="utf-8")
+            role = base / "role.md"
+            role.write_text("Review the changes.", encoding="utf-8")
+            args = ("agent", "--root", str(ROOT), "--agent", "copilot", "--surface", "vscode",
+                    "--name", "reviewer", "--description", "Review changed files", "--instructions-file",
+                    str(role), "--dry-run", "--model", "copilot/primary", "--copilot-catalog", str(catalog))
+            code, output, errors = invoke(*args, "--copilot-fallback-model", "configured-provider/fallback",
+                                          "--reasoning-effort", "high", "--allow-skill", "security-review")
+            self.assertEqual(code, 0, errors)
+            artifacts = json.loads(output)["artifacts"]
+            agent = next(item for item in artifacts if item["kind"] == "agent-definition")
+            self.assertEqual(agent["path"], "copilot/.github/agents/reviewer.agent.md")
+            fields, body = parse_definition(agent["content"].encode(), agent["path"])
+            self.assertEqual(fields, {
+                "name": "reviewer", "description": "Review changed files", "target": "github-copilot",
+                "model": ["copilot/primary", "configured-provider/fallback"], "reasoning-effort": "high",
+                "tools": ["read", "search"], "skills": ["security-review"],
+            })
+            self.assertEqual(body.strip(), "Review the changes.")
+            handoff = next(item["content"] for item in artifacts if item["kind"] == "agent-handoff")
+            self.assertIn(hashlib.sha256(catalog.read_bytes()).hexdigest(), handoff)
+            code, output, errors = invoke(*args, "--reasoning-effort", "deep-think")
+            self.assertEqual(code, 0, errors)
+            agent = next(item for item in json.loads(output)["artifacts"] if item["kind"] == "agent-definition")
+            fields, _ = parse_definition(agent["content"].encode(), agent["path"])
+            self.assertEqual(fields["reasoning-effort"], "deep-think")
+            self.assertEqual(fields["model"], "copilot/primary")
+            for model, effort in (("disabled-model", "high"), ("missing-effort", "high"),
+                                  ("copilot/primary", "high"), ("configured-provider/fallback", "low")):
+                with self.subTest(model=model, effort=effort):
+                    code, output, _ = invoke(*args, "--copilot-fallback-model", model, "--reasoning-effort", effort)
+                    self.assertNotEqual(code, 0)
+                    self.assertEqual(output, "")
+            for changed in (models + [models[0]], [{"id": "copilot/primary", "api_key": "must-not-be-copied"}]):
+                catalog.write_text(json.dumps(changed), encoding="utf-8")
+                code, output, errors = invoke(*args)
+                self.assertNotEqual(code, 0)
+                self.assertEqual(output, "")
+                self.assertNotIn("must-not-be-copied", errors)
+
     def test_codex_catalog_validates_client_effort_without_provider_inference(self):
         with tempfile.TemporaryDirectory() as directory:
             catalog = Path(directory) / "catalog.json"

@@ -17,6 +17,7 @@ from .adapters import hermes_profile_mcp, json_bytes
 from .artifacts import RenderedArtifact
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url, safe_name
+from .copilot_models import validate_copilot_selection
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
 from .opencode_models import validate_opencode_selection
@@ -57,7 +58,7 @@ _STYLES = {"bare", "provider/model", "tier", "local-profile", "none"}
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
-                  "qoder-markdown": "effort"}
+                  "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort"}
 
 
 def _text(value: object, label: str, *, multiline: bool = False, maximum: int = 500) -> str:
@@ -173,7 +174,9 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
         allowed_efforts = CODEX_EFFORTS if format_name == "codex-toml" else _EFFORTS
-        if set(efforts) - allowed_efforts or bool(efforts) != (row["effort_field"] is not None):
+        catalog_efforts = format_name == "vscode-markdown" and row["effort_field"] is not None
+        if (set(efforts) - allowed_efforts or (catalog_efforts and efforts)
+                or (not catalog_efforts and bool(efforts) != (row["effort_field"] is not None))):
             raise WeaverError("Invalid custom-agent effort declaration")
         if format_name == "factory-markdown" and set(efforts) - {"low", "medium", "high"}:
             raise WeaverError("Factory custom-agent effort is limited to low/medium/high")
@@ -272,12 +275,12 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 
 
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
-            model: str | None, effort: str | None, *, opencode_v2: bool = False,
-            skill_ids: tuple[str, ...] = ()) -> bytes:
+            model: str | list[str] | None, effort: str | None, *, opencode_v2: bool = False,
+            skill_ids: tuple[str, ...] = (), copilot_catalog: bool = False) -> bytes:
     format_name = row["format"]
     if format_name == "codex-toml":
         fields = {"name": name, "description": description, "developer_instructions": instructions}
-        if model is not None:
+        if isinstance(model, str):
             fields["model"] = model
         if effort is not None:
             fields["model_reasoning_effort"] = effort
@@ -297,6 +300,10 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields_any.update(model=model or "inherit", tools="read-only", mcpServers=[])
     elif format_name == "vscode-markdown":
         fields_any["tools"] = ["read", "search"]
+        if copilot_catalog:
+            fields_any["target"] = "github-copilot"
+            if skill_ids:
+                fields_any["skills"] = list(skill_ids)
     elif format_name == "claude-markdown":
         fields_any.update(model=model or "inherit", tools=["Read", "Glob", "Grep"])
     elif format_name == "qwen-markdown":
@@ -349,7 +356,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             profile_skills: list[str] | None = None, mcp_profile: str | None = None,
                             profile_mcp: list[str] | None = None,
                             profile_context_size: int | None = None,
-                            hermes_profile_route: bool = False) -> list[RenderedArtifact]:
+                            hermes_profile_route: bool = False, copilot_catalog: Path | None = None,
+                            copilot_fallbacks: list[str] | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -361,8 +369,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if model_variant is not None and opencode_catalog is None:
         raise WeaverError("A model variant requires an OpenCode V2 catalog")
-    if allowed_skills and opencode_catalog is None:
-        raise WeaverError("Skill permissions require the OpenCode V2 agent route")
+    if allowed_skills and opencode_catalog is None and copilot_catalog is None:
+        raise WeaverError("Skill selection requires an OpenCode V2 or Copilot SDK catalog")
+    if copilot_fallbacks and copilot_catalog is None:
+        raise WeaverError("Copilot fallback models require --copilot-catalog")
+    if copilot_catalog is not None and (spec.id, surface) != ("copilot", "vscode"):
+        raise WeaverError("A Copilot SDK catalog requires the Copilot VS Code target")
     if profile_skills and not hermes_profile:
         raise WeaverError("Profile Skill staging requires --hermes-profile")
     if profile_context_size is not None and not hermes_profile:
@@ -411,8 +423,25 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     checked: dict[str, Any] | None
     codex_digest: str | None = None
     opencode_digest: str | None = None
+    copilot_digest: str | None = None
+    copilot_models: list[str] | None = None
     skill_ids: tuple[str, ...] = ()
-    if opencode_catalog is not None:
+    if copilot_catalog is not None:
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, opencode_catalog)):
+            raise WeaverError("A Copilot SDK catalog conflicts with other model discovery options")
+        if model_id is None or model_id == "inherit":
+            raise WeaverError("A Copilot SDK catalog requires an explicit model")
+        copilot_models = []
+        for choice in [model_id, *(copilot_fallbacks or [])]:
+            selection, _ = _model_selection(row, root, choice, None, None, None)
+            if selection is None or selection in copilot_models:
+                raise WeaverError("Copilot primary and fallback models must be explicit and distinct")
+            copilot_models.append(selection)
+        copilot_digest = validate_copilot_selection(copilot_catalog, copilot_models, effort)
+        if allowed_skills:
+            skill_ids = selected_portable_skill_ids(root, allowed_skills)
+        model, checked = copilot_models[0], None
+    elif opencode_catalog is not None:
         if (spec.id, surface, row["format"]) != ("opencode", "cli", "opencode-markdown"):
             raise WeaverError("An OpenCode V2 model catalog requires an OpenCode CLI custom-agent target")
         if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, effort)):
@@ -441,6 +470,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A local LLM profile reference conflicts with model, provider, effort or catalog overrides")
         model, checked = _llm_profile(llm_profile), None
     else:
+        if effort is not None and row["format"] == "vscode-markdown":
+            raise WeaverError("Copilot custom-agent effort requires --copilot-catalog")
         model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
     permission_behavior = (row["permission_behavior"] if opencode_digest is None else
                            "V2 ordered rules deny all actions first, allow read/glob/grep, and deny reads of "
@@ -532,6 +563,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                           "Stage matching files separately with bundle --skill for each ID. "
                           "Review which source wins for each ID in OpenCode before use. "
                           "A Skill rule grants no additional tool permissions."])
+    if copilot_digest is not None:
+        lines.extend(["", f"Saved Copilot SDK listModels() SHA-256: {copilot_digest}",
+                      "Use the Copilot session target and review exact runtime model IDs in the picker. "
+                      "The saved list cannot establish current model access or prove successful inference."])
+        if skill_ids:
+            lines.extend(["", "Copilot Skills to load: " + ", ".join(skill_ids) + ".",
+                          "Stage matching files separately with bundle --skill for each ID."])
     if llm_profile is not None:
         lines.append(f"Explicit local LLM profile reference: {model}")
     elif model is not None:
@@ -546,8 +584,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     artifacts: list[RenderedArtifact] = []
     if state == "native":
         path = row["path_template"].replace("{name}", identifier)
-        content = _native(row, identifier, summary, prompt, model, effort,
-                          opencode_v2=opencode_digest is not None, skill_ids=skill_ids)
+        native_model = copilot_models if copilot_models and len(copilot_models) > 1 else model
+        content = _native(row, identifier, summary, prompt, native_model, effort,
+                          opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
+                          copilot_catalog=copilot_digest is not None)
         artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
         lines.extend(["", f"Native project path: {path}"])
     else:

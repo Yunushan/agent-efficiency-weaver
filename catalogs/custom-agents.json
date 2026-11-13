@@ -423,15 +423,17 @@
       "path_template": ".github/agents/{name}.agent.md",
       "model_field": "model",
       "model_style": "bare",
-      "effort_field": null,
+      "effort_field": "reasoning-effort",
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "reasoning_behavior": "The Copilot SDK catalog route can stage an initial effort advertised by every selected model. The active harness resolves effective reasoning.",
       "permission_behavior": "Only read and search tools are selected; tool behavior depends on the selected VS Code harness and host policy.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://code.visualstudio.com/docs/agent-customization/custom-agents"
+          "https://code.visualstudio.com/docs/agent-customization/custom-agents",
+          "https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference",
+          "https://github.com/github/copilot-sdk/blob/main/nodejs/src/types.ts"
         ],
         "checked_on": "2026-10-26",
         "version_constraint": null,
