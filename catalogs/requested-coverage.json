@@ -1360,6 +1360,33 @@
           "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
         }
       ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "99778fd55766fd50be3e81b8595d9bbc945175ee",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        },
+        {
+          "check": "stdio-subagent-tool-approval",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        }
+      ]
     }
   ]
 }

@@ -34,6 +34,10 @@ _OBSERVATION_CHECKS = {
     "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
     "stdio-tool-call": ("mcp", "The parent session called a local stdio fixture from the generated configuration."),
     "stdio-subagent-approved-tool-call": ("mcp", "The subagent called the fixture with explicit local tool approval."),
+    "stdio-subagent-tool-approval": (
+        "mcp", "The subagent discovered the fixture from the generated file. The call required approval, and a scoped "
+        "approval in the isolated home allowed it without editing the project file.",
+    ),
     "remote-config-parse": ("mcp", "The client parsed the remote MCP entry without opening a connection."),
     "public-docs-https-tool-call": (
         "mcp", "The signed-out client discovered the public OpenAI Docs tools and called the documentation list directly.",

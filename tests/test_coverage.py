@@ -110,13 +110,14 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 17)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 159)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 162)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
         for surface, version in versions.items():
             observation, = [record for record in targets[surface]["runtime_observations"]
-                            if any(check["check"] == "agent-load" for check in record["checks"])]
+                            if record["interface"] == "app-server-stdio"
+                            and any(check["check"] == "agent-load" for check in record["checks"])]
             self.assertEqual(observation["product_version"], version)
             self.assertEqual(observation["engine_version"], "0.167.0-alpha.4.1")
             self.assertEqual(observation["interface"], "app-server-stdio")
@@ -157,11 +158,19 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertEqual(docs_subagent["checks"][0]["capability"], "mcp")
             self.assertNotEqual(docs_subagent["checks"][0]["evidence_sha256"], remote["checks"][0]["evidence_sha256"])
             self.assertEqual(targets[surface]["capabilities"]["mcp"]["runtime_status"], "pending")
-        profile, = [record for record in targets["cli"]["runtime_observations"]
-                    if record["interface"] == "exec-loopback"]
+        exec_records = [record for record in targets["cli"]["runtime_observations"]
+                        if record["interface"] == "exec-loopback"]
+        profile, = [record for record in exec_records if record["checks"][0]["check"] == "named-profile-model-request"]
         self.assertEqual(profile["product_version"], "0.167.0-alpha.4.1")
         self.assertEqual({check["check"]: check["capability"] for check in profile["checks"]},
                          {"named-profile-model-request": "models", "named-profile-effort-precedence": "reasoning"})
+        agent, = [record for record in exec_records if record["checks"][0]["check"] == "agent-load"]
+        for field in ("product_version", "engine_version", "environment", "architecture"):
+            self.assertEqual(agent[field], profile[field])
+        self.assertEqual(agent["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual({check["check"]: check["capability"] for check in agent["checks"]},
+                         {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
+                          "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
 
     def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
