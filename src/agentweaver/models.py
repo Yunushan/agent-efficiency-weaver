@@ -510,6 +510,40 @@ def _openrouter_endpoints(value: object) -> list[str]:
     return paths
 
 
+def _openrouter_catalog_metadata(entry: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    if "canonical_slug" in entry:
+        metadata["canonical_slug"] = _model_id(entry["canonical_slug"])
+    if "alias_target" in entry:
+        alias = entry["alias_target"]
+        if alias is not None:
+            if not isinstance(alias, dict):
+                _fail("Invalid OpenRouter alias target")
+            alias = {"slug": _model_id(alias.get("slug")), "name": _text(alias.get("name"), "alias target name")}
+        metadata["alias_target"] = alias
+    if "supported_voices" in entry:
+        voices = entry["supported_voices"]
+        metadata["supported_voices"] = None if voices is None else _strings(voices, "OpenRouter voice ids")
+    if "top_provider" in entry:
+        top_provider = entry["top_provider"]
+        if not isinstance(top_provider, dict):
+            _fail("Invalid OpenRouter top provider metadata")
+        top: dict[str, Any] = {}
+        for key in ("context_length", "max_completion_tokens"):
+            if key in top_provider:
+                limit = top_provider[key]
+                if limit is not None and (type(limit) is not int or limit < 0):
+                    _fail("Invalid OpenRouter top provider token limit")
+                top[key] = limit
+        if "is_moderated" in top_provider:
+            moderated = top_provider["is_moderated"]
+            if type(moderated) is not bool:
+                _fail("Invalid OpenRouter top provider moderation flag")
+            top["is_moderated"] = moderated
+        metadata["top_provider"] = top
+    return metadata
+
+
 def _lmstudio_metadata(entry: dict[str, Any]) -> dict[str, Any]:
     """Keep model identity, installed variants, and instance state separate."""
     model_type = entry.get("type")
@@ -614,6 +648,7 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
             if format_name == "lmstudio":
                 item["lm_studio"] = _lmstudio_metadata(entry)
             if format_name == "openrouter":
+                item.update(_openrouter_catalog_metadata(entry))
                 if "endpoints" in entry:
                     item["endpoints"] = _openrouter_endpoints(entry["endpoints"])
                 if "architecture" in entry:
@@ -731,7 +766,12 @@ def _wire(protocol: str, cap: dict[str, Any], *, effort: str | None, budget_toke
         if budget_tokens is not None:
             _fail("LM Studio native chat does not document a reasoning token budget")
         return {"reasoning": effort or ("on" if reasoning_enabled else "off")}
-    if protocol == "anthropic-messages":
+    if protocol in {"anthropic-messages", "openrouter-messages"}:
+        if protocol == "openrouter-messages":
+            if effort in {"minimal", "none"}:
+                _fail("OpenRouter Messages has no matching output_config.effort value")
+            if effort is not None and budget_tokens is not None:
+                _fail("OpenRouter Messages effort and token budget cannot be combined")
         payload: dict[str, Any] = {}
         if effort is not None:
             payload["output_config"] = {"effort": effort}
@@ -813,7 +853,10 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     if router_task:
         if router_endpoint is None or snapshot is None:
             _fail("This OpenRouter route requires a saved OpenRouter model list with endpoint metadata")
-        if not batch and any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
+        if chosen == "openrouter-messages" and context_size is not None:
+            _fail("OpenRouter Messages request staging does not accept a context-size override")
+        if chosen not in {"openrouter-batch", "openrouter-messages"} and any(
+                value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
             _fail("This OpenRouter route stages only the model selector")
     nonchat = _LM_STUDIO_NONCHAT.get(chosen)
     if nonchat is not None:
@@ -821,9 +864,6 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             _fail("This LM Studio route requires a saved native model list")
         if any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
             _fail("This LM Studio route does not accept chat reasoning or context controls")
-    if (provider_id == "openrouter" and chosen == "openai-responses" and
-            (budget_tokens is not None or reasoning_enabled is not None or mode is not None)):
-        _fail("OpenRouter Responses budget, toggle and mode mappings are not established; use a documented effort subset")
     cap = _reasoning(None)
     evidence: dict[str, Any] = {"origin": "unknown", "sources": []}
     for known in provider["known_models"]:
@@ -835,6 +875,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     architecture: dict[str, Any] | None = None
     endpoints: list[str] | None = None
     supported_parameters: list[str] | None = None
+    openrouter_metadata: dict[str, Any] = {}
     lmstudio_options: list[str] | None = None
     if snapshot is not None:
         if not isinstance(snapshot, Mapping) or snapshot.get("provider_id") != provider_id:
@@ -871,8 +912,10 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                 architecture = declared_architecture
                 if router_endpoint is not None and "endpoints" in entry:
                     endpoints = _openrouter_endpoints(entry["endpoints"])
-                if provider_id == "openrouter" and "supported_parameters" in entry:
-                    supported_parameters = _strings(entry["supported_parameters"], "supported parameters")
+                if provider_id == "openrouter":
+                    openrouter_metadata = _openrouter_catalog_metadata(entry)
+                    if "supported_parameters" in entry:
+                        supported_parameters = _strings(entry["supported_parameters"], "supported parameters")
                 if provider_id == "lm-studio" and "lm_studio" in entry:
                     metadata = entry["lm_studio"]
                     if not isinstance(metadata, dict):
@@ -922,6 +965,8 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                 (lmstudio_options is not None and effort not in lmstudio_options)):
             _fail("Unsupported LM Studio native reasoning effort")
         reasoning_protocol = _OPENROUTER_BATCH_REASONING.get(batch_endpoint, chosen) if batch_endpoint else chosen
+        if provider_id == "openrouter" and reasoning_protocol == "openai-responses":
+            reasoning_protocol = "openrouter-chat"
         payload = _wire(reasoning_protocol, cap, effort=effort, budget_tokens=budget_tokens,
                         reasoning_enabled=reasoning_enabled, mode=mode)
     return {"provider_id": provider_id, "integration_id": provider["integration_id"], "surface": provider["surface"],
@@ -932,7 +977,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             "credentials_read": False, "context_size": context_size, "architecture": architecture,
             "advertised_endpoints": endpoints, "supported_parameters": supported_parameters,
             "batch_model": batch_model if batch else None, "batch_endpoint": batch_endpoint,
-            "language_agent_compatibility": "unknown"}
+            "language_agent_compatibility": "unknown", **openrouter_metadata}
 
 
 def _json_artifact(path: str, value: object, kind: str) -> RenderedArtifact:
@@ -1051,6 +1096,9 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     provider = load_model_providers(root)[provider_id]
     prefix = f"{registered.id}/model"
     chosen = checked["protocol"]
+    router_responses_extra_controls = (provider_id, chosen) == ("openrouter", "openai-responses") and (
+        budget_tokens is not None or reasoning_enabled is not None
+    )
     api_base = provider["base_url"]
     if provider_id == "lm-studio" and (chosen in {"openai-chat", "openai-responses"} or chosen in _LM_STUDIO_NONCHAT):
         api_base += "/v1"
@@ -1078,7 +1126,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
                        "language-agent compatibility is unknown.")
     if chosen in _OPENROUTER_TASK_ENDPOINTS:
-        native_note = ("Use the staged selector as the model field in a request to the listed OpenRouter endpoint. "
+        native_note = ("Use the staged fields in a request to the listed OpenRouter endpoint. "
                        "Add the endpoint's task-specific input and authenticate separately.")
     if (text_candidate and (registered.id, surface, provider_id, chosen) ==
             ("cline", "desktop", "openrouter", "openrouter-chat")):
@@ -1252,6 +1300,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     elif (text_candidate and registered.id == "qwen-code" and surface in {"cli", "desktop", "vscode"}
             and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
+            and not router_responses_extra_controls
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
         model: dict[str, Any] = {"id": model_id, "baseUrl": api_base, "envKey": provider["secret_env"],
                                  "wireApi": "responses" if chosen == "openai-responses" else "chat-completions"}
@@ -1302,7 +1351,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             native_note = ("Review the requested model and controls in Qwen Code. This exporter stages named efforts "
                            "whose Qwen mapping is established. Budgets and toggles require a manual configuration check.")
     elif text_candidate and registered.id == "kimi-code" and surface == "cli" and chosen in {
-            "openai-chat", "openai-responses", "anthropic-messages"} and budget_tokens is None and mode is None and effort not in {"none", "minimal"} and provider["secret_env"] is not None:
+            "openai-chat", "openai-responses", "anthropic-messages"} and budget_tokens is None and mode is None and effort not in {"none", "minimal"} and not router_responses_extra_controls and provider["secret_env"] is not None:
         provider_type = {"openai-chat": "openai", "openai-responses": "openai_responses", "anthropic-messages": "anthropic"}[chosen]
         def quote(value: object) -> str:
             return json.dumps(value, ensure_ascii=True)

@@ -33,7 +33,9 @@
       },
       "sources": [
         "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties",
+        "https://openrouter.ai/docs/guides/features/latest-resolution",
         "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+        "https://openrouter.ai/docs/api/api-reference/anthropic-messages/create-a-message",
         "https://openrouter.ai/docs/api_reference/responses/overview",
         "https://openrouter.ai/docs/api_reference/responses/reasoning",
         "https://openrouter.ai/docs/batch-quickstart",

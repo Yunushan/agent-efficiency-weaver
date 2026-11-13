@@ -153,16 +153,23 @@ class ModelHostTests(unittest.TestCase):
         self.assertIn("fixed model choices", studio["mechanism"])
         self.assertIn("not an arbitrary", hosts[("lm-studio", "bionic")]["selection"]["mechanism"])
 
-    def test_openrouter_responses_accepts_documented_effort_without_inference_claim(self) -> None:
+    def test_openrouter_responses_accepts_declared_controls_without_inference_claim(self) -> None:
         snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/model", "reasoning": {
             "state": "declared", "efforts": ["low", "high"], "toggle": True,
             "budget_tokens": {"minimum": 1}, "modes": ["standard", "pro"]}}]}
-        checked = check_model(ROOT, "openrouter", "fixture/model", snapshot=snapshot,
-                              protocol="openai-responses", effort="high")
-        self.assertEqual(checked["reasoning_payload"], {"reasoning": {"effort": "high"}})
-        self.assertFalse(checked["inference_tested"])
-        self.assertEqual(checked["availability"], "unknown")
-        for settings in ({"budget_tokens": 1024}, {"reasoning_enabled": True}, {"mode": "pro"}):
+        for settings, wire in (
+            ({"effort": "high"}, {"effort": "high"}),
+            ({"budget_tokens": 1024}, {"max_tokens": 1024}),
+            ({"reasoning_enabled": True}, {"enabled": True}),
+            ({"mode": "pro"}, {"mode": "pro"}),
+        ):
+            with self.subTest(settings=settings):
+                checked = check_model(ROOT, "openrouter", "fixture/model", snapshot=snapshot,
+                                      protocol="openai-responses", **settings)
+                self.assertEqual(checked["reasoning_payload"], {"reasoning": wire})
+                self.assertFalse(checked["inference_tested"])
+                self.assertEqual(checked["availability"], "unknown")
+        for settings in ({"effort": "medium"}, {"budget_tokens": 0}, {"mode": "unknown"}):
             with self.subTest(settings=settings), self.assertRaises(WeaverError):
                 check_model(ROOT, "openrouter", "fixture/model", snapshot=snapshot,
                             protocol="openai-responses", **settings)

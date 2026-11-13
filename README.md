@@ -87,6 +87,8 @@ Use `--agent claude-code --surface desktop` for local sessions in Claude Desktop
 
 OpenRouter model snapshots retain each model's advertised endpoints. For embeddings, for example, use `model --agent openrouter --provider openrouter --model ID --catalog FILE --protocol openrouter-embeddings` to stage a selector for a model that advertises the embeddings route. The compatibility guide lists the other supported task routes. [OpenRouter model-list endpoint reference](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties)
 
+OpenRouter inventory also includes reported alias targets, voice IDs, and top-provider limits. With a saved model listing, the Chat Completions, Responses, and Messages selectors can stage an advertised reasoning effort, budget, or toggle. [OpenRouter reasoning controls](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)
+
 To stage the model and request endpoint for OpenRouter Batch, use `--protocol openrouter-batch --batch-endpoint /v1/responses` with a saved catalog containing the model's batch variant. Add the request bodies separately. [OpenRouter Batch API quickstart](https://openrouter.ai/docs/batch-quickstart)
 
 `computer-models --input snapshot.json` separately inspects a caller-saved Perplexity Computer MCP `models_list` response. Add `--mode NAME` or `--model ID` and optional `--reasoning-effort VALUE` to check an explicit choice against that snapshot. It does not connect, authenticate or start a task; captured account choices may change and do not prove current access or inference.

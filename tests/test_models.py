@@ -134,6 +134,48 @@ class SnapshotTests(unittest.TestCase):
             with self.subTest(architecture=architecture), self.assertRaises(WeaverError):
                 self.read("openrouter", {"data": [{"id": "fixture/invalid-modalities", "architecture": architecture}]})
 
+    def test_openrouter_catalog_keeps_alias_voice_and_top_provider_metadata(self) -> None:
+        alias_id = "~fixture/model-latest"
+        target_id = "fixture/model-20261114"
+        metadata = {
+            "canonical_slug": alias_id,
+            "alias_target": {"slug": target_id, "name": "Fixture Model"},
+            "supported_voices": ["voice_1", "voice-2"],
+            "top_provider": {"context_length": None, "max_completion_tokens": 1000, "is_moderated": False},
+        }
+        snapshot = self.read("openrouter", {"data": [
+            {"id": alias_id, "context_length": 4096, **metadata},
+            {"id": target_id, "supported_voices": None, "reasoning": {"supported_efforts": ["high"]}},
+            {"id": "fixture/legacy"},
+        ]})
+        alias, target, legacy = snapshot["models"]
+        for key, value in metadata.items():
+            self.assertEqual(alias[key], value)
+        self.assertIsNone(target["supported_voices"])
+        self.assertFalse(metadata.keys() & legacy.keys())
+        self.assertNotIn("output_limit", alias)
+        selected = check_model(ROOT, "openrouter", alias_id, snapshot)
+        self.assertEqual(selected["model_id"], alias_id)
+        self.assertEqual(selected["alias_target"]["slug"], target_id)
+        self.assertEqual(selected["supported_voices"], metadata["supported_voices"])
+        self.assertEqual(selected["context_size"], 4096)
+        with self.assertRaisesRegex(WeaverError, "effort is unsupported or unknown"):
+            check_model(ROOT, "openrouter", alias_id, snapshot, effort="high")
+
+    def test_openrouter_catalog_rejects_invalid_selection_metadata(self) -> None:
+        for key, value in (
+            ("canonical_slug", "https://example.com/model"),
+            ("alias_target", {"slug": "fixture/model"}),
+            ("alias_target", {"slug": "../model", "name": "Fixture"}),
+            ("supported_voices", "voice"),
+            ("supported_voices", ["voice", "voice"]),
+            ("top_provider", {"max_completion_tokens": True}),
+            ("top_provider", {"context_length": -1}),
+            ("top_provider", {"is_moderated": "false"}),
+        ):
+            with self.subTest(key=key, value=value), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/model", key: value}]})
+
     def test_all_supported_provider_formats_import_without_truncation(self) -> None:
         cases = {
             "openrouter": {"data": [{"id": f"publisher/model-{number}"} for number in range(135)]},
@@ -187,6 +229,44 @@ class SnapshotTests(unittest.TestCase):
                 check_model(ROOT, "openrouter", "vendor/model", snapshot, **options)
         budget = check_model(ROOT, "openrouter", "vendor/model", snapshot, budget_tokens=2048)
         self.assertEqual(budget["reasoning_payload"], {"reasoning": {"max_tokens": 2048}})
+
+    def test_openrouter_messages_and_responses_stage_protocol_specific_reasoning(self) -> None:
+        snapshot = self.read("openrouter", {"data": [{
+            "id": "fixture/model",
+            "endpoints": ["/api/v1/messages", "/api/v1/responses"],
+            "reasoning": {"supported_efforts": ["high", "none"], "mandatory": False, "supports_max_tokens": True},
+        }]})
+        spec = get_integration("openrouter", ROOT)
+        examples = (
+            ("openrouter-messages", {"effort": "high"}, {"output_config": {"effort": "high"}}),
+            ("openrouter-messages", {"budget_tokens": 2048}, {"thinking": {"type": "enabled", "budget_tokens": 2048}}),
+            ("openrouter-messages", {"reasoning_enabled": True}, {"thinking": {"type": "adaptive"}}),
+            ("openrouter-messages", {"reasoning_enabled": False}, {"thinking": {"type": "disabled"}}),
+            ("openai-responses", {"effort": "high"}, {"reasoning": {"effort": "high"}}),
+            ("openai-responses", {"budget_tokens": 2048}, {"reasoning": {"max_tokens": 2048}}),
+            ("openai-responses", {"reasoning_enabled": False}, {"reasoning": {"enabled": False}}),
+        )
+        for protocol, request, expected in examples:
+            with self.subTest(protocol=protocol, request=request):
+                artifacts = render_model_setup(spec, "gateway", root=ROOT, provider_id="openrouter",
+                                               model_id="fixture/model", snapshot=snapshot, protocol=protocol, **request)
+                fragment = next(artifact for artifact in artifacts if artifact.kind == "model-selection")
+                self.assertEqual(json.loads(fragment.content), {"model": "fixture/model", **expected})
+        for protocol, request in (
+            ("openrouter-messages", {"effort": "none"}),
+            ("openrouter-messages", {"budget_tokens": 2048, "effort": "high"}),
+            ("openai-responses", {"budget_tokens": 2048, "effort": "high"}),
+            ("openai-responses", {"mode": "pro"}),
+        ):
+            with self.subTest(protocol=protocol, request=request), self.assertRaises(WeaverError):
+                check_model(ROOT, "openrouter", "fixture/model", snapshot, protocol=protocol, **request)
+        for product in ("qwen-code", "kimi-code"):
+            with self.subTest(product=product):
+                fragments = render_model_setup(
+                    get_integration(product, ROOT), "cli", root=ROOT, provider_id="openrouter",
+                    model_id="fixture/model", snapshot=snapshot, protocol="openai-responses", reasoning_enabled=False,
+                )
+                self.assertFalse(any(artifact.kind == "model-config" for artifact in fragments))
 
     def test_openrouter_endpoint_evidence_is_preserved_and_respected(self) -> None:
         paths = ["/api/v1/chat/completions", "/api/v1/batches", "/api/v2/future-endpoint"]
