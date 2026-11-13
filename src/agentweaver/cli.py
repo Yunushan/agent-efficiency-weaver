@@ -75,6 +75,11 @@ def _parser() -> argparse.ArgumentParser:
     qoder_models.add_argument('--model')
     qoder_models.add_argument('--reasoning-effort')
     qoder_models.add_argument('--context-size', type=int)
+    qwen_models = subs.add_parser('qwen-models', help='Inspect a saved Qwen Code daemon workspace providers response')
+    qwen_models.add_argument('--input', type=Path, required=True)
+    qwen_models.add_argument('--auth-type')
+    qwen_models.add_argument('--model')
+    qwen_models.add_argument('--reasoning-effort')
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -580,6 +585,13 @@ def main(argv: list[str] | None = None) -> int:
 
             result = inspect_qoder_models(args.input, model=args.model, effort=args.reasoning_effort,
                                           context_size=args.context_size)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'qwen-models':
+            from .qwen_models import inspect_qwen_models
+
+            result = inspect_qwen_models(args.input, auth_type=args.auth_type, model=args.model,
+                                         effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:

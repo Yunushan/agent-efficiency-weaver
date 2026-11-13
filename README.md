@@ -99,6 +99,8 @@ For `--agent jetbrains-air --surface ide`, bundles stage advisory instructions a
 
 For Qwen Code CLI subagents, pass `--qwen-auth-type TYPE --model MODEL` to stage an explicit `TYPE:MODEL` selector for a built-in Qwen authentication type. The target profile supplies the model entry, credentials, and reasoning settings. [Qwen Code subagents](https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/)
 
+Use `qwen-models --input FILE` to inspect a saved `GET /workspace/providers` response from Qwen Code's daemon. Optional `--auth-type`, `--model`, and `--reasoning-effort` check an advertised workspace route and option offline. [Qwen Code daemon mode](https://qwenlm.github.io/qwen-code-docs/en/users/qwen-serve/)
+
 Use `codex-models --input saved-model-list.json` to inspect model IDs, picker visibility, supported reasoning efforts and defaults from saved Codex app-server replies. Supply a single reply or a JSON object with a `pages` array of replies in capture order. Use `--model MODEL --reasoning-effort EFFORT` to check a specific choice offline. [Codex app-server model/list](https://learn.chatgpt.com/docs/app-server#list-models-modellist)
 
 Use `factory-models --input saved-droid-models.json` to inspect a saved Factory TypeScript SDK `listModels()` array. Pass `--factory-catalog saved-droid-models.json --model MODEL` to `model --agent factory` to stage managed-model `droid exec` arguments, or to `agent --agent factory` to validate a custom-droid model pin. An explicit `--reasoning-effort` must be supported by both the selected model and the target format. [Factory SDK model discovery](https://docs.factory.com/sdk/typescript#discover-available-models)

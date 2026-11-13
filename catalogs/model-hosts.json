@@ -2074,6 +2074,7 @@
           "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
           "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/",
           "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts",
+          "https://qwenlm.github.io/qwen-code-docs/en/users/qwen-serve/",
           "https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/vscode-ide-companion/src/services/acpConnection.ts"
         ]
       },
