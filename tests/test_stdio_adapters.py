@@ -101,6 +101,28 @@ class StdioConfigurationTests(unittest.TestCase):
                 select_servers(self.profile, catalog, [])
             self.assertNotIn(secret, str(raised.exception))
 
+    def test_opencode_v2_stages_remote_and_stdio_as_disabled(self):
+        spec = self.integrations["opencode"]
+        empty = render_mcp(spec, "cli", self.profile, self.catalog, [], opencode_v2=True)[0]
+        self.assertEqual(json.loads(empty.content), {"mcp": {"servers": {}}})
+        artifact = render_mcp(spec, "cli", self.profile, self.catalog,
+                              ["context7", "synthetic-stdio"], opencode_v2=True)[0]
+        self.assertEqual(artifact.relative_path.as_posix(), "opencode/opencode.json")
+        self.assertEqual(json.loads(artifact.content), {"mcp": {"servers": {
+            "context7": {"type": "remote", "url": "https://mcp.context7.com/mcp", "disabled": True},
+            "synthetic-stdio": {"type": "local", "command": [COMMAND, *ARGS], "disabled": True},
+        }}})
+        with self.assertRaisesRegex(WeaverError, "OpenCode CLI"):
+            render_mcp(self.integrations["kilo"], "cli", self.profile, self.catalog, [], opencode_v2=True)
+
+    def test_opencode_v2_cli_handoff_explains_review_and_activation(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "opencode", "--profile",
+                                      "efficient", "--opencode-v2", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        artifacts = json.loads(output)["artifacts"]
+        self.assertTrue(json.loads(artifacts[0]["content"])["mcp"]["servers"]["context7"]["disabled"])
+        self.assertIn("same-name server entries", artifacts[1]["content"])
+
     def test_stdio_requires_explicit_selection_allowlist_and_profile_capacity(self):
         for product in SUPPORTED:
             with self.subTest(product=product):

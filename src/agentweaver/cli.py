@@ -89,6 +89,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--profile', required=True)
         if name == 'render':
             command.add_argument('--enable', action='append', default=[])
+            command.add_argument('--opencode-v2', action='store_true',
+                                 help='Stage selected servers as disabled OpenCode V2 project entries')
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
         elif name in ('provider', 'model'):
@@ -173,7 +175,7 @@ def _selection(args: argparse.Namespace, root: Path) -> tuple[IntegrationSpec, s
 
 
 def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
-             *, mcp: bool = False, label: str | None = None) -> RenderedArtifact:
+             *, mcp: bool = False, label: str | None = None, opencode_v2: bool = False) -> RenderedArtifact:
     target = spec.surface(surface)
     workflow = describe_workflow(spec, target_os, host_os, surface_id=surface)
     sources = list(dict.fromkeys(source for evidence in target.capabilities.values() for source in evidence.sources))
@@ -205,6 +207,11 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.append('Abacus user-level same-name MCP entries override project entries.')
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
+        if opencode_v2:
+            lines.extend(['OpenCode V2 entries are staged under mcp.servers with disabled: true.',
+                          'Merge only after review. OpenCode V2 replaces same-name server entries as a whole.',
+                          'Enable each desired server explicitly in OpenCode after reviewing its URL or launch arguments.',
+                          'V2 configuration: https://opencode.ai/docs/mcp-servers/'])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':
@@ -393,7 +400,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         profile = load_json(root / 'profiles' / f'{args.profile}.json')
         if args.cmd == 'render':
             catalog = load_json(root / 'catalogs/mcp-servers.json')
-            artifacts = render_mcp(spec, surface, profile, catalog, args.enable)
+            artifacts = render_mcp(spec, surface, profile, catalog, args.enable, opencode_v2=args.opencode_v2)
         else:
             from .skills import render_instruction_bundle
 
@@ -439,7 +446,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     else:
         raise WeaverError('Unsupported command')
     artifacts.append(_handoff(spec, surface, target_os, host_os, mcp=args.cmd == 'render',
-                              label={'provider': 'PROVIDER-OS', 'model': 'MODEL-OS', 'agent': 'AGENT-OS'}.get(args.cmd)))
+                              label={'provider': 'PROVIDER-OS', 'model': 'MODEL-OS', 'agent': 'AGENT-OS'}.get(args.cmd),
+                              opencode_v2=args.cmd == 'render' and args.opencode_v2))
     _emit(args, artifacts)
     return 0
 

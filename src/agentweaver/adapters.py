@@ -56,7 +56,7 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'junie': ('mcpServers.type-http', 'command-args', 'https://junie.jetbrains.com/docs/junie-cli-mcp-configuration.html'),
     'kilo': ('mcp.type-remote', 'local-command-array', 'https://kilo.ai/docs/automate/mcp/using-in-cli'),
     'kiro': ('mcpServers.url', 'command-args', 'https://kiro.dev/docs/mcp/configuration/'),
-    'opencode': ('mcp.type-remote', 'local-command-array', 'https://opencode.ai/docs/mcp-servers/'),
+    'opencode': ('mcp.type-remote', 'local-command-array', 'https://opencode.ai/docs/migrate-v1#mcp-servers'),
     'openhands': ('mcpServers.url', 'command-args', 'https://github.com/OpenHands/docs/blob/main/openhands/usage/cli/mcp-servers.mdx'),
     'pi': ('mcpServers.url-or-type-http', 'command-args', 'https://pi.dev/docs/latest/mcp'),
     'qoder': ('mcpServers.type-http', 'command-args', 'https://docs.qoder.com/cli/mcp-reference'),
@@ -68,8 +68,13 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'qwen-code': ('mcpServers.httpUrl', 'command-args', 'https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/'),
 }
 _STDIO_ADDITIONAL_ROUTES = {
+    ('opencode', 'mcp.servers.type-remote'): (
+        'local-command-array-disabled', 'https://opencode.ai/docs/mcp-servers/',
+        '2026-10-27', 'tests/test_stdio_adapters.py',
+    ),
     ('qoder', 'mcpServers.type-sse'): (
-        'command-args', 'https://docs.qoder.com/user-guide/chat/model-context-protocol'
+        'command-args', 'https://docs.qoder.com/user-guide/chat/model-context-protocol',
+        '2026-10-26', 'tests/test_capability_expansion.py',
     ),
 }
 
@@ -92,10 +97,10 @@ def stdio_inventory() -> dict[str, dict[str, Any]]:
         'pinned CLI 1.16.0 source confirms file loading. This fragment declares no environment '
         'or credentials and performs no installed-client check.'
     )
-    for (product, dialect), (shape, source) in _STDIO_ADDITIONAL_ROUTES.items():
+    for (product, dialect), (shape, source, checked_on, test) in _STDIO_ADDITIONAL_ROUTES.items():
         inventory[product]['additional_routes'] = [
             {'mcp_dialect': dialect, 'schema': shape, 'sources': [source],
-             'checked_on': '2026-10-26', 'fixture_tests': ['tests/test_capability_expansion.py'],
+             'checked_on': checked_on, 'fixture_tests': [test],
              'runtime_checks': []}
         ]
     return inventory
@@ -113,6 +118,8 @@ def _stdio_entry(agent_id: str | None, dialect: str, name: str, selection: Stdio
     command, args = selection['command'], list(selection['args'])
     if shape == 'local-command-array':
         return {'type': 'local', 'command': [command, *args], 'enabled': True}
+    if shape == 'local-command-array-disabled':
+        return {'type': 'local', 'command': [command, *args], 'disabled': True}
     if shape == 'goose-stdio':
         return {'type': 'stdio', 'name': name, 'enabled': True, 'cmd': command, 'args': args}
     entry: dict[str, Any] = {'command': command, 'args': args}
@@ -156,11 +163,14 @@ def _request_document(dialect: str, selected: Mapping[str, MCPSelection]) -> dic
 
 
 def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
-               catalog: dict[str, Any], enabled: list[str]) -> list[RenderedArtifact]:
+               catalog: dict[str, Any], enabled: list[str], *, opencode_v2: bool = False) -> list[RenderedArtifact]:
     if spec.kind not in ('agent', 'hybrid'):
         raise WeaverError('Provider gateways cannot host MCP; use the provider command')
     target = spec.surface(surface)
     dialect = target.mcp_dialect
+    if opencode_v2 and (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
+            'opencode', 'cli', 'mcp.type-remote', 'project', 'opencode.json'):
+        raise WeaverError('OpenCode V2 MCP staging requires the OpenCode CLI project target')
     if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT)
             or target.capabilities['mcp'].state not in ('available', 'manual')):
         raise WeaverError('Native MCP export unavailable on this surface; use bundle for instruction handoff')
@@ -169,6 +179,14 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         normalized = [name.replace('-', '_') for name in selected]
         if len(normalized) != len(set(normalized)):
             raise WeaverError('Pi MCP names collide after hyphen/underscore normalization')
+    if opencode_v2:
+        servers = {
+            name: ({'type': 'remote', 'url': selection, 'disabled': True} if isinstance(selection, str)
+                   else _stdio_entry(spec.id, 'mcp.servers.type-remote', name, selection))
+            for name, selection in selected.items()
+        }
+        return [RenderedArtifact(PurePosixPath('opencode', 'opencode.json'),
+                                 json_bytes({'mcp': {'servers': servers}}), 'mcp')]
     if dialect in _REQUEST_DIALECTS:
         if target.config_scope != 'request':
             raise WeaverError('MCP request dialect requires request scope')
