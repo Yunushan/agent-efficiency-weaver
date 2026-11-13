@@ -175,6 +175,8 @@ def _route(agent_id: str, surface: str) -> _Route:
         return _CLINE_DESKTOP_ROUTE
     if (agent_id, surface) == ("copilot", "cli"):
         return _COPILOT_CLI_ROUTE
+    if (agent_id, surface) == ("copilot", "desktop"):
+        return _COPILOT_APP_ROUTE
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -331,7 +333,7 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
 
 
 def _checked_on(agent_id: str, surface: str) -> str:
-    if (agent_id, surface) in {("qwen-code", "vscode"), ("copilot", "cli")}:
+    if (agent_id, surface) in {("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop")}:
         return "2026-11-13"
     return "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON
 
@@ -385,6 +387,17 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_COPILOT_APP_ROUTE = _Route(
+    ("desktop",), "", "Resolve the selected upstream model ID in the app's model picker.",
+    ("Open Settings > Model providers > Add provider.",
+     "Choose the OpenAI-compatible HTTP provider option and enter https://openrouter.ai/api/v1 as the base URL.",
+     "Save the provider and choose the corresponding model for a local repository session."),
+    (), "Enter the OpenRouter key through the model provider form when prompted.",
+    None, "Use OpenRouter Chat Completions through the documented OpenAI-compatible endpoint option.",
+    ("This handoff supplies UI inputs for a local session. Verify model visibility and available reasoning in the app.",),
+    ("https://docs.github.com/en/copilot/how-tos/github-copilot-app/add-llm-models",
+     "https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion"),
+)
 _COPILOT_CLI_ROUTE = _Route(
     ("cli",), "", "Use the generated two-part CLI selector. The entry sends the original model slug as wireModel.",
     ("Review and merge the staged openrouter.providers.json entries into your private Copilot providers.json.",

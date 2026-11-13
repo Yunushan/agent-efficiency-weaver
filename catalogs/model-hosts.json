@@ -770,6 +770,55 @@
     },
     {
       "product_id": "copilot",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a GitHub-managed model or a configured external model in the desktop app session picker.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Choose a model below the prompt field",
+          "Use Settings > Model providers to add an external provider"
+        ],
+        "sources": [
+          "https://docs.github.com/en/copilot/how-tos/github-copilot-app/agent-sessions",
+          "https://docs.github.com/en/copilot/how-tos/github-copilot-app/add-llm-models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Session reasoning dropdown",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "Copilot Fusion effort",
+            "values": [
+              "Fusion Standard",
+              "Fusion High",
+              "Fusion Max"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.github.com/en/copilot/how-tos/github-copilot-app/agent-sessions",
+          "https://docs.github.com/en/copilot/concepts/models/copilot-fusion"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "copilot",
       "surface_id": "vscode",
       "selection": {
         "state": "manual",

@@ -123,6 +123,47 @@ class CopilotModelsTests(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertNotIn(".providers.json", out)
 
+    def test_desktop_stages_local_project_files_and_hands_off_app_settings(self):
+        common = ("--root", str(ROOT), "--agent", "copilot", "--surface", "desktop", "--dry-run")
+        code, out, err = invoke("bundle", *common, "--profile", "efficient",
+                                "--skill", "token-efficient-retrieval")
+        self.assertEqual(code, 0, err)
+        artifacts = {row["path"]: row["content"] for row in json.loads(out)["artifacts"]}
+        self.assertIn("Settings > Repositories", artifacts["copilot/handoff/INSTRUCTIONS.md"])
+        self.assertIn("copilot/.github/skills/token-efficient-retrieval/SKILL.md", artifacts)
+        code, out, err = invoke("render", *common, "--profile", "efficient")
+        self.assertEqual(code, 0, err)
+        artifacts = {row["path"]: row["content"] for row in json.loads(out)["artifacts"]}
+        self.assertEqual(json.loads(artifacts["copilot/.mcp.json"]), {"mcpServers": {}})
+        self.assertIn("Customize > MCP", artifacts["copilot/MCP-HANDOFF.md"])
+        code, out, err = invoke("render", *common, "--profile", "efficient", "--enable", "context7")
+        self.assertEqual(code, 0, err)
+        self.assertIn("https://mcp.context7.com/mcp", out)
+        instructions = self.snapshot.with_name("review.md")
+        instructions.write_text("Review the change.", encoding="utf-8")
+        command = ("agent", *common, "--name", "reviewer", "--description", "Review changes",
+                   "--instructions-file", str(instructions))
+        code, out, err = invoke(*command)
+        self.assertEqual(code, 0, err)
+        profile = json.loads(out)["artifacts"][0]
+        self.assertEqual(profile["path"], "copilot/.github/agents/reviewer.md")
+        self.assertIn('tools: ["read", "search"]', profile["content"])
+        self.assertNotIn("model:", profile["content"])
+        self.assertEqual(invoke(*command, "--model", "fixture/model")[0], 2)
+        code, out, err = invoke("provider", *common, "--provider", "openrouter", "--model", "fixture/model")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Settings > Model providers > Add provider", out)
+        self.assertNotIn(".providers.json", out)
+        code, out, err = invoke("model", *common, "--provider", "lm-studio", "--model", "fixture/model")
+        self.assertEqual(code, 0, err)
+        self.assertIn("http://localhost:1234/v1", out)
+        self.assertIn("reasoning effort below the prompt", out)
+        self.assertNotIn(".providers.json", out)
+        code, out, err = invoke("model", *common, "--surface", "cli", "--provider", "lm-studio",
+                                "--model", "fixture/model")
+        self.assertEqual(code, 0, err)
+        self.assertIn("lm-studio.providers.json", out)
+
     def test_reports_all_models_and_keeps_missing_metadata_unknown(self):
         self.write([
             {"id": "fixture/primary", "name": "OMITTED", "policy": {"state": "enabled", "terms": "OMITTED"},

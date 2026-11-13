@@ -1036,6 +1036,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         _fail("Non-chat LM Studio selections require the LM Studio API surface")
     if protocol in _OPENROUTER_TASK_ENDPOINTS and (registered.id, surface) != ("openrouter", "gateway"):
         _fail("OpenRouter task endpoint selections require the OpenRouter gateway surface")
+    if protocol is None and provider_id == "lm-studio" and (registered.id, surface) in {
+        ("copilot", "cli"), ("copilot", "desktop")
+    }:
+        protocol = "openai-chat"
     checked = check_model(root, provider_id, model_id, snapshot, effort=effort, budget_tokens=budget_tokens,
                           reasoning_enabled=reasoning_enabled, protocol=protocol, mode=mode, context_size=context_size,
                           batch_endpoint=batch_endpoint)
@@ -1101,6 +1105,20 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         and provider_id in {"openrouter", "lm-studio"}
         and chosen in {"openrouter-chat", "openai-chat", "openai-responses"}
     )
+    copilot_app_byok = (
+        (registered.id, surface) == ("copilot", "desktop")
+        and provider_id in {"openrouter", "lm-studio"}
+        and chosen in {"openrouter-chat", "openai-chat"}
+    )
+    if copilot_app_byok and text_candidate and not model_id.endswith(":batch"):
+        provider_label = "LM Studio" if provider_id == "lm-studio" else "OpenAI-compatible HTTP (OpenRouter)"
+        native_note = (
+            f"Open Settings > Model providers > Add provider and choose {provider_label}. "
+            f"Use the documented provider base URL `{api_base}` if requested. Add any required credential "
+            f"in the app, then locate `{model_id}` in the session model picker. "
+            "Choose a reasoning effort below the prompt when the selected model offers one. "
+            "Catalog-validated API request fields are separate from the app picker."
+        )
     hermes_config = None
     if (registered.id, surface) == ("hermes", "cli") and all(
         value is None for value in (budget_tokens, reasoning_enabled, mode)
@@ -1339,6 +1357,9 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         if provider_id == "lm-studio":
             lines.append("- https://lmstudio.ai/docs/developer/openai-compat/responses" if chosen == "openai-responses"
                          else "- https://lmstudio.ai/docs/developer/openai-compat/tools")
+    if copilot_app_byok:
+        lines.extend(["- https://docs.github.com/en/copilot/how-tos/github-copilot-app/add-llm-models",
+                      "- https://docs.github.com/en/copilot/how-tos/github-copilot-app/agent-sessions"])
     if (registered.id, surface) == ("hermes", "cli") and provider_id in {"lm-studio", "openrouter"}:
         lines.extend(["- https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
                       "- https://hermes-agent.nousresearch.com/docs/user-guide/configuration#reasoning-effort"])

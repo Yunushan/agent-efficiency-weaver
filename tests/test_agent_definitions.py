@@ -28,6 +28,7 @@ NATIVE_PATHS = {
     ("cline", "desktop"): ".cline/agents/reviewer.yaml",
     ("copilot", "vscode"): ".github/agents/reviewer.agent.md",
     ("copilot", "cli"): ".github/agents/reviewer.agent.md",
+    ("copilot", "desktop"): ".github/agents/reviewer.md",
     ("factory", "cli"): ".factory/droids/reviewer.md",
     ("opencode", "cli"): ".opencode/agents/reviewer.md",
     ("kilo", "cli"): ".kilo/agents/reviewer.md",
@@ -89,7 +90,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
                                  ("qwen-code", "cli"): "2026-11-13", ("qwen-code", "vscode"): "2026-11-13",
-                                 ("kimi-code", "cli"): "2026-11-13", ("copilot", "cli"): "2026-11-13"}
+                                 ("kimi-code", "cli"): "2026-11-13", ("copilot", "cli"): "2026-11-13",
+                                 ("copilot", "desktop"): "2026-11-13"}
                     expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])

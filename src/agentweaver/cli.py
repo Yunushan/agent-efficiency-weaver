@@ -280,12 +280,14 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
         if spec.id == 'copilot':
-            if copilot_portable or surface == 'cli':
+            if copilot_portable or surface in {'cli', 'desktop'}:
                 destination = 'Select the Copilot harness in VS Code. ' if surface == 'vscode' else ''
                 lines.extend([
                     destination + 'Review each server before manually merging it into the workspace-root .mcp.json.',
                     'Imported entries may start in the destination. Each entry exposes all its tools by default; review and narrow tools before import.',
                 ])
+                if surface == 'desktop':
+                    lines.append('Use a local repository session in the GitHub Copilot app and review server availability under Customize > MCP.')
             else:
                 lines.append('This export uses editor-managed MCP configuration. Select --copilot-portable for the native Copilot workspace format.')
         if opencode_v2:

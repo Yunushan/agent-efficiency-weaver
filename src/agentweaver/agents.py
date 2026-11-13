@@ -50,6 +50,7 @@ _PATHS = {
     "cline-yaml": ".cline/agents/{name}.yaml",
     "vscode-markdown": ".github/agents/{name}.agent.md",
     "copilot-cli-markdown": ".github/agents/{name}.agent.md",
+    "copilot-app-markdown": ".github/agents/{name}.md",
     "factory-markdown": ".factory/droids/{name}.md",
     "opencode-markdown": ".opencode/agents/{name}.md",
     "kilo-markdown": ".kilo/agents/{name}.md",
@@ -315,7 +316,7 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         return (json.dumps(fields_any, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
     if format_name == "factory-markdown":
         fields_any.update(model=model or "inherit", tools="read-only", mcpServers=[])
-    elif format_name == "vscode-markdown":
+    elif format_name in {"vscode-markdown", "copilot-app-markdown"}:
         fields_any["tools"] = ["read", "search"]
         if copilot_catalog:
             fields_any["target"] = "github-copilot"
@@ -608,6 +609,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
              "and the host's installed version still apply. This file grants no new authorization.",
              "Model and reasoning defaults follow the selected host behavior described above. "
              "No maximum reasoning is selected automatically."]
+    if row["format"] == "copilot-app-markdown":
+        lines.extend(["", "Use the GitHub Copilot app agent picker to select this profile in the local repository. "
+                      "Avoid a duplicate profile with the same base filename. Choose the session model and "
+                      "available effort beneath the prompt. This export covers local repository sessions."])
     if row["format"] == "devin-markdown":
         lines.extend(["", "Devin Desktop must use the Devin Local agent, with Subagents (Preview) enabled "
                       "through Devin Settings by the operator. Managed access and workspace trust still apply. "

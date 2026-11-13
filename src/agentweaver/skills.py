@@ -408,6 +408,10 @@ def _instruction_text(
                 *[f"- {url}" for url in surface.capabilities["instructions"].sources],
             ]
         )
+    if (spec.id, surface.id) == ("copilot", "desktop"):
+        lines.extend(["", "Open Settings > Repositories, select the repository, and review this content for "
+                      "its Instructions field. Use Customize > Skills to review project Skill discovery in a "
+                      "local repository session. App-wide instructions are a separate setting."])
     if spec.id == "jetbrains-air" and surface.id == "ide":
         lines.extend([
             "", "In Air in IDEs, open Manage Agents > Manage Presets and create a New Preset. "

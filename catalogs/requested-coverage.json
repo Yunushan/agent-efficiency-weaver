@@ -43,7 +43,7 @@
     },
     {
       "id": "copilot", "label": "GitHub Copilot", "aliases": ["copilot", "GitHubCopilot", "GitHub Copilot"],
-      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "copilot", "surface_id": "cli"}]
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "copilot", "surface_id": "cli"}, {"product_id": "copilot", "surface_id": "desktop"}]
     },
     {
       "id": "cursor", "label": "Cursor", "aliases": ["cursor"],

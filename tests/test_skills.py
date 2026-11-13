@@ -60,6 +60,7 @@ NATIVE_TARGETS = {
 }
 
 MANUAL_TARGETS = {
+    ("copilot", "desktop"),
     ("jetbrains-air", "ide"),
     ("chatgpt", "desktop"),
     ("chatgpt", "web"),
