@@ -74,6 +74,12 @@ _OBSERVATION_CHECKS = {
     "claude-child-mcp-tool-filter": (
         "mcp", "The generated subagent tool list excluded the local fixture visible in the parent session.",
     ),
+    "qwen-daemon-agent-discovery": ("agents", "The daemon listed the generated project agent."),
+    "qwen-daemon-mcp-pending-approval": (
+        "mcp", "The daemon read the generated project server and kept it disconnected pending approval.",
+    ),
+    "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
+    "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -95,6 +101,7 @@ _OBSERVATION_INTERFACES = {
     ("codex", "ide", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
+    ("qwen-code", "cli", "daemon-http"),
 }
 
 
@@ -235,10 +242,12 @@ def _load_observations(
             "checked_on": checked_on,
             "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
         }
-        environment = identity["environment"]
-        loopback_observation = (product, surface) == ("claude-code", "vscode") and environment == "isolated-loopback"
+        environments = {
+            ("qwen-code", "cli"): {"isolated-release-loopback"},
+            ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
+        }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
-                or (environment != "isolated-signed-out" and not loopback_observation)):
+                or identity["environment"] not in environments):
             raise WeaverError("Runtime observation: unsupported interface or environment")
         if "extension_version" in row:
             identity["extension_version"] = _observation_field(

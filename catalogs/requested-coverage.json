@@ -477,6 +477,41 @@
           "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
         }
       ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "daemon-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "0b6e23b6edc66d473f1bc174b930504d0e125866",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "qwen-daemon-agent-discovery",
+          "evidence_sha256": "340545f9c83651c61298a2f3f9057f21af25648de43ced429bdb9a6b776282af"
+        },
+        {
+          "check": "qwen-daemon-mcp-pending-approval",
+          "evidence_sha256": "06cabb4b6dc1cddd5461f67b4e3b0f8384bd8a5958b2bc1a3f3970b160338603"
+        },
+        {
+          "check": "qwen-daemon-startup-model",
+          "evidence_sha256": "1e33b99ec12d409d2950979e9aca19bbd0668db4651033ac2d53b6cb0f2e1480"
+        },
+        {
+          "check": "qwen-daemon-session-effort",
+          "evidence_sha256": "179d29dc9ea9982c18cf324b7ac0f1129bde4f0077f6749a49e1f44ed7891f05"
+        }
+      ]
     }
   ]
 }

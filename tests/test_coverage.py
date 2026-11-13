@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 5)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 44)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 6)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 49)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -194,6 +194,20 @@ class RequestedCoverageTests(unittest.TestCase):
                           "claude-child-effort-request": "reasoning", "stdio-tool-call": "mcp",
                           "claude-child-mcp-tool-filter": "mcp"})
         self.assertEqual(targets["vscode"]["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_qwen_release_daemon_observations_stay_on_the_cli_surface(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        self.assertEqual(targets["desktop"]["runtime_observations"], [])
+        self.assertEqual(targets["vscode"]["runtime_observations"], [])
+        [record] = targets["cli"]["runtime_observations"]
+        self.assertEqual(record["product_version"], "0.27.3")
+        self.assertEqual(record["interface"], "daemon-http")
+        self.assertEqual(record["environment"], "isolated-release-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]},
+                         {"skill-discovery": "skills", "qwen-daemon-agent-discovery": "agents",
+                          "qwen-daemon-mcp-pending-approval": "mcp", "qwen-daemon-startup-model": "models",
+                          "qwen-daemon-session-effort": "reasoning"})
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")
