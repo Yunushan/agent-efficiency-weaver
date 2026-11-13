@@ -393,6 +393,61 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_zed_openrouter_default_and_subagent_settings_use_raw_model_id(self) -> None:
+        spec = get_integration("zed", ROOT)
+        options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
+                       snapshot={"provider_id": "openrouter", "models": [
+                           {"id": "fixture/reasoner", "context_length": 32000,
+                            "supported_parameters": ["reasoning"],
+                            "reasoning": {"efforts": ["none", "xhigh"], "toggle": True}},
+                       ]})
+        for subagent, field in ((False, "default_model"), (True, "subagent_model")):
+            for requested, expected in (
+                ({}, {}),
+                ({"effort": "xhigh"}, {"enable_thinking": True, "effort": "xhigh"}),
+                ({"effort": "none"}, {"enable_thinking": False, "effort": "none"}),
+                ({"reasoning_enabled": False}, {"enable_thinking": False}),
+            ):
+                with self.subTest(field=field, requested=requested):
+                    artifacts = render_model_setup(spec, "ide", zed_subagent=subagent, **options, **requested)
+                    artifact = next(item for item in artifacts if item.kind == "model-config")
+                    self.assertEqual(artifact.relative_path.as_posix(), f"zed/model/{field}.fragment.json")
+                    self.assertEqual(json.loads(artifact.content), {"agent": {field: {
+                        "provider": "openrouter", "model": "fixture/reasoner", **expected,
+                    }}})
+        with self.assertRaises(WeaverError):
+            render_model_setup(spec, "ide", zed_subagent=True, effort="high", **options)
+        no_reasoning_parameter = options | {"snapshot": {"provider_id": "openrouter", "models": [
+            {"id": "fixture/reasoner", "supported_parameters": [],
+             "reasoning": {"efforts": ["xhigh"]}},
+        ]}}
+        with self.assertRaisesRegex(WeaverError, "parameter used by Zed"):
+            render_model_setup(spec, "ide", zed_subagent=True, effort="xhigh", **no_reasoning_parameter)
+        with self.assertRaisesRegex(WeaverError, "Zed subagent settings"):
+            render_model_setup(spec, "ide", zed_subagent=True, context_size=32000, **options)
+        with self.assertRaisesRegex(WeaverError, "Zed subagent settings"):
+            render_model_setup(get_integration("openrouter", ROOT), "gateway", zed_subagent=True, **options)
+        non_text = options | {"snapshot": {"provider_id": "openrouter", "models": [
+            {"id": "fixture/reasoner", "architecture": {"output_modalities": ["image"]}},
+        ]}}
+        self.assertFalse(any(item.kind == "model-config" for item in render_model_setup(spec, "ide", **non_text)))
+        with self.assertRaisesRegex(WeaverError, "Zed subagent settings"):
+            render_model_setup(spec, "ide", zed_subagent=True, **non_text)
+
+    def test_zed_subagent_settings_are_staged_via_cli(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            code, _, error = invoke("model", "--root", str(ROOT), "--agent", "zed", "--surface", "ide",
+                                    "--provider", "openrouter", "--model", "openrouter/auto",
+                                    "--zed-subagent", "--output-dir", directory)
+            self.assertEqual((code, error), (0, ""))
+            fragment = output / "zed/model/subagent_model.fragment.json"
+            self.assertEqual(json.loads(fragment.read_text(encoding="utf-8")), {
+                "agent": {"subagent_model": {"provider": "openrouter", "model": "openrouter/auto"}},
+            })
+
     def test_cline_desktop_reasoning_handoff_uses_picker_labels(self) -> None:
         spec = get_integration("cline", ROOT)
         options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",

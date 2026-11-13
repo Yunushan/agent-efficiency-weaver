@@ -539,13 +539,13 @@ _ROUTES = {
     ),
     "zed": _Route(
         ("ide",),
-        "openrouter/",
-        "Set `agent.default_model.model` to `openrouter/<raw>`. Custom entries under "
-        "`language_models.open_router.available_models` use the raw slug in `name`.",
+        "",
+        "Use the exact OpenRouter model ID in `agent.default_model.model` and in the `name` of a "
+        "custom entry under `language_models.open_router.available_models`.",
         (
             "Open Settings > AI > LLM Providers and enter the key in the OpenRouter row.",
             "Set `agent.default_model.provider` to `openrouter` and "
-            "`agent.default_model.model` to `openrouter/<raw>`.",
+            "`agent.default_model.model` to the exact OpenRouter model ID.",
             "For a custom model, use the raw slug in "
             "`language_models.open_router.available_models[].name`.",
         ),
@@ -557,6 +557,7 @@ _ROUTES = {
         ("An OpenRouter assistant requires an explicitly selected model.",),
         (
             "https://zed.dev/docs/ai/use-a-gateway",
+            "https://github.com/zed-industries/zed/blob/v1.28.1/crates/language_models/src/provider/open_router.rs",
             _OPENROUTER,
         ),
     ),

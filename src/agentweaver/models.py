@@ -827,6 +827,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     provenance: dict[str, Any] | None = None
     architecture: dict[str, Any] | None = None
     endpoints: list[str] | None = None
+    supported_parameters: list[str] | None = None
     lmstudio_options: list[str] | None = None
     if snapshot is not None:
         if not isinstance(snapshot, Mapping) or snapshot.get("provider_id") != provider_id:
@@ -863,6 +864,8 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                 architecture = declared_architecture
                 if router_endpoint is not None and "endpoints" in entry:
                     endpoints = _openrouter_endpoints(entry["endpoints"])
+                if provider_id == "openrouter" and "supported_parameters" in entry:
+                    supported_parameters = _strings(entry["supported_parameters"], "supported parameters")
                 if provider_id == "lm-studio" and "lm_studio" in entry:
                     metadata = entry["lm_studio"]
                     if not isinstance(metadata, dict):
@@ -920,7 +923,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             "reasoning_capability": cap, "reasoning_evidence": evidence, "reasoning_payload": payload,
             "snapshot_provenance": provenance, "catalog_completeness": "unknown", "network_used": False,
             "credentials_read": False, "context_size": context_size, "architecture": architecture,
-            "advertised_endpoints": endpoints,
+            "advertised_endpoints": endpoints, "supported_parameters": supported_parameters,
             "batch_model": batch_model if batch else None, "batch_endpoint": batch_endpoint,
             "language_agent_compatibility": "unknown"}
 
@@ -971,7 +974,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                        snapshot: Mapping[str, Any] | None = None, effort: str | None = None,
                        budget_tokens: int | None = None, reasoning_enabled: bool | None = None,
                        protocol: str | None = None, mode: str | None = None,
-                       context_size: int | None = None, batch_endpoint: str | None = None) -> list[RenderedArtifact]:
+                       context_size: int | None = None, batch_endpoint: str | None = None,
+                       zed_subagent: bool = False) -> list[RenderedArtifact]:
     """Stage a reviewed fragment only for documented routes; otherwise give a manual handoff."""
     registered = get_integration(spec.id, root)
     registered.surface(surface)
@@ -996,6 +1000,18 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     native_note = "No native model configuration exporter is documented for this product/surface/provider route."
     architecture = checked["architecture"]
     text_candidate = architecture is None or "output_modalities" not in architecture or "text" in architecture["output_modalities"]
+    zed_openrouter = (registered.id, surface, provider_id, chosen) == ("zed", "ide", "openrouter", "openrouter-chat")
+    zed_fragment = (
+        zed_openrouter and text_candidate and not model_id.endswith(":batch")
+        and all(value is None for value in (budget_tokens, mode, context_size))
+    )
+    zed_parameters = checked["supported_parameters"]
+    if zed_openrouter and (effort is not None or reasoning_enabled is not None) and (
+        zed_parameters is not None and "reasoning" not in zed_parameters
+    ):
+        _fail("The saved OpenRouter model does not advertise the reasoning parameter used by Zed")
+    if zed_subagent and not zed_fragment:
+        _fail("Zed subagent settings require a Zed IDE OpenRouter chat model without budget, mode or context overrides")
     if not text_candidate:
         native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
                        "language-agent compatibility is unknown.")
@@ -1074,6 +1090,23 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                 "Hermes may load a model when used. A loopback URL must resolve to the same host or network namespace "
                 "as the server. A saved model maximum does not set the loaded context."
             )
+    elif zed_fragment:
+        zed_field = "subagent_model" if zed_subagent else "default_model"
+        zed_model: dict[str, Any] = {"provider": "openrouter", "model": model_id}
+        if effort is not None:
+            zed_model.update(enable_thinking=effort != "none", effort=effort)
+        elif reasoning_enabled is not None:
+            zed_model["enable_thinking"] = reasoning_enabled
+        artifacts.append(_json_artifact(f"{prefix}/{zed_field}.fragment.json",
+                                        {"agent": {zed_field: zed_model}}, "model-config"))
+        native = True
+        native_note = (
+            f"Review and replace only the agent.{zed_field} object in Zed settings. Authenticate through Zed's OpenRouter "
+            "provider and confirm the exact model and effort in the native Zed Agent picker. "
+            "The saved provider catalog cannot establish what the account-specific Zed picker exposes."
+        )
+        if zed_subagent:
+            native_note += " Zed falls back to the parent thread model if the configured subagent model is unavailable."
     elif (text_candidate and (registered.id, surface, provider_id, chosen) ==
           ("cline", "cli", "openrouter", "openrouter-chat")
           and effort in {None, "none", "low", "medium", "high", "xhigh"}
@@ -1186,6 +1219,9 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.append("- https://docs.cline.bot/cli/cli-reference")
     if (registered.id, surface) == ("cline", "desktop"):
         lines.append("- https://docs.cline.bot/usage/cline-desktop")
+    if zed_fragment:
+        lines.extend(["- https://zed.dev/docs/ai/agent-settings#subagent-models",
+                      "- https://github.com/zed-industries/zed/blob/v1.28.1/crates/language_models/src/provider/open_router.rs"])
     if registered.id == "kimi-code":
         lines.append("- https://moonshotai.github.io/kimi-code/en/configuration/providers.html")
     if chosen == "anthropic-messages" and provider_id in {"lm-studio", "perplexity-orchestrator"}:

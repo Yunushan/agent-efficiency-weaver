@@ -1300,13 +1300,14 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "Model selection remains with the parent or documented host UI.",
-      "reasoning_behavior": "No per-definition effort field is exported.",
+      "model_behavior": "Native subagents use the parent model or a shared subagent default. Use model --zed-subagent to stage the OpenRouter settings object.",
+      "reasoning_behavior": "The shared subagent default can set thinking and model-specific effort in Zed settings. No per-definition effort field is exported.",
       "permission_behavior": "Zed profiles configure a main-thread model and available tools through UI; they are not a documented persistent subagent prompt-file format.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://zed.dev/docs/ai/agent-profiles"
+          "https://zed.dev/docs/ai/agent-profiles",
+          "https://zed.dev/docs/ai/agent-settings#subagent-models"
         ],
         "checked_on": "2026-10-26",
         "version_constraint": null,

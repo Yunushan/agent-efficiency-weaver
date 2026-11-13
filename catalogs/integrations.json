@@ -2445,6 +2445,7 @@
               "state": "manual",
               "sources": [
                 "https://zed.dev/docs/ai/use-a-gateway",
+                "https://github.com/zed-industries/zed/blob/v1.28.1/crates/language_models/src/provider/open_router.rs",
                 "https://openrouter.ai/docs/quickstart"
               ],
               "checked_on": "2026-10-22",

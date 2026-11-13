@@ -2018,7 +2018,7 @@
       "surface_id": "ide",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a model in a native Zed Agent thread; external agents and terminal threads own their own model settings.",
+        "mechanism": "Select a main-thread model in native Zed Agent or configure a shared subagent default. External agents and terminal threads own their own model settings.",
         "fields": [
           "agent.default_model",
           "agent.subagent_model"
@@ -2044,8 +2044,23 @@
             "model_dependent": true
           },
           {
+            "kind": "effort",
+            "field": "agent.subagent_model.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
             "kind": "toggle",
             "field": "agent.default_model.enable_thinking",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "agent.subagent_model.enable_thinking",
             "values": [
               "true",
               "false"

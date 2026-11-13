@@ -102,7 +102,7 @@ class ProviderRouteTests(unittest.TestCase):
         ("copilot", "vscode", "OpenRouter", "https://code.visualstudio.com/blogs/2026/06/18/byok-vscode"),
         ("cursor", "ide", "https://openrouter.ai/api/v1/cursor", "https://openrouter.ai/docs/cookbook/coding-agents/cursor-integration"),
         ("openhands", "cli", "openrouter/anthropic/claude-sonnet-4", "https://docs.openhands.dev/openhands/usage/llms/openrouter"),
-        ("zed", "ide", "openrouter/anthropic/claude-sonnet-4", "https://zed.dev/docs/ai/use-a-gateway"),
+        ("zed", "ide", "anthropic/claude-sonnet-4", "https://zed.dev/docs/ai/use-a-gateway"),
         ("junie", "cli", "JUNIE_OPENROUTER_API_KEY", "https://junie.jetbrains.com/docs/byok-openrouter.html"),
         ("goose", "cli", "GOOSE_PROVIDER", "https://goose-docs.ai/docs/getting-started/providers"),
         ("pi", "cli", "openrouter/anthropic/claude-sonnet-4", "https://pi.dev/docs/latest/providers.md"),
@@ -213,7 +213,8 @@ class ProviderRouteTests(unittest.TestCase):
         self.assertIn("openrouter/anthropic/claude-sonnet-4", opencode)
         zed = setup_text(render("zed", "ide"))
         self.assertIn("agent.default_model.model", zed)
-        self.assertIn("openrouter/anthropic/claude-sonnet-4", zed)
+        self.assertIn("anthropic/claude-sonnet-4", zed)
+        self.assertNotIn("openrouter/anthropic/claude-sonnet-4", zed)
         claude = setup_text(render("claude-code", "cli"))
         self.assertIn("openrouter/anthropic/claude-sonnet-4", claude)
         codex = setup_text(render("codex", "cli"))

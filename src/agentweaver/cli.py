@@ -110,6 +110,9 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--context-size', type=int)
             command.add_argument('--batch-endpoint', choices=OPENROUTER_BATCH_ENDPOINTS,
                                  help='Request body endpoint for OpenRouter batch staging')
+            if name == 'model':
+                command.add_argument('--zed-subagent', action='store_true',
+                                     help='Stage the OpenRouter model as Zed Agent’s subagent default')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -446,7 +449,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
                                            snapshot=_model_snapshot(args, root), effort=args.reasoning_effort,
                                            budget_tokens=args.reasoning_budget, reasoning_enabled=_reasoning(args),
                                            protocol=args.protocol, mode=args.reasoning_mode, context_size=args.context_size,
-                                           batch_endpoint=args.batch_endpoint)
+                                           batch_endpoint=args.batch_endpoint,
+                                           zed_subagent=getattr(args, 'zed_subagent', False))
         else:
             gateway = load_integrations(root)['openrouter']
             metadata = gateway.surface(gateway.default_surface).provider
