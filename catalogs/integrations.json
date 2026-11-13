@@ -1044,6 +1044,96 @@
       "default_surface": "vscode",
       "surfaces": [
         {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.copilot-portable",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url",
+            "tools"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".mcp.json",
+          "documented_location": null,
+          "instruction_mode": "instructions",
+          "instruction_paths": [
+            ".github/copilot-instructions.md",
+            ".github/instructions/"
+          ],
+          "skills_path": ".github/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers",
+                "https://code.visualstudio.com/docs/agents/reference/mcp-configuration"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_copilot_models.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_copilot_models.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+                "https://docs.github.com/en/copilot/how-tos/copilot-sdk/troubleshooting/compatibility"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_copilot_models.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Windows requires PowerShell 6 or later. npm installation requires Node.js 22 or later.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
           "id": "vscode",
           "mcp_dialect": "servers.type-http",
           "config_fields": [

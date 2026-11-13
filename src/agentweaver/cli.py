@@ -137,6 +137,7 @@ def _parser() -> argparse.ArgumentParser:
                 host_catalog.add_argument('--qwen-workspace-catalog', type=Path,
                                           help='Saved Qwen daemon GET /workspace/providers response')
                 host_catalog.add_argument('--kimi-catalog', type=Path, help='Saved Kimi web GET /api/v1/models response')
+                host_catalog.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
                 command.add_argument('--kimi-workspace-id', help='Registered local workspace for Kimi web session staging')
                 command.add_argument('--kimi-agent-profile', help='Existing Kimi main-agent profile name')
                 command.add_argument('--kimi-subagent-pool', action='store_true',
@@ -166,7 +167,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--copilot-model-policy', choices=['preferred', 'required'],
-                                 help='Set the model picker policy for a VS Code Copilot agent')
+                                 help='Set the documented Copilot model policy for the selected surface')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant from the saved OpenCode V2 or Kilo model list')
@@ -279,9 +280,10 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
         if spec.id == 'copilot':
-            if copilot_portable:
+            if copilot_portable or surface == 'cli':
+                destination = 'Select the Copilot harness in VS Code. ' if surface == 'vscode' else ''
                 lines.extend([
-                    'Select the Copilot harness in VS Code. Review each server before manually merging it into the workspace-root .mcp.json.',
+                    destination + 'Review each server before manually merging it into the workspace-root .mcp.json.',
                     'Imported entries may start in the destination. Each entry exposes all its tools by default; review and narrow tools before import.',
                 ])
             else:
@@ -544,6 +546,18 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         ):
             raise WeaverError('A Factory Droid SDK catalog uses a managed model ID and optional reasoning effort')
         artifacts = render_factory_exec(args.factory_catalog, args.model, args.reasoning_effort)
+    elif args.cmd == 'model' and args.copilot_catalog is not None:
+        from .copilot_models import render_copilot_cli_model
+
+        if (spec.id, surface) != ('copilot', 'cli'):
+            raise WeaverError('Copilot repository model settings require the Copilot CLI target')
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
+        ):
+            raise WeaverError('Copilot repository model settings use an explicit model ID and optional effort')
+        artifacts = render_copilot_cli_model(args.copilot_catalog, args.model, args.reasoning_effort)
     elif args.cmd == 'model' and (spec.id, surface) == ('kiro', 'cli'):
         from .models import render_kiro_cli_model
 

@@ -10,6 +10,8 @@ from agentweaver.config import WeaverError
 from agentweaver.copilot_models import inspect_copilot_models, validate_copilot_selection
 from tests.test_cli_exports import invoke
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 class CopilotModelsTests(unittest.TestCase):
     def setUp(self):
@@ -19,6 +21,45 @@ class CopilotModelsTests(unittest.TestCase):
 
     def write(self, rows):
         self.snapshot.write_text(json.dumps(rows), encoding="utf-8")
+
+    def test_standalone_cli_stages_distinct_agent_fields_model_defaults_and_skills(self):
+        self.write([
+            {"id": "fixture/primary", "supportedReasoningEfforts": ["high"]},
+            {"id": "fixture/fallback", "supportedReasoningEfforts": ["high"]},
+        ])
+        common = ("--root", str(ROOT), "--agent", "copilot", "--surface", "cli", "--dry-run")
+        model = ("--copilot-catalog", str(self.snapshot), "--model", "fixture/primary", "--reasoning-effort", "high")
+        code, out, err = invoke("model", *common, *model)
+        self.assertEqual(code, 0, err)
+        artifact, handoff, _ = json.loads(out)["artifacts"]
+        self.assertEqual(artifact["path"], "copilot/.github/copilot/settings.json")
+        self.assertEqual(json.loads(artifact["content"]), {"model": "fixture/primary", "effortLevel": "high"})
+        self.assertIn("trusted workspace", handoff["content"])
+        self.assertIn(hashlib.sha256(self.snapshot.read_bytes()).hexdigest(), handoff["content"])
+        instructions = self.snapshot.with_name("agent.md")
+        instructions.write_text("Review the patch.", encoding="utf-8")
+        agent = ("agent", *common, *model, "--name", "project-reviewer", "--description", "Review the patch.",
+                 "--instructions-file", str(instructions))
+        code, out, err = invoke(*agent, "--copilot-fallback-model", "fixture/fallback",
+                                "--copilot-model-policy", "required")
+        self.assertEqual(code, 0, err)
+        artifact = json.loads(out)["artifacts"][0]
+        self.assertEqual(artifact["path"], "copilot/.github/agents/project-reviewer.agent.md")
+        content = artifact["content"]
+        self.assertIn('models: ["fixture/primary", "fixture/fallback"]', content)
+        self.assertIn('reasoningEffort: "high"', content)
+        self.assertIn('model-policy: "required"', content)
+        self.assertIn('strict-tools-list: true', content)
+        self.assertNotIn("target:", content)
+        self.assertNotIn("mcp-servers:", content)
+        self.assertEqual(invoke(*agent, "--allow-skill", "token-efficient-retrieval")[0], 2)
+        self.assertEqual(invoke("model", *common, *model, "--surface", "vscode")[0], 2)
+        self.assertEqual(invoke("model", *common, *model, "--provider", "openai")[0], 2)
+        code, out, err = invoke("bundle", *common, "--profile", "efficient", "--skill", "token-efficient-retrieval")
+        self.assertEqual(code, 0, err)
+        paths = {item["path"] for item in json.loads(out)["artifacts"]}
+        self.assertIn("copilot/.github/copilot-instructions.md", paths)
+        self.assertIn("copilot/.github/skills/token-efficient-retrieval/SKILL.md", paths)
 
     def test_reports_all_models_and_keeps_missing_metadata_unknown(self):
         self.write([

@@ -38,6 +38,7 @@ NATIVE_TARGETS = {
     ("codex", "desktop"): "AGENTS.md",
     ("codex", "ide"): "AGENTS.md",
     ("copilot", "vscode"): ".github/copilot-instructions.md",
+    ("copilot", "cli"): ".github/copilot-instructions.md",
     ("cursor", "ide"): "AGENTS.md",
     ("devin", "desktop-local"): "AGENTS.md",
     ("goose", "cli"): ".goosehints",

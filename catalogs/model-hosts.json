@@ -720,6 +720,47 @@
     },
     {
       "product_id": "copilot",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a Copilot CLI model for the session or pin a default in trusted repository settings.",
+        "fields": [
+          "model"
+        ],
+        "commands": [
+          "--model",
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "effortLevel",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "copilot",
       "surface_id": "vscode",
       "selection": {
         "state": "manual",

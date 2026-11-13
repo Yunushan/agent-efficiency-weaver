@@ -1,10 +1,13 @@
 """Inspect and validate Copilot selections against a saved SDK model list."""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .artifacts import RenderedArtifact
 from .config import WeaverError
-from .models import _load_bounded_snapshot, _model_id, _strings, _text
+from .models import _json_artifact, _load_bounded_snapshot, _model_id, _strings, _text
+
+COPILOT_CLI_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 
 
 def _model_limits(value: object) -> tuple[dict[str, int | None], bool | None]:
@@ -86,3 +89,25 @@ def validate_copilot_selection(path: Path, models: list[str], effort: str | None
     """Check selections against the same snapshot format used by the inspector."""
     digest: str = inspect_copilot_models(path, models=models, effort=effort)["snapshot_sha256"]
     return digest
+
+
+def render_copilot_cli_model(path: Path, model: str, effort: str | None) -> list[RenderedArtifact]:
+    """Stage the repository model/effort settings for a documented CLI model."""
+    if effort is not None and effort not in COPILOT_CLI_EFFORTS:
+        raise WeaverError("The requested effort is not a documented Copilot CLI setting")
+    report = inspect_copilot_models(path, models=[model], effort=effort)
+    settings = {"model": report["selected_models"][0]}
+    if effort is not None:
+        settings["effortLevel"] = effort
+    handoff = (
+        "# Copilot CLI repository model defaults\n\n"
+        "Review and merge the selected fields into .github/copilot/settings.json. "
+        "Copilot applies these overrides in a trusted workspace. Review your CLI version, runtime "
+        "model access and higher-priority settings before use.\n\n"
+        f"Saved Copilot SDK listModels() SHA-256: {report['snapshot_sha256']}\n\n"
+        "- https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference\n"
+    )
+    return [
+        _json_artifact("copilot/.github/copilot/settings.json", settings, "model-config"),
+        RenderedArtifact(PurePosixPath("copilot/model/model-setup.md"), handoff.encode(), "model-setup"),
+    ]

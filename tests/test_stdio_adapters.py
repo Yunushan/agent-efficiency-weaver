@@ -136,6 +136,8 @@ class StdioConfigurationTests(unittest.TestCase):
             "context7": {"type": "http", "url": "https://mcp.context7.com/mcp", "tools": ["*"]},
             "synthetic-stdio": {"type": "stdio", "command": COMMAND, "args": ARGS, "tools": ["*"]},
         }})
+        cli, = render_mcp(spec, "cli", self.profile, self.catalog, selected)
+        self.assertEqual(cli, portable)
         with self.assertRaisesRegex(WeaverError, "VS Code Copilot project target"):
             render_mcp(self.integrations["opencode"], "cli", self.profile, self.catalog, [], copilot_portable=True)
         restricted = dict(self.profile, allowed_mcp=["context7"])

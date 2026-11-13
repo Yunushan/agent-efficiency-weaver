@@ -135,7 +135,8 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
         report = coverage_report(ROOT)
         item = next(item for item in report["requested_items"] if item["id"] == "copilot")
-        target, = item["targets"]
+        self.assertEqual({target["surface_id"] for target in item["targets"]}, {"cli", "vscode"})
+        target = next(target for target in item["targets"] if target["surface_id"] == "vscode")
         observation, tool_call, model_load = target["runtime_observations"]
         self.assertEqual(observation["product_version"], "1.146.0")
         self.assertEqual(observation["extension_version"], "0.74.0")

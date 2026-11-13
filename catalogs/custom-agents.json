@@ -477,6 +477,49 @@
     },
     {
       "product_id": "copilot",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "copilot-cli-markdown",
+      "path_template": ".github/agents/{name}.agent.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "reasoningEffort",
+      "efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "Uses an authored model ID or a CLI models list in priority order. Use exact provider-qualified IDs for BYOK.",
+      "reasoning_behavior": "Explicit effort requires a saved SDK model list advertising the effort for the selected model.",
+      "permission_behavior": "Restricts the agent to the documented read, grep and glob groups using strict-tools-list. Review user-level agent precedence and effective host permissions.",
+      "reserved_names": [
+        "code-review",
+        "explore",
+        "general-purpose",
+        "plan",
+        "research",
+        "security-review",
+        "task"
+      ],
+      "evidence": {
+        "sources": [
+          "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli",
+          "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference"
+        ],
+        "checked_on": "2026-11-13",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "copilot",
       "surface_id": "vscode",
       "state": "native",
       "format": "vscode-markdown",

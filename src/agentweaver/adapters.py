@@ -70,7 +70,7 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
 }
 _STDIO_ADDITIONAL_ROUTES = {
     ('copilot', 'mcpServers.copilot-portable'): (
-        'copilot-portable-stdio', 'https://code.visualstudio.com/docs/agents/reference/mcp-configuration',
+        'copilot-portable-stdio', 'https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers',
         '2026-11-13', 'tests/test_stdio_adapters.py',
     ),
     ('opencode', 'mcp.servers.type-remote'): (

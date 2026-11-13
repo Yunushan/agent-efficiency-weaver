@@ -49,6 +49,7 @@ _PATHS = {
     "claude-markdown": ".claude/agents/{name}.md",
     "cline-yaml": ".cline/agents/{name}.yaml",
     "vscode-markdown": ".github/agents/{name}.agent.md",
+    "copilot-cli-markdown": ".github/agents/{name}.agent.md",
     "factory-markdown": ".factory/droids/{name}.md",
     "opencode-markdown": ".opencode/agents/{name}.md",
     "kilo-markdown": ".kilo/agents/{name}.md",
@@ -69,7 +70,8 @@ _STYLES = {"bare", "provider/model", "tier", "local-profile", "none"}
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
-                  "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort", "kilo-markdown": "variant"}
+                  "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort",
+                  "copilot-cli-markdown": "reasoningEffort", "kilo-markdown": "variant"}
 
 
 def _text(value: object, label: str, *, multiline: bool = False, maximum: int = 500) -> str:
@@ -321,6 +323,11 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
                 fields_any["model-policy"] = copilot_model_policy
             if skill_ids:
                 fields_any["skills"] = list(skill_ids)
+    elif format_name == "copilot-cli-markdown":
+        fields_any["tools"] = ["read", "grep", "glob"]
+        fields_any["strict-tools-list"] = True
+        if copilot_model_policy is not None:
+            fields_any["model-policy"] = copilot_model_policy
     elif format_name == "claude-markdown":
         fields_any.update(model=model or "inherit", tools=["Read", "Glob", "Grep"])
     elif format_name == "cline-yaml":
@@ -362,7 +369,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     else:
         raise WeaverError("Native custom-agent renderer is unavailable")
     if model is not None:
-        fields_any[row["model_field"]] = model
+        model_field = "models" if format_name == "copilot-cli-markdown" and isinstance(model, list) else row["model_field"]
+        fields_any[model_field] = model
     if effort is not None:
         fields_any[row["effort_field"]] = effort
     return _markdown(fields_any, instructions)
@@ -437,8 +445,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("Copilot model policy requires --copilot-catalog")
         if copilot_model_policy not in ("preferred", "required"):
             raise WeaverError("Unknown Copilot model policy")
-    if copilot_catalog is not None and (spec.id, surface) != ("copilot", "vscode"):
-        raise WeaverError("A Copilot SDK catalog requires the Copilot VS Code target")
+    if copilot_catalog is not None and (spec.id != "copilot" or surface not in {"vscode", "cli"}):
+        raise WeaverError("A Copilot SDK catalog requires a Copilot CLI or VS Code target")
+    if (spec.id, surface) == ("copilot", "cli") and allowed_skills:
+        raise WeaverError("Stage Copilot CLI Skills separately with bundle")
     if profile_skills and not hermes_profile:
         raise WeaverError("Profile Skill staging requires --hermes-profile")
     if profile_context_size is not None and not hermes_profile:
@@ -532,6 +542,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                 raise WeaverError("Copilot primary and fallback models must be explicit and distinct")
             copilot_models.append(selection)
         copilot_digest = validate_copilot_selection(copilot_catalog, copilot_models, effort)
+        if surface == "cli" and effort is not None and effort not in row["efforts"]:
+            raise WeaverError("The requested effort is not a documented Copilot CLI setting")
         if allowed_skills:
             skill_ids = selected_portable_skill_ids(root, allowed_skills)
         model, checked = copilot_models[0], None
@@ -564,7 +576,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A local LLM profile reference conflicts with model, provider, effort or catalog overrides")
         model, checked = _llm_profile(llm_profile), None
     else:
-        if effort is not None and row["format"] == "vscode-markdown":
+        if effort is not None and row["format"] in {"vscode-markdown", "copilot-cli-markdown"}:
             raise WeaverError("Copilot custom-agent effort requires --copilot-catalog")
         if cline_configured_agent and model_id not in {None, "inherit"} and provider_id not in {"openrouter", "anthropic"}:
             raise WeaverError("Explicit Cline agent models require a documented Cline provider: openrouter or anthropic")
@@ -684,15 +696,18 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                           "A Skill rule grants no additional tool permissions."])
     if copilot_digest is not None:
         lines.extend(["", f"Saved Copilot SDK listModels() SHA-256: {copilot_digest}",
-                      "Use the Copilot session target and review exact runtime model IDs in the picker. "
+                      "Review exact runtime model IDs in the intended Copilot picker. "
                       "The saved list cannot establish current model access or prove successful inference."])
-        if copilot_models and len(copilot_models) > 1:
+        if surface == "vscode" and copilot_models and len(copilot_models) > 1:
             lines.append("The editor interprets the ordered model list. Bundled Copilot runtime 1.0.73 "
                          "requires a scalar model when loading project agent files directly.")
-        if copilot_model_policy == "required":
+        if surface == "vscode" and copilot_model_policy == "required":
             lines.append("VS Code restricts the model picker for this agent and blocks sending when none of "
                          "its models are available. Effective effort can still be changed in the picker. "
                          "The policy applies to the editor-selected agent.")
+        if surface == "cli":
+            lines.append("This file uses the documented standalone Copilot CLI fields. "
+                         "Confirm how the installed version resolves them and review account model access.")
         if skill_ids:
             lines.extend(["", "Copilot Skills to load: " + ", ".join(skill_ids) + ".",
                           "Stage matching files separately with bundle --skill for each ID."])
