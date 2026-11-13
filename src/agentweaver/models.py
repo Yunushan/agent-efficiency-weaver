@@ -24,6 +24,7 @@ _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _MODEL = re.compile(r"^~?[A-Za-z0-9][A-Za-z0-9._:+@/-]*$")
 _ENV = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+_LM_STUDIO_REASONING_OPTIONS = {"off", "on", "low", "medium", "high"}
 _PROTOCOLS = {
     "openai-chat", "openai-responses", "anthropic-messages", "google-generate-content",
     "lmstudio-chat", "perplexity-agent", "openrouter-chat",
@@ -320,7 +321,7 @@ def _native_reasoning(entry: dict[str, Any], format_name: str) -> dict[str, Any]
         if not isinstance(reason, dict):
             _fail("Invalid LM Studio reasoning capabilities")
         options = _strings(reason.get("allowed_options"), "LM Studio reasoning options",
-                           allowed={"off", "on", "low", "medium", "high"})
+                           allowed=_LM_STUDIO_REASONING_OPTIONS)
         default = reason.get("default")
         if default is not None and default not in options:
             _fail("Invalid LM Studio default reasoning option")
@@ -468,6 +469,46 @@ def _model_architecture(value: object) -> dict[str, Any]:
     return result
 
 
+def _lmstudio_metadata(entry: dict[str, Any]) -> dict[str, Any]:
+    """Keep model identity, installed variants, and instance state separate."""
+    model_type = entry.get("type")
+    variants = entry.get("variants")
+    selected = entry.get("selected_variant")
+    variant_ids = None if variants is None else [
+        _model_id(value) for value in _strings(variants, "LM Studio variants")
+    ]
+    selected_id = None if selected is None else _model_id(selected)
+    if selected_id is not None and variant_ids is not None and selected_id not in variant_ids:
+        _fail("LM Studio selected variant is absent from the model's variants")
+    instances: list[dict[str, Any]] | None = None
+    if "loaded_instances" in entry:
+        raw_instances = entry["loaded_instances"]
+        if not isinstance(raw_instances, list):
+            _fail("Invalid LM Studio loaded instance list")
+        instances = []
+        seen: set[str] = set()
+        for instance in raw_instances:
+            if not isinstance(instance, dict) or not isinstance(instance.get("config"), dict):
+                _fail("Invalid LM Studio loaded instance")
+            identifier = _model_id(instance.get("id"))
+            context = instance["config"].get("context_length")
+            if identifier in seen or (context is not None and (type(context) is not int or context < 1)):
+                _fail("Duplicate LM Studio instance ID or invalid loaded context length")
+            seen.add(identifier)
+            instances.append({"id": identifier, "context_length": context})
+    capabilities = entry.get("capabilities")
+    native_reasoning = capabilities.get("reasoning") if isinstance(capabilities, dict) else None
+    options = None
+    if native_reasoning is not None:
+        if not isinstance(native_reasoning, dict):
+            _fail("Invalid LM Studio reasoning capabilities")
+        options = _strings(native_reasoning.get("allowed_options"), "LM Studio reasoning options",
+                           allowed=_LM_STUDIO_REASONING_OPTIONS)
+    return {"type": None if model_type is None else _text(model_type, "LM Studio model type"),
+            "variants": variant_ids, "selected_variant": selected_id,
+            "loaded_instances": instances, "native_reasoning_options": options}
+
+
 def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], digest: str) -> dict[str, Any]:
     _scan(raw)
     if raw.get("provider_id", provider_id) != provider_id:
@@ -529,6 +570,8 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
             display = entry.get("display_name", entry.get("displayName", entry.get("name", identifier)))
             item: dict[str, Any] = {"id": identifier, "display_name": _text(display, "model display name"),
                                     "reasoning": _native_reasoning(entry, format_name), "inference_tested": False}
+            if format_name == "lmstudio":
+                item["lm_studio"] = _lmstudio_metadata(entry)
             if format_name == "openrouter":
                 if "architecture" in entry:
                     item["architecture"] = _model_architecture(entry["architecture"])
@@ -718,6 +761,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     visible: bool | None = None
     provenance: dict[str, Any] | None = None
     architecture: dict[str, Any] | None = None
+    lmstudio_options: list[str] | None = None
     if snapshot is not None:
         if not isinstance(snapshot, Mapping) or snapshot.get("provider_id") != provider_id:
             _fail("Snapshot provider does not match requested provider")
@@ -738,6 +782,16 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             if entry_id == identifier:
                 visible = True
                 architecture = declared_architecture
+                if provider_id == "lm-studio" and "lm_studio" in entry:
+                    metadata = entry["lm_studio"]
+                    if not isinstance(metadata, dict):
+                        _fail("Invalid LM Studio snapshot metadata")
+                    model_type = metadata.get("type")
+                    if model_type is not None and model_type != "llm":
+                        _fail("Selected LM Studio model is not declared as a chat LLM")
+                    if metadata.get("native_reasoning_options") is not None:
+                        lmstudio_options = _strings(metadata["native_reasoning_options"], "LM Studio reasoning options",
+                                                     allowed=_LM_STUDIO_REASONING_OPTIONS)
                 if "context_length" in entry:
                     context = entry["context_length"]
                     if type(context) is not int or context < 0:
@@ -751,7 +805,20 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                     evidence = {"origin": "caller-supplied-snapshot", "sources": []}
         if snapshot.get("provenance") is not None:
             provenance = _snapshot_provenance(snapshot["provenance"], normalized=True)
-    payload = _wire(chosen, cap, effort=effort, budget_tokens=budget_tokens, reasoning_enabled=reasoning_enabled, mode=mode)
+    if chosen == "lmstudio-chat" and lmstudio_options is not None and reasoning_enabled is not None:
+        if type(reasoning_enabled) is not bool:
+            _fail("Reasoning toggle must be boolean")
+        requested = "on" if reasoning_enabled else "off"
+        if requested not in lmstudio_options or any(value is not None for value in (effort, budget_tokens, mode)):
+            _fail("LM Studio reasoning switch is unsupported or conflicts with another reasoning control")
+        payload = {"reasoning": requested}
+    else:
+        if chosen == "lmstudio-chat" and effort is not None and (
+                effort not in {"low", "medium", "high"} or
+                (lmstudio_options is not None and effort not in lmstudio_options)):
+            _fail("Unsupported LM Studio native reasoning effort")
+        payload = _wire(chosen, cap, effort=effort, budget_tokens=budget_tokens,
+                        reasoning_enabled=reasoning_enabled, mode=mode)
     return {"provider_id": provider_id, "integration_id": provider["integration_id"], "surface": provider["surface"],
             "model_id": identifier, "protocol": chosen, "accepted_explicit_id": True, "visible_in_snapshot": visible,
             "inference_tested": False, "runtime_verified": False, "availability": "unknown",

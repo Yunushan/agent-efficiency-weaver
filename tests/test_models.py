@@ -201,6 +201,45 @@ class SnapshotTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             check_model(ROOT, "lm-studio", "vendor/local-model", snapshot, effort="low")
 
+    def test_lmstudio_retains_variants_instances_and_one_way_reasoning(self) -> None:
+        model = {"key": "fixture/local", "type": "llm", "max_context_length": 32768,
+                 "variants": ["fixture/local@q4", "fixture/local@q8"],
+                 "selected_variant": "fixture/local@q4",
+                 "loaded_instances": [{"id": "local-run", "config": {"context_length": 8192, "parallel": 2}}],
+                 "capabilities": {"reasoning": {"allowed_options": ["on"], "default": "on"}}}
+        snapshot = self.read("lm-studio", {"models": [model, {"key": "fixture/embed", "type": "embedding",
+                                                              "loaded_instances": []},
+                                                      {"key": "fixture/decision", "type": "decision"},
+                                                      {"key": "fixture/old"}]})
+        metadata = snapshot["models"][0]["lm_studio"]
+        self.assertEqual(metadata, {
+            "type": "llm", "variants": ["fixture/local@q4", "fixture/local@q8"],
+            "selected_variant": "fixture/local@q4", "native_reasoning_options": ["on"],
+            "loaded_instances": [{"id": "local-run", "context_length": 8192}],
+        })
+        self.assertEqual(snapshot["models"][0]["context_length"], 32768)
+        self.assertEqual(snapshot["models"][1]["lm_studio"]["loaded_instances"], [])
+        self.assertIsNone(snapshot["models"][2]["lm_studio"]["loaded_instances"])
+        checked = check_model(ROOT, "lm-studio", "fixture/local", snapshot, reasoning_enabled=True)
+        self.assertEqual(checked["reasoning_payload"], {"reasoning": "on"})
+        self.assertEqual(checked["context_size"], 32768)
+        self.assertEqual(checked["availability"], "unknown")
+        for args in ({"reasoning_enabled": False}, {"effort": "high"}, {"reasoning_enabled": True, "effort": "high"},
+                     {"reasoning_enabled": True, "protocol": "openai-responses"}):
+            with self.subTest(args=args), self.assertRaises(WeaverError):
+                check_model(ROOT, "lm-studio", "fixture/local", snapshot, **args)
+        for key in ("fixture/embed", "fixture/decision"):
+            with self.assertRaisesRegex(WeaverError, "chat LLM"):
+                check_model(ROOT, "lm-studio", key, snapshot)
+        self.assertTrue(check_model(ROOT, "lm-studio", "fixture/old", snapshot)["visible_in_snapshot"])
+
+    def test_lmstudio_rejects_inconsistent_variant_and_instance_metadata(self) -> None:
+        for fields in ({"variants": ["fixture/local@q4"], "selected_variant": "fixture/local@q8"},
+                       {"loaded_instances": [{"id": "run", "config": {"context_length": True}}]},
+                       {"loaded_instances": [{"id": "run", "config": {}}, {"id": "run", "config": {}}]}):
+            with self.subTest(fields=fields), self.assertRaises(WeaverError):
+                self.read("lm-studio", {"models": [{"key": "fixture/local", **fields}]})
+
     def test_input_limit_is_not_promoted_to_total_context_window(self) -> None:
         snapshot = self.read("anthropic", {"data": [{"id": "custom-claude", "max_input_tokens": 64000}]})
         self.assertEqual(snapshot["models"][0]["input_limit"], 64000)
