@@ -106,19 +106,24 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 4)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 28)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 5)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 35)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
-        self.assertEqual(targets["ide"]["runtime_observations"], [])
-        for surface, version in (("cli", "0.167.0-alpha.4.1"), ("desktop", "26.1106.6628.0")):
+        versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
+        for surface, version in versions.items():
             observation, = [record for record in targets[surface]["runtime_observations"]
                             if record["interface"] == "app-server-stdio"]
             self.assertEqual(observation["product_version"], version)
             self.assertEqual(observation["engine_version"], "0.167.0-alpha.4.1")
             self.assertEqual(observation["interface"], "app-server-stdio")
             self.assertEqual(observation["environment"], "isolated-signed-out")
-            self.assertEqual(observation["os_variant"], "windows:11:10.0.26300")
+            if surface == "ide":
+                self.assertEqual(observation["extension_version"], "26.1106.51428")
+                self.assertEqual(observation["os_variant"], "windows:11:10.0.26300.9711")
+            else:
+                self.assertNotIn("extension_version", observation)
+                self.assertEqual(observation["os_variant"], "windows:11:10.0.26300")
             self.assertEqual(observation["architecture"], "x64")
             checks = {check["check"]: check for check in observation["checks"]}
             self.assertEqual({check["capability"] for check in checks.values()},
@@ -193,6 +198,15 @@ class RequestedCoverageTests(unittest.TestCase):
             root = Path(directory)
             self._write_catalogs(root, scope)
             with self.assertRaisesRegex(WeaverError, "Duplicate runtime observation check"):
+                coverage_report(root)
+        scope = copy.deepcopy(original)
+        ide = next(row for row in scope["runtime_observations"]
+                   if (row["product_id"], row["surface_id"]) == ("codex", "ide"))
+        del ide["extension_version"]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write_catalogs(root, scope)
+            with self.assertRaisesRegex(WeaverError, "extension version must match"):
                 coverage_report(root)
 
     def test_scope_records_are_frozen(self):

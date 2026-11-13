@@ -186,6 +186,50 @@
       ]
     },
     {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "d5ed6c2e564c996d112d833a822d52cc07beb00c",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "a947faac7a03315e5eb2d72b9c1d53b73eb869c8890270845e7fc9c50158d645"
+        },
+        {
+          "check": "stdio-subagent-approved-tool-call",
+          "evidence_sha256": "322bc307d10d825327d5f7b1a6701974c07d3a70424cea7f1c0823b50bd1e691"
+        },
+        {
+          "check": "remote-config-parse",
+          "evidence_sha256": "8e88343a2eac32b2f9f7c7372ac2131a2708bc7afb34a8c13d74bede416be126"
+        },
+        {
+          "check": "model-catalog",
+          "evidence_sha256": "06d121cf070f4f9c854154a338cabce236cb0f8509004b43a94764e0cdfee40d"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        }
+      ]
+    },
+    {
       "product_id": "copilot",
       "surface_id": "vscode",
       "product_version": "1.146.0",

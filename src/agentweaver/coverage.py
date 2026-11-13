@@ -77,6 +77,7 @@ _OBSERVATION_INTERFACES = {
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),
+    ("codex", "ide", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
 }
@@ -225,8 +226,9 @@ def _load_observations(
         if "extension_version" in row:
             identity["extension_version"] = _observation_field(
                 row["extension_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "extension version")
-        if (identity["interface"] == "bundled-runtime") != ("extension_version" in identity):
-            raise WeaverError("Runtime observation: extension version is required for bundled runtime observations")
+        is_extension = identity["interface"] == "bundled-runtime" or (product, surface) == ("codex", "ide")
+        if is_extension != ("extension_version" in identity):
+            raise WeaverError("Runtime observation: extension version must match the extension runtime scope")
         checks = row["checks"]
         if not isinstance(checks, list) or not checks:
             raise WeaverError("Runtime observation requires explicit checks")
