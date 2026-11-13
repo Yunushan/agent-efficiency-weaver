@@ -753,6 +753,40 @@ class ModelRenderingTests(unittest.TestCase):
                               protocol="anthropic-messages", budget_tokens=1024)
         self.assertEqual(checked["reasoning_payload"], {"thinking": {"type": "enabled", "budget_tokens": 1024}})
 
+    def test_qwen_anthropic_and_gemini_model_fragments_use_provider_specific_auth_and_effort(self) -> None:
+        qwen = get_integration("qwen-code", ROOT)
+        cases = (
+            ("anthropic", "claude-opus-5", "anthropic", "claude-opus-5",
+             "https://api.anthropic.com", "ANTHROPIC_API_KEY", "xhigh"),
+            ("anthropic", "claude-sonnet-4-6", "anthropic", "claude-sonnet-4-6",
+             "https://api.anthropic.com", "ANTHROPIC_API_KEY", "max"),
+            ("google", "models/gemini-3.8-flash", "gemini", "gemini-3.8-flash",
+             "https://generativelanguage.googleapis.com", "GEMINI_API_KEY", "medium"),
+        )
+        for provider, model, auth, qwen_model, base, env, effort in cases:
+            with self.subTest(provider=provider, model=model):
+                artifacts = render_model_setup(qwen, "cli", root=ROOT, provider_id=provider, model_id=model,
+                                               effort=effort, context_size=100000)
+                config = next(item for item in artifacts if item.kind == "model-config")
+                self.assertEqual(json.loads(config.content), {
+                    "modelProviders": {auth: [{"id": qwen_model, "baseUrl": base, "envKey": env,
+                                              "generationConfig": {"reasoning": {"effort": effort},
+                                                                   "contextWindowSize": 100000}}]},
+                    "model": {"name": qwen_model},
+                    "security": {"auth": {"selectedType": auth}},
+                })
+                request = next(item for item in artifacts if item.kind == "model-selection")
+                self.assertEqual(json.loads(request.content)["model"], model)
+        for provider, model, options in (
+            ("google", "models/gemini-2.5-flash", {"budget_tokens": 1024}),
+            ("google", "models/gemini-2.5-flash", {"reasoning_enabled": False}),
+            ("anthropic", "claude-sonnet-4-6", {"budget_tokens": 4096}),
+        ):
+            with self.subTest(provider=provider, options=options):
+                artifacts = render_model_setup(qwen, "cli", root=ROOT, provider_id=provider, model_id=model, **options)
+                self.assertFalse(any(item.kind == "model-config" for item in artifacts))
+                self.assertTrue(any(item.kind == "model-selection" for item in artifacts))
+
     def test_api_efforts_not_supported_by_host_do_not_become_invalid_host_config(self) -> None:
         qwen = render_model_setup(get_integration("qwen-code", ROOT), "cli", root=ROOT,
                                   provider_id="openai", model_id="gpt-6-sol", effort="none")

@@ -33,6 +33,7 @@ agentweaver render --agent codex --profile efficient --enable context7 --output-
 agentweaver bundle --agent aider --profile efficient --skill token-efficient-retrieval --output-dir generated
 agentweaver provider --provider openrouter --agent aider --model vendor/chosen-model --output-dir generated
 agentweaver model --agent qwen-code --provider openai --model gpt-6.1-sol --protocol openai-responses --reasoning-effort high --dry-run
+agentweaver model --agent qwen-code --provider anthropic --model claude-sonnet-4-6 --reasoning-effort high --dry-run
 agentweaver doctor --agent kilo --os windows --format text
 ```
 

@@ -1193,6 +1193,37 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         artifacts.append(_json_artifact(f"{prefix}/settings.fragment.json", fragment, "model-config"))
         native = True
         native_note = "Merge the staged fragment into Qwen settings deliberately; modelProviders replaces its matching scope."
+    elif (text_candidate and (registered.id, surface) == ("qwen-code", "cli")
+          and (provider_id, chosen) in {("anthropic", "anthropic-messages"), ("google", "google-generate-content")}
+          and provider["secret_env"] is not None):
+        auth_type = "anthropic" if provider_id == "anthropic" else "gemini"
+        qwen_base = api_base if auth_type == "anthropic" else api_base.removesuffix("/v1beta")
+        qwen_model = model_id if auth_type == "anthropic" else model_id.removeprefix("models/")
+        native_efforts = {None, "low", "medium", "high"}
+        if auth_type == "anthropic" and model_id in {"claude-sonnet-4-6", "claude-opus-5"}:
+            native_efforts.add("max")
+        if auth_type == "anthropic" and model_id == "claude-opus-5":
+            native_efforts.add("xhigh")
+        if (qwen_model and "/" not in qwen_model and effort in native_efforts
+                and all(value is None for value in (budget_tokens, reasoning_enabled, mode))):
+            entry: dict[str, Any] = {"id": qwen_model, "baseUrl": qwen_base, "envKey": provider["secret_env"]}
+            generation: dict[str, Any] = {}
+            if effort is not None:
+                generation["reasoning"] = {"effort": effort}
+            if context_size is not None:
+                generation["contextWindowSize"] = context_size
+            if generation:
+                entry["generationConfig"] = generation
+            fragment = {"modelProviders": {auth_type: [entry]}, "model": {"name": qwen_model},
+                        "security": {"auth": {"selectedType": auth_type}}}
+            artifacts.append(_json_artifact(f"{prefix}/settings.fragment.json", fragment, "model-config"))
+            native = True
+            native_note = ("Merge the model entry into the selected Qwen settings scope while preserving other "
+                           "modelProviders entries. Qwen replaces the provider section across scopes. "
+                           "Review the model and its effective effort in the target client.")
+        else:
+            native_note = ("Review the requested model and controls in Qwen Code. This exporter stages named efforts "
+                           "whose Qwen mapping is established. Budgets and toggles require a manual configuration check.")
     elif text_candidate and registered.id == "kimi-code" and surface == "cli" and chosen in {
             "openai-chat", "openai-responses", "anthropic-messages"} and budget_tokens is None and mode is None and effort not in {"none", "minimal"} and provider["secret_env"] is not None:
         provider_type = {"openai-chat": "openai", "openai-responses": "openai_responses", "anthropic-messages": "anthropic"}[chosen]
@@ -1268,6 +1299,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       "The saved listing advertises this route for the selected model."])
     if registered.id == "qwen-code":
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
+        if provider_id == "anthropic":
+            lines.append("- https://github.com/QwenLM/qwen-code/blob/fcfddc3700c58ab1417feb2a780b5a9b74dbbe3d/packages/core/src/core/anthropic-reasoning.ts#L78-L116")
+        elif provider_id == "google":
+            lines.append("- https://github.com/QwenLM/qwen-code/blob/fcfddc3700c58ab1417feb2a780b5a9b74dbbe3d/packages/core/src/core/llm-content-generator/llm-content-generator.ts#L264-L339")
     if (registered.id, surface) == ("cline", "cli"):
         lines.append("- https://docs.cline.bot/cli/cli-reference")
     if (registered.id, surface) == ("cline", "desktop"):
