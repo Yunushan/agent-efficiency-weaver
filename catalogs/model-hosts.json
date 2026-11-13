@@ -1260,14 +1260,17 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a configured model alias; native provider setup requires an explicit known context size and supported reasoning capabilities.",
+        "mechanism": "Choose a configured model alias for the main agent or stage a model pool for spawned agents. Provider setup requires an explicit known context size and supported reasoning capabilities.",
         "fields": [
           "default_model",
           "models.<alias>.model",
-          "models.<alias>.max_context_size"
+          "models.<alias>.max_context_size",
+          "secondary_model.default_model",
+          "secondary_model.models"
         ],
         "commands": [
-          "/model"
+          "/model",
+          "/secondary-model"
         ],
         "ui_steps": [],
         "sources": [
@@ -1292,6 +1295,12 @@
             "field": "thinking.effort",
             "values": null,
             "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "secondary_model.default_effort",
+            "values": null,
+            "model_dependent": true
           }
         ],
         "sources": [
@@ -1299,7 +1308,7 @@
           "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-13",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],

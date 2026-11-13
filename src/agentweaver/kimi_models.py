@@ -1,6 +1,7 @@
-"""Inspect caller-supplied Kimi Code model aliases without contacting its server."""
+"""Inspect and stage Kimi Code model selections from caller-supplied snapshots."""
 from __future__ import annotations
 
+import json
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -16,6 +17,13 @@ def _alias(value: object) -> str:
     if len(text) > 250 or not text.strip():
         raise WeaverError("Invalid Kimi model alias")
     return text
+
+
+def _validated_effort(model: dict[str, Any], effort: str) -> str:
+    chosen = _text(effort, "Kimi thinking effort")
+    if chosen not in _KIMI_EFFORTS or chosen not in (model["support_efforts"] or []):
+        raise WeaverError(f"Kimi effort is undocumented, unsupported or unknown for alias {model['alias']!r}")
+    return chosen
 
 
 def inspect_kimi_models(path: Path, *, model: str | None = None, effort: str | None = None) -> dict[str, Any]:
@@ -70,10 +78,7 @@ def inspect_kimi_models(path: Path, *, model: str | None = None, effort: str | N
             raise WeaverError("Kimi model alias is absent from this snapshot")
         selection["alias"] = alias
         if effort is not None:
-            chosen = _text(effort, "Kimi thinking effort")
-            if chosen not in _KIMI_EFFORTS or selected["support_efforts"] is None or chosen not in selected["support_efforts"]:
-                raise WeaverError("Kimi effort is undocumented, unsupported or unknown for this alias")
-            selection["effort"] = chosen
+            selection["effort"] = _validated_effort(selected, effort)
     return {"schema_version": 1, "source": "caller-supplied Kimi web GET /api/v1/models response",
             "sha256": digest, "snapshot_completeness": "unknown",
             "scope": "Configured aliases at capture time; upstream account access and current availability are unknown",
@@ -112,4 +117,45 @@ def render_kimi_session(path: Path, model: str, effort: str | None, *,
     return [
         _json_artifact("kimi-code/model/session-create.json", body, "session-create"),
         RenderedArtifact(PurePosixPath("kimi-code/model/model-setup.md"), note.encode(), "model-setup"),
+    ]
+
+
+def render_kimi_subagent_pool(path: Path, model: str, effort: str | None, *,
+                              alternatives: list[str]) -> list[RenderedArtifact]:
+    """Stage the secondary model section using aliases from one saved catalog."""
+    report = inspect_kimi_models(path, model=model, effort=effort)
+    selected = report["selection"]
+    default = selected["alias"]
+    aliases = [default, *map(_alias, alternatives)]
+    if len(set(aliases)) != len(aliases):
+        raise WeaverError("Duplicate Kimi subagent pool alias")
+    models = {entry["alias"]: entry for entry in report["models"]}
+    for alias in aliases[1:]:
+        if alias not in models:
+            raise WeaverError(f"Kimi subagent pool alias {alias!r} is absent from this snapshot")
+        if effort is not None:
+            _validated_effort(models[alias], effort)
+
+    lines = ["[secondary_model]", f"default_model = {json.dumps(default, ensure_ascii=False)}"]
+    if "effort" in selected:
+        lines.append(f"default_effort = {json.dumps(selected['effort'])}")
+    if alternatives:
+        lines.extend(["", "[secondary_model.models]"])
+        lines.extend(f'{json.dumps(alias, ensure_ascii=False)} = ""' for alias in aliases)
+    fragment = "\n".join(lines) + "\n"
+    note = (
+        "# Kimi Code subagent model pool\n\n"
+        "Confirm every staged alias is still present in the target Kimi configuration before applying the fragment. "
+        "Review and replace the entire `[secondary_model]` section and its nested tables in `config.toml`. "
+        "A missing alias can prevent session startup.\n\n"
+        "The default applies to subagents spawned without a model choice. A shared effort applies to every "
+        "pool member. For per-alias effort defaults, omit `default_effort` and review the target model entries. "
+        "Weaver stages the fragment without starting a session or contacting providers.\n\n"
+        f"Model snapshot SHA-256: {report['sha256']}\n\n"
+        "- https://moonshotai.github.io/kimi-code/en/configuration/config-files.html#secondary_model\n"
+    )
+    return [
+        RenderedArtifact(PurePosixPath("kimi-code/model/secondary-model.fragment.toml"),
+                         fragment.encode(), "model-config"),
+        RenderedArtifact(PurePosixPath("kimi-code/model/subagent-pool-setup.md"), note.encode(), "model-setup"),
     ]

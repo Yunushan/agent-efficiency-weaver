@@ -5,6 +5,7 @@ import io
 import json
 import socket
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -100,6 +101,61 @@ class KimiModelsTests(unittest.TestCase):
         self.assertIn("future-effort", result["models"][0]["support_efforts"])
         with self.assertRaises(WeaverError):
             inspect_kimi_models(self.path, model="managed fixture/model-a", effort="future-effort")
+
+    def test_stage_subagent_pool_preserves_exact_aliases_and_shared_effort(self):
+        alias = 'fixture/\U0001f680 "model" \\beta'
+        data = copy.deepcopy(SYNTHETIC)
+        data["data"]["items"].append({"model": alias, "support_efforts": ["high", "max"]})
+        self.write(data)
+        base = ("--root", str(ROOT), "--agent", "kimi-code", "--kimi-catalog", str(self.path), "--dry-run",
+                "--kimi-subagent-pool", "--model", "managed fixture/model-a")
+        with mock.patch.object(socket, "create_connection", side_effect=AssertionError("network")):
+            code, out, err = invoke("model", *base, "--kimi-subagent-alias", alias, "--reasoning-effort", "high")
+        self.assertEqual(code, 0, err)
+        artifacts = {item["kind"]: item for item in json.loads(out)["artifacts"]}
+        self.assertEqual(artifacts["model-config"]["path"], "kimi-code/model/secondary-model.fragment.toml")
+        self.assertEqual(tomllib.loads(artifacts["model-config"]["content"]), {"secondary_model": {
+            "default_model": "managed fixture/model-a", "default_effort": "high",
+            "models": {"managed fixture/model-a": "", alias: ""},
+        }})
+        self.assertIn(hashlib.sha256(self.path.read_bytes()).hexdigest(), artifacts["model-setup"]["content"])
+        self.assertNotIn("session-create", artifacts)
+        self.assertNotIn("synthetic-request", out)
+        self.assertNotIn("managed:fixture", out)
+        self.assertNotIn(str(self.path), artifacts["model-setup"]["content"])
+        for extra, expected in (
+            ((), {"default_model": "managed fixture/model-a"}),
+            (("--kimi-subagent-alias", "bare-alias"),
+             {"default_model": "managed fixture/model-a", "models": {"managed fixture/model-a": "", "bare-alias": ""}}),
+        ):
+            code, out, err = invoke("model", *base, *extra)
+            self.assertEqual(code, 0, err)
+            config = next(item for item in json.loads(out)["artifacts"] if item["kind"] == "model-config")
+            self.assertEqual(tomllib.loads(config["content"]), {"secondary_model": expected})
+
+    def test_subagent_pool_rejects_unknown_aliases_unsupported_efforts_and_conflicting_routes(self):
+        base = ("--root", str(ROOT), "--agent", "kimi-code", "--model", "managed fixture/model-a", "--dry-run")
+        catalog = ("--kimi-catalog", str(self.path))
+        pool = ("--kimi-subagent-pool",)
+        alt = ("--kimi-subagent-alias",)
+        for extra, error in (
+            ((*pool,), "require --kimi-catalog"),
+            ((*alt, "bare-alias"), "require --kimi-catalog"),
+            ((*catalog, *alt, "bare-alias"), "requires --kimi-subagent-pool"),
+            ((*catalog, *pool, *alt, "missing"), "absent from this snapshot"),
+            ((*catalog, *pool, *alt, "managed fixture/model-a"), "Duplicate Kimi subagent pool alias"),
+            ((*catalog, *pool, *alt, "bare-alias", *alt, "bare-alias"), "Duplicate Kimi subagent pool alias"),
+            ((*catalog, *pool, *alt, "bare-alias", "--reasoning-effort", "high"), "unknown for alias 'bare-alias'"),
+            ((*catalog, *pool, "--kimi-workspace-id", "workspace"), "cannot include web session options"),
+            ((*catalog, *pool, "--kimi-agent-profile", "reviewer"), "cannot include web session options"),
+            ((*catalog, *pool, "--agent", "qwen-code"), "requires the Kimi Code CLI target"),
+            ((*catalog, *pool, "--provider", "openai"), "uses configured aliases"),
+        ):
+            with self.subTest(extra=extra):
+                code, out, err = invoke("model", *base, *extra)
+                self.assertEqual(code, 2, err)
+                self.assertEqual(out, "")
+                self.assertIn(error, err)
 
     def test_inconsistent_default_is_reported_without_discarding_other_aliases(self):
         data = copy.deepcopy(SYNTHETIC)

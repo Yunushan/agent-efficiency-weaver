@@ -837,8 +837,8 @@
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "Kimi ignores a custom-agent model field. Explicit model overrides are rejected; model/provider inherit the session.",
-      "reasoning_behavior": "No per-definition reasoning override is documented; explicit effort requests are rejected.",
+      "model_behavior": "Kimi resolves spawned agents through the configured secondary model pool or inherits the caller when the pool is absent. The Markdown definition has no model selector.",
+      "reasoning_behavior": "Set the shared effort through secondary_model.default_effort or use the bound model's effort settings. The Markdown definition has no effort selector.",
       "permission_behavior": "Read/Grep/Glob only; subagents: [] and override: false. This does not grant workspace trust. Kimi template variables in the prompt are interpreted by the host.",
       "reserved_names": [
         "agent",
@@ -848,9 +848,10 @@
       ],
       "evidence": {
         "sources": [
-          "https://moonshotai.github.io/kimi-code/en/customization/agents.html"
+          "https://moonshotai.github.io/kimi-code/en/customization/agents.html",
+          "https://moonshotai.github.io/kimi-code/en/configuration/config-files.html#secondary_model"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-13",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"

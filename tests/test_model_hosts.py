@@ -118,6 +118,15 @@ class ModelHostTests(unittest.TestCase):
         self.assertEqual(host["availability"], "unknown")
         self.assertEqual(host["runtime_checks"], [])
 
+    def test_kimi_subagent_pool_uses_configured_aliases_and_model_dependent_effort(self) -> None:
+        host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("kimi-code", "cli"))
+        self.assertIn("secondary_model.default_model", host["selection"]["fields"])
+        self.assertIn("secondary_model.models", host["selection"]["fields"])
+        self.assertIn("/secondary-model", host["selection"]["commands"])
+        self.assertIn({"kind": "effort", "field": "secondary_model.default_effort", "values": None,
+                       "model_dependent": True}, host["reasoning"]["controls"])
+        self.assertEqual(host["runtime_checks"], [])
+
     def test_perplexity_web_reasoning_presets_are_not_native_app_or_api_controls(self) -> None:
         host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("perplexity", "app"))
         self.assertEqual(host["reasoning"]["state"], "manual")
