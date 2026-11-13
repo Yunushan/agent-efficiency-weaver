@@ -834,6 +834,69 @@
           "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
         }
       ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "desktop",
+      "product_version": "0.0.49",
+      "engine_version": "0.2.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "desktop-sidecar",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "c5398ba35e8a39d542ad972902651c6c4b439e62",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-agent-file-inventory",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-disabled-mcp-registration",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-model-catalog",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-session-model-request",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-session-effort-request",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-max-effort-fallback",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-child-skill-use",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-child-mcp-filter",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        }
+      ]
     }
   ]
 }

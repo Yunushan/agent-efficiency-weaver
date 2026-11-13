@@ -683,7 +683,9 @@
           }
         ],
         "sources": [
-          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/apps/examples/desktop-app/webview/components/views/chat/chat-input-bar.tsx"
+          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/apps/examples/desktop-app/webview/components/views/chat/chat-input-bar.tsx",
+          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/apps/examples/desktop-app/sidecar/session-config.ts",
+          "https://github.com/cline/cline/blob/975039fd6370ef01859e3fa549b5e74eeec188fb/apps/examples/desktop-app/sidecar/chat-session.ts"
         ]
       },
       "checked_on": "2026-11-13",

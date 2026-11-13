@@ -142,6 +142,18 @@ _OBSERVATION_CHECKS = {
     "cline-child-mcp-filter": (
         "mcp", "The configured subagent received the selected built-in tools. The parent alone could see its MCP fixture.",
     ),
+    "cline-desktop-model-catalog": (
+        "models", "The Desktop backend listed its bundled OpenRouter model IDs and reasoning capability flags.",
+    ),
+    "cline-desktop-session-model-request": (
+        "models", "The Desktop session sent the selected OpenRouter model ID to a scripted loopback endpoint.",
+    ),
+    "cline-desktop-session-effort-request": (
+        "reasoning", "The Desktop session applied the selected thinking effort in its loopback model request.",
+    ),
+    "cline-desktop-max-effort-fallback": (
+        "reasoning", "Desktop 0.0.49 sent medium effort when its chat backend received max for the tested model.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -172,6 +184,7 @@ _OBSERVATION_INTERFACES = {
     ("kilo", "ide", "vscode-extension-host"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
+    ("cline", "desktop", "desktop-sidecar"),
 }
 
 
@@ -318,6 +331,7 @@ def _load_observations(
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},
             ("cline", "cli"): {"isolated-release-loopback"},
+            ("cline", "desktop"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

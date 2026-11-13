@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 10)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 88)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 11)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 100)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -273,7 +273,6 @@ class RequestedCoverageTests(unittest.TestCase):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "cline")
         targets = {target["surface_id"]: target for target in item["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
-        self.assertEqual(targets["desktop"]["runtime_observations"], [])
         inventory, execution = targets["cli"]["runtime_observations"]
         for record in (inventory, execution):
             self.assertEqual(record["product_version"], "3.0.74")
@@ -291,6 +290,18 @@ class RequestedCoverageTests(unittest.TestCase):
             "cline-child-skill-use": "skills", "cline-child-mcp-filter": "mcp",
         })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
+        [desktop] = targets["desktop"]["runtime_observations"]
+        self.assertEqual((desktop["product_version"], desktop["engine_version"]), ("0.0.49", "0.2.0"))
+        self.assertEqual(desktop["interface"], "desktop-sidecar")
+        self.assertEqual(desktop["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual({check["check"]: check["capability"] for check in desktop["checks"]}, {
+            "skill-discovery": "skills", "cline-agent-file-inventory": "agents",
+            "cline-disabled-mcp-registration": "mcp", "cline-desktop-model-catalog": "models",
+            "cline-desktop-session-model-request": "models", "cline-desktop-session-effort-request": "reasoning",
+            "cline-desktop-max-effort-fallback": "reasoning", "stdio-tool-call": "mcp", "agent-load": "agents",
+            "agent-model-effort-selection": "reasoning", "cline-child-skill-use": "skills",
+            "cline-child-mcp-filter": "mcp",
+        })
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

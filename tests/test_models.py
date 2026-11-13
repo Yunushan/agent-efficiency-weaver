@@ -461,6 +461,8 @@ class ModelRenderingTests(unittest.TestCase):
                 self.assertIn(label, artifacts[0].content)
                 self.assertIn(b"Configuration state: `manual`", artifacts[0].content)
                 self.assertFalse(any(item.kind in {"model-config", "session-arguments"} for item in artifacts))
+                if effort == "max":
+                    self.assertIn(b"Desktop 0.0.49 does not support Max.", artifacts[0].content)
 
     def test_cline_cli_stages_model_and_thinking_with_explicit_approval(self) -> None:
         spec = get_integration("cline", ROOT)

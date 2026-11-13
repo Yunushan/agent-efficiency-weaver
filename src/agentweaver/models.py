@@ -1090,6 +1090,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                            "xhigh": "Extra", "max": "Max"}
         if effort is not None and effort in thinking_labels:
             native_note += f" Requested Thinking level: {thinking_labels[effort]}."
+            if effort == "max":
+                native_note += (
+                    " Select Max only if the installed release exposes it for this model. "
+                    "Desktop 0.0.49 does not support Max."
+                )
         elif effort is not None:
             native_note += " The requested effort has no matching label in the audited Desktop picker."
         if any(value is not None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
