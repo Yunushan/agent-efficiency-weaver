@@ -1,4 +1,4 @@
-"""Inspect a saved Factory Droid SDK model list and stage managed exec arguments."""
+"""Inspect a saved Factory Droid SDK model list and stage exec arguments."""
 
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -65,17 +65,22 @@ def inspect_factory_models(path: Path, *, model: str | None = None, effort: str 
 
 
 def render_factory_exec(path: Path, model: str, effort: str | None) -> list[RenderedArtifact]:
-    """Stage one managed-model exec selection as an argv array."""
+    """Stage one catalog-validated exec selection as an argv array."""
     report = inspect_factory_models(path, model=model, effort=effort)
-    if report["selection"]["is_custom"] or model.casefold().startswith("custom:"):
-        raise WeaverError("Factory Droid exec staging requires a managed model ID")
     arguments = ["exec", "--model", model]
     if effort is not None:
         arguments.extend(["--reasoning-effort", effort])
     note = (
         "# Factory Droid exec model setup\n\n"
         "Review the model and optional effort against the target Droid instance. "
-        "Pass the staged arguments to droid and supply your prompt separately. "
+        "Pass the staged arguments to droid and supply your prompt separately.\n\n"
+    )
+    if report["selection"]["is_custom"]:
+        note += (
+            "Keep the same custom model configuration and order as the saved catalog. "
+            "Refresh the catalog and regenerate these arguments if the configured models change.\n\n"
+        )
+    note += (
         "Weaver does not launch Droid or send a model request.\n\n"
         f"Saved SDK catalog SHA-256: {report['snapshot_sha256']}\n\n"
         f"- {_SDK_SOURCE}\n"

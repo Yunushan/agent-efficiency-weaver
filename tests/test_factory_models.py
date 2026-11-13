@@ -65,7 +65,7 @@ class FactoryModelTests(unittest.TestCase):
                 inspect_factory_models(self.catalog)
             self.assertNotIn("NEVER-ECHO", str(caught.exception))
 
-    def test_exec_stages_supported_managed_effort_and_rejects_custom_id(self):
+    def test_exec_stages_exact_managed_and_custom_selectors(self):
         base = ("--root", str(ROOT), "--agent", "factory", "--surface", "cli", "--dry-run",
                 "--factory-catalog", str(self.catalog))
         code, output, error = invoke("model", *base, "--model", "fixture-managed", "--reasoning-effort", "xhigh")
@@ -75,7 +75,13 @@ class FactoryModelTests(unittest.TestCase):
                          ["exec", "--model", "fixture-managed", "--reasoning-effort", "xhigh"])
         self.assertEqual(json.loads(render_factory_exec(self.catalog, "fixture-managed", None)[0].content),
                          ["exec", "--model", "fixture-managed"])
-        self.assertEqual(invoke("model", *base, "--model", "custom:vendor/review")[0], 2)
+        code, output, error = invoke("model", *base, "--model", "custom:vendor/review", "--reasoning-effort", "low")
+        self.assertEqual((code, error), (0, ""))
+        items = {entry["kind"]: entry for entry in json.loads(output)["artifacts"]}
+        self.assertEqual(json.loads(items["session-arguments"]["content"]),
+                         ["exec", "--model", "custom:vendor/review", "--reasoning-effort", "low"])
+        self.assertIn("same custom model configuration and order", items["model-setup"]["content"])
+        self.assertEqual(invoke("model", *base, "--model", "custom:vendor/review", "--reasoning-effort", "high")[0], 2)
         self.assertEqual(invoke("model", *base, "--model", "fixture-managed", "--provider", "openai")[0], 2)
 
     def test_custom_droid_stages_saved_ids_and_preserves_its_effort_schema(self):

@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 11)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 100)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 12)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 106)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -301,6 +301,28 @@ class RequestedCoverageTests(unittest.TestCase):
             "cline-desktop-max-effort-fallback": "reasoning", "stdio-tool-call": "mcp", "agent-load": "agents",
             "agent-model-effort-selection": "reasoning", "cline-child-skill-use": "skills",
             "cline-child-mcp-filter": "mcp",
+        })
+
+    def test_factory_runtime_records_distinguish_catalog_and_loopback(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "factory")
+        [target] = item["targets"]
+        workspace, catalog, custom = target["runtime_observations"]
+        for record in (workspace, catalog, custom):
+            self.assertEqual(record["product_version"], "1.10.1")
+            self.assertEqual(record["architecture"], "x64")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(catalog["interface"], "exec-jsonrpc")
+        self.assertEqual(workspace["interface"], "exec-loopback")
+        self.assertEqual(custom["interface"], "exec-loopback")
+        def checks(record):
+            return {check["check"]: check["capability"] for check in record["checks"]}
+
+        self.assertEqual(checks(workspace), {
+            "factory-droid-discovery": "agents", "factory-cli-skill-use": "skills", "stdio-tool-call": "mcp",
+        })
+        self.assertEqual(checks(catalog), {"factory-cli-model-catalog": "models"})
+        self.assertEqual(checks(custom), {
+            "factory-cli-custom-model-request": "models", "factory-cli-custom-effort-request": "reasoning",
         })
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):

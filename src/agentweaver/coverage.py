@@ -154,6 +154,21 @@ _OBSERVATION_CHECKS = {
     "cline-desktop-max-effort-fallback": (
         "reasoning", "Desktop 0.0.49 sent medium effort when its chat backend received max for the tested model.",
     ),
+    "factory-droid-discovery": (
+        "agents", "Droid advertised the generated custom droid. The unsigned session stopped at daemon authentication.",
+    ),
+    "factory-cli-skill-use": (
+        "skills", "Droid called the project Skill and received the generated Skill instructions.",
+    ),
+    "factory-cli-model-catalog": (
+        "models", "The signed-out JSON-RPC catalog listed model IDs and their advertised reasoning efforts.",
+    ),
+    "factory-cli-custom-model-request": (
+        "models", "The CLI accepted the catalog's custom selector and sent its model ID to a scripted local endpoint.",
+    ),
+    "factory-cli-custom-effort-request": (
+        "reasoning", "Custom-model exec arguments sent low, medium, and high, and off omitted the effort field.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -185,6 +200,8 @@ _OBSERVATION_INTERFACES = {
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
+    ("factory", "cli", "exec-loopback"),
+    ("factory", "cli", "exec-jsonrpc"),
 }
 
 
@@ -332,6 +349,7 @@ def _load_observations(
             ("kilo", "ide"): {"isolated-release-loopback"},
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
+            ("factory", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

@@ -897,6 +897,75 @@
           "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
         }
       ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "factory-droid-discovery",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        },
+        {
+          "check": "factory-cli-skill-use",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        }
+      ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-jsonrpc",
+      "checks": [
+        {
+          "check": "factory-cli-model-catalog",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        }
+      ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "factory-cli-custom-model-request",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        },
+        {
+          "check": "factory-cli-custom-effort-request",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        }
+      ]
     }
   ]
 }

@@ -574,7 +574,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
              'context_size', 'batch_endpoint', 'qoder_catalog')
         ):
-            raise WeaverError('A Factory Droid SDK catalog uses a managed model ID and optional reasoning effort')
+            raise WeaverError('A Factory Droid SDK catalog uses a model ID and optional reasoning effort')
         artifacts = render_factory_exec(args.factory_catalog, args.model, args.reasoning_effort)
     elif args.cmd == 'model' and args.copilot_catalog is not None:
         from .copilot_models import render_copilot_cli_model
