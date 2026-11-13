@@ -495,6 +495,28 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 with self.assertRaises(WeaverError):
                     self.render(product, surface, model_id="gpt-6.1-sol")
 
+    def test_hermes_profile_stages_role_manifest_and_selected_skill_only(self):
+        name, skill = "local-review", "security-review"
+        artifacts = self.render("hermes", name=name, hermes_profile=True, profile_skills=[skill])
+        files = {artifact.relative_path.as_posix(): artifact.content for artifact in artifacts}
+        profile = f"hermes/profiles/{name}"
+        self.assertEqual(set(files), {
+            f"{profile}/distribution.yaml", f"{profile}/SOUL.md", f"{profile}/skills/{skill}/SKILL.md",
+            f"hermes/agents/{name}/PROFILE-HANDOFF.md",
+        })
+        self.assertEqual(yaml.safe_load(files[f"{profile}/distribution.yaml"]),
+                         {"name": name, "description": "Review small changes."})
+        self.assertEqual(files[f"{profile}/SOUL.md"], b"Inspect the requested code and report evidence.\n")
+        source = (ROOT / ".agents" / "skills" / skill / "SKILL.md").read_bytes()
+        self.assertEqual(files[f"{profile}/skills/{skill}/SKILL.md"], source.replace(b"\r\n", b"\n"))
+        for options in ({"name": "default"}, {"model_id": "some-model"}, {"profile_skills": ["*"]}):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("hermes", hermes_profile=True, **options)
+        with self.assertRaises(WeaverError):
+            self.render("codex", hermes_profile=True)
+        with self.assertRaises(WeaverError):
+            self.render("hermes", profile_skills=[skill])
+
     def test_unknown_and_unsupported_routes_fail_closed(self):
         for row in agent_inventory(ROOT)["definitions"]:
             if row["state"] in {"unknown", "unsupported"}:

@@ -19,7 +19,7 @@ from .config import WeaverError, load_json, safe_https_url
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model
 from .opencode_models import validate_opencode_selection
-from .skills import selected_portable_skill_ids
+from .skills import selected_portable_skill_ids, stage_hermes_profile_skills
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
@@ -344,7 +344,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             llm_profile: str | None = None,
                             codex_catalog: Path | None = None, opencode_catalog: Path | None = None,
                             model_variant: str | None = None,
-                            allowed_skills: list[str] | None = None) -> list[RenderedArtifact]:
+                            allowed_skills: list[str] | None = None, hermes_profile: bool = False,
+                            profile_skills: list[str] | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -358,6 +359,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("A model variant requires an OpenCode V2 catalog")
     if allowed_skills and opencode_catalog is None:
         raise WeaverError("Skill permissions require the OpenCode V2 agent route")
+    if profile_skills and not hermes_profile:
+        raise WeaverError("Profile Skill staging requires --hermes-profile")
     spec.surface(surface)
     registered = load_integrations(root).get(spec.id)
     if registered != spec:
@@ -365,6 +368,15 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     identifier = _name(name)
     summary = _text(description, "Agent description")
     prompt = _text(instructions, "Agent instructions", multiline=True, maximum=131072)
+    if hermes_profile:
+        if (spec.id, surface) != ("hermes", "cli"):
+            raise WeaverError("Hermes profile staging requires the Hermes CLI surface")
+        if identifier == "default":
+            raise WeaverError("Hermes reserves the default profile name")
+        if any(value is not None for value in (model_id, effort, provider_id, snapshot, llm_profile,
+                                               codex_catalog, opencode_catalog, model_variant)):
+            raise WeaverError("Stage Hermes profile model settings separately with the model command")
+        return _hermes_profile(root, identifier, summary, prompt, profile_skills or [])
     row = _load_definitions(root).get((spec.id, surface), _unknown_row(spec.id, surface))
     if identifier in row["reserved_names"]:
         raise WeaverError("Agent name is reserved or would replace a built-in agent; choose a distinct custom name")
@@ -523,3 +535,25 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     artifacts.append(RenderedArtifact(PurePosixPath(spec.id, "agents", identifier, "HANDOFF.md"),
                                       ("\n".join(lines) + "\n").encode("utf-8"), "agent-handoff"))
     return artifacts
+
+
+def _hermes_profile(root: Path, name: str, description: str, instructions: str,
+                    skills: list[str]) -> list[RenderedArtifact]:
+    prefix = PurePosixPath("hermes", "profiles", name)
+    manifest = f"name: {json.dumps(name)}\ndescription: {json.dumps(description, ensure_ascii=False)}\n"
+    handoff = (
+        f"# Hermes profile distribution for {name}\n\n"
+        "Review the staged manifest, SOUL.md and any selected Skill files before using "
+        "the local-directory workflow documented by Hermes. Choose a new profile name.\n\n"
+        "Stage model settings separately and review them before adding a config.yaml. "
+        "A separate Hermes profile isolates state but does not sandbox its tools. "
+        "Installed-client loading and inference remain unverified.\n\n"
+        "https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions\n"
+    )
+    return [
+        RenderedArtifact(prefix / "distribution.yaml", manifest.encode("utf-8"), "profile-manifest"),
+        RenderedArtifact(prefix / "SOUL.md", (instructions + "\n").encode("utf-8"), "agent-definition"),
+        *stage_hermes_profile_skills(root, skills, prefix),
+        RenderedArtifact(PurePosixPath("hermes", "agents", name, "PROFILE-HANDOFF.md"),
+                         handoff.encode("utf-8"), "agent-handoff"),
+    ]
