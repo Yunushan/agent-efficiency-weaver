@@ -79,11 +79,13 @@ def render_claude_model(path: Path, surface: str, model: str, effort: str | None
                                   ["--model", selector, "--effort", effort], "session-arguments")
         use = "Pass the staged arguments to claude for one session and supply your prompt separately."
     else:
-        settings = {"model": selector}
+        settings = {} if selector == "default" else {"model": selector}
         if effort is not None:
             settings["effortLevel"] = effort
         artifact = _json_artifact("claude-code/.claude/settings.json", settings, "model-config")
         use = "Review and merge the selected fields into the project's .claude/settings.json."
+        if selector == "default":
+            use += " Remove any existing model override in the settings scope you are editing to use the runtime default."
     note = (
         f"# Claude Code model setup\n\nTarget: {surface}\n\n{use} "
         "Preserve existing settings. Review model access, environment overrides and managed policy. "

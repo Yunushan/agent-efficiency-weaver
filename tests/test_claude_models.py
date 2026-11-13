@@ -65,8 +65,7 @@ class ClaudeModelTests(unittest.TestCase):
         common = ("--root", str(ROOT), "--agent", "claude-code", "--dry-run",
                   "--claude-catalog", str(self.snapshot), "--model", "default")
         for surface in ("cli", "desktop", "vscode"):
-            for extra, expected in (((), {"model": "default"}),
-                                    (("--reasoning-effort", "high"), {"model": "default", "effortLevel": "high"})):
+            for extra, expected in (((), {}), (("--reasoning-effort", "high"), {"effortLevel": "high"})):
                 with self.subTest(surface=surface, extra=extra):
                     code, out, err = invoke("model", *common, "--surface", surface, *extra)
                     self.assertEqual(code, 0, err)
@@ -94,10 +93,14 @@ class ClaudeModelTests(unittest.TestCase):
             code, out, err = invoke(*common, "--surface", surface, "--model", "default", "--reasoning-effort", "max")
             self.assertEqual(code, 0, err)
             definition, handoff, _ = json.loads(out)["artifacts"]
-            self.assertIn('model: "default"', definition["content"])
+            self.assertIn('model: "fixture-id"', definition["content"])
+            self.assertIn("pins the model resolved by the saved session", handoff["content"])
             self.assertIn('effort: "max"', definition["content"])
             self.assertIn("Saved Claude Code ModelInfo SHA-256", handoff["content"])
         self.assertEqual(invoke(*common, "--model", "inherit")[0], 2)
+        self.write([{"value": "default"}])
+        self.assertEqual(invoke(*common, "--model", "default")[0], 2)
+        self.write(self.rows)
         self.assertEqual(invoke(*common, "--model", "default", "--provider", "anthropic")[0], 2)
         code, out, err = invoke(*common, "--model", "sonnet[1m]")
         self.assertEqual(code, 0, err)

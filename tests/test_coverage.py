@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 16)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 142)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 17)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 159)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -213,7 +213,6 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_claude_observations_belong_to_the_bundled_executable(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        self.assertEqual(targets["cli"]["runtime_observations"], [])
         self.assertEqual(targets["desktop"]["runtime_observations"], [])
         record, remote, loopback = targets["vscode"]["runtime_observations"]
         self.assertEqual(record["extension_version"], record["engine_version"])
@@ -235,6 +234,41 @@ class RequestedCoverageTests(unittest.TestCase):
                           "claude-child-effort-request": "reasoning", "stdio-tool-call": "mcp",
                           "claude-child-mcp-tool-filter": "mcp"})
         self.assertEqual(targets["vscode"]["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_claude_standalone_observations_scope_catalog_and_tool_calls(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
+        cli = next(target for target in item["targets"] if target["surface_id"] == "cli")
+        inventory, execution = cli["runtime_observations"]
+        for record in (inventory, execution):
+            self.assertEqual(record["interface"], "stream-json")
+            self.assertEqual(record["product_version"], "2.1.325")
+            self.assertEqual(record["engine_version"], "2.1.325")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+            self.assertNotIn("extension_version", record)
+        self.assertEqual(inventory["environment"], "isolated-signed-out")
+        self.assertEqual(execution["environment"], "isolated-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in inventory["checks"]}, {
+            "skill-discovery": "skills",
+            "agent-metadata-discovery": "agents",
+            "project-http-pending-approval": "mcp",
+            "project-stdio-healthcheck": "mcp",
+            "project-public-docs-tool-discovery": "mcp",
+            "signed-out-model-list": "models",
+            "signed-out-effort-options": "reasoning",
+        })
+        self.assertEqual({check["check"]: check["capability"] for check in execution["checks"]}, {
+            "agent-load": "agents",
+            "claude-cli-skill-use": "skills",
+            "stdio-tool-call": "mcp",
+            "claude-cli-public-docs-tool-call": "mcp",
+            "claude-child-mcp-tool-filter": "mcp",
+            "claude-child-model-request": "models",
+            "claude-child-effort-request": "reasoning",
+            "claude-cli-catalog-model-requests": "models",
+            "claude-cli-catalog-effort-requests": "reasoning",
+            "claude-cli-default-child-model": "models",
+        })
 
     def test_qwen_release_daemon_observations_identify_each_packaged_runtime(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")

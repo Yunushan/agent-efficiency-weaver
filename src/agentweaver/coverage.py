@@ -103,6 +103,21 @@ _OBSERVATION_CHECKS = {
     "claude-child-mcp-tool-filter": (
         "mcp", "The generated subagent tool list excluded the local fixture visible in the parent session.",
     ),
+    "claude-cli-skill-use": (
+        "skills", "The standalone CLI invoked the generated Skill and returned its instructions to the loopback endpoint.",
+    ),
+    "claude-cli-public-docs-tool-call": (
+        "mcp", "The standalone CLI called a bounded read-only public OpenAI Docs tool after individual local approval.",
+    ),
+    "claude-cli-catalog-model-requests": (
+        "models", "Every signed-out catalog selector sent its resolved model ID to a scripted Messages endpoint.",
+    ),
+    "claude-cli-catalog-effort-requests": (
+        "reasoning", "Every model and effort pair advertised by the signed-out catalog sent its selected effort.",
+    ),
+    "claude-cli-default-child-model": (
+        "models", "The catalog's resolved default model was pinned in the generated file and used by the subagent.",
+    ),
     "qwen-daemon-agent-discovery": ("agents", "The daemon listed the generated project agent."),
     "qwen-daemon-mcp-pending-approval": (
         "mcp", "The daemon read the generated project server and kept it disconnected pending approval.",
@@ -246,6 +261,7 @@ _OBSERVATION_INTERFACES = {
     ("codex", "ide", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
+    ("claude-code", "cli", "stream-json"),
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
     ("qwen-code", "desktop", "bundled-daemon-http"),
@@ -413,6 +429,7 @@ def _load_observations(
             ("factory", "cli"): {"isolated-release-loopback"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
+            ("claude-code", "cli"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
                 or identity["environment"] not in environments):

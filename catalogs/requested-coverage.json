@@ -1262,6 +1262,104 @@
           "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
         }
       ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "stream-json",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "463b0e6c75d4b775a960a1f48a4a857031c3ff1e",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "agent-metadata-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-http-pending-approval",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-stdio-healthcheck",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-public-docs-tool-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "signed-out-model-list",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "signed-out-effort-options",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "stream-json",
+      "environment": "isolated-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "463b0e6c75d4b775a960a1f48a4a857031c3ff1e",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-skill-use",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-public-docs-tool-call",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-mcp-tool-filter",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-model-request",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-effort-request",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-catalog-model-requests",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-catalog-effort-requests",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-default-child-model",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        }
+      ]
     }
   ]
 }

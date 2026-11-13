@@ -522,7 +522,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if effort is not None and effort not in row["efforts"]:
             raise WeaverError("Unsupported Claude Code custom-agent effort")
         claude_report = inspect_claude_models(claude_catalog, model=model_id, effort=effort)
-        model, checked = claude_report["selection"]["value"], None
+        selection = claude_report["selection"]
+        model, checked = selection["value"], None
+        if model == "default":
+            model = selection["resolved_model"]
+            if model in {None, "default", "inherit"}:
+                raise WeaverError("Claude Code default requires a resolved model in the saved catalog for an agent file")
         claude_digest = claude_report["snapshot_sha256"]
     elif qoder_catalog is not None:
         if row["format"] != "qoder-markdown" or model_id is None or model_id == "inherit":
@@ -701,9 +706,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "Review the destination and its credentials before using the agent. Configure model-dependent "
                       "reasoning through the selected Qwen provider entry or the session controls."])
     if claude_digest is not None:
+        if model_id == "default":
+            lines.extend(["", "The authored default selector pins the model resolved by the saved session. "
+                          "Regenerate with a fresh snapshot to change that pin."])
         lines.extend(["", f"Saved Claude Code ModelInfo SHA-256: {claude_digest}",
-                      "The authored selector is preserved. Review model and effort in the target session. "
-                      "The saved list describes its source session."])
+                      "Review model and effort in the target session. The saved list describes its source session."])
     if codex_digest is not None:
         lines.extend(["", f"Saved Codex model/list snapshot SHA-256: {codex_digest}",
                       "This selection matches a picker-visible model in the caller-supplied Codex catalog. "
