@@ -1916,13 +1916,15 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a managed model or use /model > Custom > Add custom model. The BYOK wizard live catalog determines providers, models and credential fields; manual settings.json BYOK configuration is explicitly discouraged.",
-        "fields": [],
+        "mechanism": "Select an account model ID through session flags or a staged model settings fragment. Configure custom models in the BYOK wizard, whose live catalog determines providers, models and credential fields.",
+        "fields": ["model.name", "model.contextWindow"],
         "commands": [
           "--list-models",
           "--model",
           "/model",
           "--reasoning-effort",
+          "--context-window",
+          "--settings",
           "/effort",
           "/model > Custom > Add custom model"
         ],
@@ -1931,7 +1933,8 @@
           "https://docs.qoder.com/cli/cli-reference",
           "https://docs.qoder.com/cli/slash-reference",
           "https://docs.qoder.com/cli/custom-models",
-          "https://docs.qoder.com/cli/model"
+          "https://docs.qoder.com/cli/model",
+          "https://docs.qoder.com/cli/settings"
         ]
       },
       "reasoning": {
@@ -1942,14 +1945,21 @@
             "field": "--reasoning-effort or /effort",
             "values": null,
             "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "model.reasoningEffort",
+            "values": ["disabled", "off", "none", "low", "medium", "high", "xhigh", "max"],
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://docs.qoder.com/cli/cli-reference",
-          "https://docs.qoder.com/cli/slash-reference"
+          "https://docs.qoder.com/cli/slash-reference",
+          "https://docs.qoder.com/cli/settings-reference"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-13",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],

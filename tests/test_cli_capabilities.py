@@ -79,6 +79,47 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(invoke('model', *base, '--model', 'gpt-5.6-terra', '--reasoning-effort', 'none',
                                 '--kiro-model-defaults')[0], 0)
 
+    def test_qoder_cli_stages_exact_model_ids_and_optional_session_or_settings_controls(self):
+        base = (*ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run')
+        params = (*base, '--model', 'fixture/Model-v2', '--context-size', '400000', '--reasoning-effort', 'high')
+        with mock.patch.object(urllib.request, 'urlopen', side_effect=AssertionError('network forbidden')):
+            code, output, error = invoke('model', *params)
+            self.assertEqual(code, 0, error)
+            items = {item['kind']: item for item in json.loads(output)['artifacts']}
+            self.assertEqual(items['session-arguments']['path'], 'qoder/model/session-arguments.json')
+            self.assertEqual(json.loads(items['session-arguments']['content']), [
+                '--model', 'fixture/Model-v2', '--reasoning-effort', 'high', '--context-window', '400000',
+            ])
+            for extra, expected in (
+                (('--reasoning-effort', 'off', '--context-size', '200000'), {
+                    'name': 'auto', 'reasoningEffort': 'off', 'contextWindow': 200000,
+                }),
+                ((), {'name': 'auto'}),
+            ):
+                code, output, error = invoke('model', *base, '--model', 'auto', '--qoder-settings', *extra)
+                self.assertEqual(code, 0, error)
+                items = {item['kind']: item for item in json.loads(output)['artifacts']}
+                self.assertEqual(items['model-config']['path'], 'qoder/model/cli.fragment.json')
+                self.assertEqual(json.loads(items['model-config']['content']), {'model': expected})
+                self.assertIn('Preserve other settings', items['model-setup']['content'])
+
+    def test_qoder_cli_rejects_unsafe_models_and_inapplicable_options(self):
+        base = (*ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run')
+        for options in (
+            ('--model=--yolo',),
+            ('--model', '../unsafe'),
+            ('--model', 'auto', '--reasoning-effort', 'dynamic'),
+            ('--model', 'auto', '--reasoning-effort', 'off'),
+            ('--model', 'auto', '--context-size', '0'),
+            ('--model', 'auto', '--provider', 'openrouter'),
+            ('--model', 'auto', '--reasoning-budget', '1024'),
+            ('--model', 'auto', '--kiro-model-defaults'),
+        ):
+            with self.subTest(options=options):
+                self.assertEqual(invoke('model', *base, *options)[0], 2)
+        self.assertEqual(invoke('model', *ROOT_ARGS, '--agent', 'qoder', '--surface', 'ide',
+                                '--model', 'auto', '--qoder-settings', '--dry-run')[0], 2)
+
     def test_cline_desktop_stages_workspace_skills_and_disabled_mcp_for_desktop_ui(self):
         base = (*ROOT_ARGS, '--agent', 'cline', '--surface', 'desktop', '--profile', 'efficient', '--dry-run')
         code, output, error = invoke('render', *base, '--enable', 'context7')

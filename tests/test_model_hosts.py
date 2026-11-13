@@ -135,6 +135,11 @@ class ModelHostTests(unittest.TestCase):
         qoder = hosts[("qoder", "cli")]["selection"]
         self.assertIn("live catalog determines", qoder["mechanism"])
         self.assertIn("https://docs.qoder.com/cli/custom-models", qoder["sources"])
+        self.assertIn("model.name", qoder["fields"])
+        self.assertIn("--settings", qoder["commands"])
+        self.assertIn({"kind": "effort", "field": "model.reasoningEffort", "model_dependent": True,
+                       "values": ["disabled", "off", "none", "low", "medium", "high", "xhigh", "max"]},
+                      hosts[("qoder", "cli")]["reasoning"]["controls"])
         studio = hosts[("lm-studio", "desktop")]["selection"]
         self.assertIn("fixed model choices", studio["mechanism"])
         self.assertIn("not an arbitrary", hosts[("lm-studio", "bionic")]["selection"]["mechanism"])

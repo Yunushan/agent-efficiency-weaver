@@ -120,6 +120,8 @@ def _parser() -> argparse.ArgumentParser:
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
                 command.add_argument('--kiro-model-defaults', action='store_true',
                                      help='Stage Kiro CLI V3 per-model reasoning settings')
+                command.add_argument('--qoder-settings', action='store_true',
+                                     help='Stage a Qoder CLI model settings fragment for manual merge')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -448,7 +450,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         if (spec.id, surface) != ('factory', 'cli'):
             raise WeaverError('A Factory Droid SDK catalog requires the Factory CLI target')
-        if args.zed_subagent or args.kiro_model_defaults or any(
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
             getattr(args, option) is not None for option in
             ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
              'context_size', 'batch_endpoint')
@@ -458,14 +460,26 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     elif args.cmd == 'model' and (spec.id, surface) == ('kiro', 'cli'):
         from .models import render_kiro_cli_model
 
-        if args.zed_subagent or any(getattr(args, option) is not None for option in
+        if args.zed_subagent or args.qoder_settings or any(getattr(args, option) is not None for option in
                                    ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning',
                                     'reasoning_mode', 'context_size', 'batch_endpoint')):
             raise WeaverError('Kiro CLI model staging uses Kiro model IDs and an optional reasoning effort')
         artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults)
+    elif args.cmd == 'model' and (spec.id, surface) == ('qoder', 'cli'):
+        from .models import render_qoder_cli_model
+
+        if args.zed_subagent or args.kiro_model_defaults or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode', 'batch_endpoint')
+        ):
+            raise WeaverError('Qoder CLI model staging uses a Qoder model ID, optional effort and context window')
+        artifacts = render_qoder_cli_model(args.model, args.reasoning_effort, args.context_size,
+                                           persistent=args.qoder_settings)
     elif args.cmd in ('provider', 'model'):
         from .providers import render_provider_setup
 
+        if getattr(args, 'qoder_settings', False):
+            raise WeaverError('Qoder model settings require the Qoder CLI surface')
         if args.provider is None:
             raise WeaverError('This model route requires an explicit provider')
         if getattr(args, 'kiro_model_defaults', False):
