@@ -100,6 +100,21 @@ _OBSERVATION_CHECKS = {
     "opencode-v2-child-mcp-filter": (
         "mcp", "The generated subagent's tool list excluded the stdio fixture visible to the parent session.",
     ),
+    "kilo-stdio-discovery": (
+        "mcp", "Kilo initialized the selected project stdio fixture and requested its tools. The disabled control stayed idle.",
+    ),
+    "kilo-model-variant-catalog": (
+        "models", "Kilo listed built-in model IDs and a local fixture model and variant. Weaver imported their selectors.",
+    ),
+    "kilo-agent-variant-load": (
+        "reasoning", "Kilo reported the generated subagent's configured model and named variant from a synthetic catalog.",
+    ),
+    "kilo-cli-variant-request": (
+        "reasoning", "A named variant sent high reasoning effort to the local endpoint. Omitting the variant omitted the field.",
+    ),
+    "kilo-child-ambient-mcp": (
+        "mcp", "The generated subagent could see the fixture tool explicitly allowed by the parent project.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -125,6 +140,8 @@ _OBSERVATION_INTERFACES = {
     ("qwen-code", "cli", "exec-loopback"),
     ("opencode", "cli", "serve-http"),
     ("opencode", "cli", "exec-loopback"),
+    ("kilo", "cli", "serve-http"),
+    ("kilo", "cli", "exec-loopback"),
 }
 
 
@@ -268,6 +285,7 @@ def _load_observations(
         environments = {
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("opencode", "cli"): {"isolated-release-loopback"},
+            ("kilo", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

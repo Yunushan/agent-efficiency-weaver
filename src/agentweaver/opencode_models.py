@@ -17,38 +17,60 @@ def _variant_id(value: object, host: str) -> str:
 
 def project_opencode_catalog(path: Path) -> dict[str, Any]:
     """Keep only selectable identity and variant fields from an OpenCode V2 response."""
-    payload, _ = _read_snapshot_json(path, "OpenCode model catalog")
+    return _project_catalog(path, kilo=False)
+
+
+def project_kilo_catalog(path: Path) -> dict[str, Any]:
+    """Keep Kilo selectors and whether each model advertises text output."""
+    return _project_catalog(path, kilo=True)
+
+
+def _project_catalog(path: Path, *, kilo: bool) -> dict[str, Any]:
+    host = "Kilo" if kilo else "OpenCode"
+    payload, _ = _read_snapshot_json(path, f"{host} model catalog")
     if not isinstance(payload, dict) or not isinstance(payload.get("location"), dict) or not isinstance(
         payload.get("data"), list
     ):
-        raise WeaverError("Expected a saved OpenCode GET /api/model response")
+        raise WeaverError(f"Expected a saved {host} GET /api/model response")
     rows = []
     seen: set[tuple[str, str]] = set()
     for entry in payload["data"]:
         if not isinstance(entry, dict) or type(entry.get("enabled")) is not bool:
-            raise WeaverError("Invalid OpenCode model entry")
+            raise WeaverError(f"Invalid {host} model entry")
         provider = _model_id(entry.get("providerID"))
         alias = _model_id(entry.get("id"))
         if "/" in provider or (provider, alias) in seen:
-            raise WeaverError("Invalid or duplicate OpenCode provider and model entry")
+            raise WeaverError(f"Invalid or duplicate {host} provider and model entry")
         seen.add((provider, alias))
         variants = entry.get("variants")
         if not isinstance(variants, list) or any(not isinstance(variant, dict) for variant in variants):
-            raise WeaverError("Invalid OpenCode model variants")
-        variant_ids = [_variant_id(variant.get("id"), "OpenCode") for variant in variants]
+            raise WeaverError(f"Invalid {host} model variants")
+        variant_ids = [_variant_id(variant.get("id"), host) for variant in variants]
         if len(set(variant_ids)) != len(variant_ids):
-            raise WeaverError("Duplicate OpenCode model variant")
-        rows.append({
-            "providerID": provider,
-            "id": alias,
-            "modelID": _model_id(entry.get("modelID")),
+            raise WeaverError(f"Duplicate {host} model variant")
+        row: dict[str, Any] = {"providerID": provider, "id": alias}
+        if not kilo:
+            row["modelID"] = _model_id(entry.get("modelID"))
+        row.update({
             "enabled": entry["enabled"],
             "type": _model_id(entry.get("type", "chat")),
             "variants": [{"id": identifier} for identifier in variant_ids],
         })
+        if kilo:
+            outputs = _kilo_output_modalities(entry)
+            if outputs is None or any(not isinstance(value, str) for value in outputs):
+                raise WeaverError("Invalid Kilo model output modalities")
+            row["capabilities"] = {"output": ["text"] if "text" in outputs else []}
+        rows.append(row)
     result = {"location": {}, "data": rows}
     _scan(result)
     return result
+
+
+def _kilo_output_modalities(row: dict[str, Any]) -> list[Any] | None:
+    capabilities = row.get("capabilities")
+    output = capabilities.get("output") if isinstance(capabilities, dict) else None
+    return output if isinstance(output, list) else None
 
 
 def validate_opencode_selection(path: Path, model: str, variant: str | None) -> tuple[str, str]:
@@ -88,9 +110,8 @@ def _validate_selection(path: Path, model: str, variant: str | None, *, kilo: bo
         if key != (provider, alias):
             continue
         if kilo:
-            capabilities = row.get("capabilities")
-            output = capabilities.get("output") if isinstance(capabilities, dict) else None
-            if not isinstance(output, list) or "text" not in output:
+            output = _kilo_output_modalities(row)
+            if output is None or "text" not in output:
                 raise WeaverError("Kilo model must advertise text output")
         if not row["enabled"] or row.get("type", "chat") != "chat":
             raise WeaverError(f"{host} model must be enabled and support chat")

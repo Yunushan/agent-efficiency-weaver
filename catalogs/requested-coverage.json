@@ -658,6 +658,76 @@
           "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
         }
       ]
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "product_version": "7.8.27",
+      "engine_version": "7.8.27",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "serve-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4b556cce04285b5419f759f501a0638d3746a4e9",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-stdio-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-model-variant-catalog",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-agent-variant-load",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        }
+      ]
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "product_version": "7.8.27",
+      "engine_version": "7.8.27",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4b556cce04285b5419f759f501a0638d3746a4e9",
+      "checks": [
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "23f5743281563e9e5aa3d131ba9823b6161a35f659b7cd16564f33a0dea4b14f"
+        },
+        {
+          "check": "kilo-cli-variant-request",
+          "evidence_sha256": "23f5743281563e9e5aa3d131ba9823b6161a35f659b7cd16564f33a0dea4b14f"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        },
+        {
+          "check": "kilo-child-ambient-mcp",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        }
+      ]
     }
   ]
 }

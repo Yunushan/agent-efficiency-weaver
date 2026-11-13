@@ -486,6 +486,42 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.render("kilo", "cli", model_variant="review-high", **options)
                 self.assertNotIn("NEVER-ECHO", str(caught.exception))
 
+    def test_kilo_catalog_projection_keeps_text_capability_and_strips_request_metadata(self):
+        payload = {"location": {"directory": "NEVER-ECHO"}, "data": [
+            {"providerID": "gateway", "id": "team/review", "enabled": True,
+             "capabilities": {"input": ["text"], "output": ["text", "image"]},
+             "request": {"headers": {"Authorization": "NEVER-ECHO"}},
+             "api": {"id": "upstream", "apiKey": "NEVER-ECHO"},
+             "variants": [{"id": "high", "headers": {"X-Example": "NEVER-ECHO"}}]},
+            {"providerID": "gateway", "id": "team/image", "enabled": True, "type": "image",
+             "capabilities": {"output": ["image"]}, "variants": []},
+        ]}
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory, "raw-models.json")
+            projected = Path(directory, "selectors.json")
+            source.write_text(json.dumps(payload), encoding="utf-8")
+            code, output, error = invoke("kilo-models", "--input", str(source))
+            self.assertEqual(code, 0, error)
+            self.assertNotIn("NEVER-ECHO", output + error)
+            self.assertEqual(json.loads(output), {"location": {}, "data": [
+                {"providerID": "gateway", "id": "team/review", "type": "chat", "enabled": True,
+                 "capabilities": {"output": ["text"]}, "variants": [{"id": "high"}]},
+                {"providerID": "gateway", "id": "team/image", "type": "image", "enabled": True,
+                 "capabilities": {"output": []}, "variants": []},
+            ]})
+            projected.write_text(output, encoding="utf-8")
+            definition, _ = self.render("kilo", "cli", model_id="gateway/team/review",
+                                        model_variant="high", kilo_catalog=projected)
+            fields, _ = parse_definition(definition.content, definition.relative_path.as_posix())
+            self.assertEqual((fields["model"], fields["variant"]), ("gateway/team/review", "high"))
+            with self.assertRaisesRegex(WeaverError, "must advertise text output"):
+                self.render("kilo", "cli", model_id="gateway/team/image", kilo_catalog=projected)
+            payload["data"][0]["variants"][0]["id"] = "sk-SecretFixture96"
+            source.write_text(json.dumps(payload), encoding="utf-8")
+            code, output, error = invoke("kilo-models", "--input", str(source))
+            self.assertEqual(code, 2)
+            self.assertNotIn("sk-SecretFixture96", output + error)
+
     def test_opencode_v2_skill_allowlist_matches_portable_bundle_ids(self):
         from agentweaver.config import load_json
         from agentweaver.skills import render_instruction_bundle

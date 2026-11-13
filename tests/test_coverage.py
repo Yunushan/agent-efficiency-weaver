@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 7)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 63)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 8)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 73)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -239,6 +239,27 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "agent-model-effort-selection": "reasoning",
                           "opencode-v2-child-skill-use": "skills", "opencode-v2-child-mcp-filter": "mcp"})
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_kilo_runtime_records_keep_catalog_and_variant_loading_separate(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "kilo")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        discovery, execution = targets["cli"]["runtime_observations"]
+        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        for record in (discovery, execution):
+            self.assertEqual(record["product_version"], "7.8.27")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(discovery["interface"], "serve-http")
+        self.assertEqual(execution["interface"], "exec-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in discovery["checks"]}, {
+            "skill-discovery": "skills", "agent-discovery": "agents", "kilo-stdio-discovery": "mcp",
+            "kilo-model-variant-catalog": "models", "kilo-agent-variant-load": "reasoning",
+        })
+        self.assertEqual({check["check"]: check["capability"] for check in execution["checks"]}, {
+            "stdio-tool-call": "mcp", "kilo-cli-variant-request": "reasoning", "agent-load": "agents",
+            "agent-model-effort-selection": "reasoning", "kilo-child-ambient-mcp": "mcp",
+        })
+        self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")
