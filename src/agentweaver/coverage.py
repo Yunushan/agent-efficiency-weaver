@@ -38,6 +38,10 @@ _OBSERVATION_CHECKS = {
     "public-docs-https-tool-call": (
         "mcp", "The signed-out client discovered the public OpenAI Docs tools and called the documentation list directly.",
     ),
+    "context7-https-subagent-tool-call": (
+        "mcp", "A generated subagent inherited the project's Context7 server and resolved a public library over HTTPS. "
+        "The signed-out probe supplied the host TLS root to the isolated process and scripted model responses locally.",
+    ),
     "workspace-mcp-parse": ("mcp", "The native workspace parser accepted generated HTTP and stdio entries."),
     "workspace-stdio-tool-call": (
         "mcp", "The bundled runtime loaded the trusted workspace file, discovered the local tool, and called it directly.",

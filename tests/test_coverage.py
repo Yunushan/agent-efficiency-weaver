@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 12)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 106)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 109)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -140,13 +140,21 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertEqual(remote["environment"], "isolated-signed-out")
             self.assertEqual(remote["os_variant"], "windows:11:10.0.26300.9711")
             self.assertEqual(remote["checks"][0]["capability"], "mcp")
+            context7, = [record for record in targets[surface]["runtime_observations"]
+                         if record["checks"][0]["check"] == "context7-https-subagent-tool-call"]
+            for field in ("product_version", "engine_version", "interface", "environment", "os_variant",
+                          "architecture"):
+                self.assertEqual(context7[field], remote[field])
+            self.assertEqual(context7.get("extension_version"), remote.get("extension_version"))
+            self.assertEqual(context7["checks"][0]["capability"], "mcp")
+            self.assertIn("host TLS root", context7["checks"][0]["outcome"])
             self.assertEqual(targets[surface]["capabilities"]["mcp"]["runtime_status"], "pending")
         profile, = [record for record in targets["cli"]["runtime_observations"]
                     if record["interface"] == "exec-loopback"]
         self.assertEqual(profile["product_version"], "0.167.0-alpha.4.1")
         self.assertEqual({check["check"]: check["capability"] for check in profile["checks"]},
                          {"named-profile-model-request": "models", "named-profile-effort-precedence": "reasoning"})
-        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 2)
+        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 3)
 
     def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
         report = coverage_report(ROOT)
