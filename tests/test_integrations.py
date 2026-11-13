@@ -125,6 +125,7 @@ ADAPTER_SURFACES = {
     ("zed", "ide"),
     ("junie", "cli"),
     ("goose", "cli"),
+    ("kiro", "cli"),
     ("kiro", "ide"),
     ("antigravity", "ide"),
     ("pi", "cli"),
@@ -169,6 +170,7 @@ PROVIDER_ROUTES = {
 }
 
 PROVIDER_GAP_SOURCES = {
+    ("kiro", "cli"): "https://kiro.dev/docs/models/",
     ("kiro", "ide"): "https://kiro.dev/docs/models/",
     ("antigravity", "ide"): "https://antigravity.google/docs/models",
     ("devin", "desktop-local"): "https://docs.devin.ai/desktop/models",
@@ -474,6 +476,8 @@ class IntegrationRegistryTests(unittest.TestCase):
                     continue
                 expected = (
                     ("tests/test_capability_expansion.py",) if (integration.id, surface.id) == ("qoder", "ide") else
+                    ("tests/test_cli_capabilities.py", "tests/test_stdio_adapters.py")
+                    if (integration.id, surface.id) == ("kiro", "cli") else
                     ("tests/test_adapters.py", "tests/test_stdio_adapters.py")
                     if (integration.id, surface.id) == ("openhands", "cli") else
                     ("tests/test_adapters.py",)
@@ -501,6 +505,8 @@ class IntegrationRegistryTests(unittest.TestCase):
                 )
                 if key == ("qoder", "ide"):
                     expected_instructions = ("tests/test_skills.py", "tests/test_capability_expansion.py")
+                if key == ("kiro", "cli"):
+                    expected_instructions = expected_skills = ("tests/test_cli_capabilities.py",)
                 if key in {("cline", "ide"), ("cursor", "ide"), ("qoder", "ide")}:
                     expected_skills = ("tests/test_skills.py", "tests/test_capability_expansion.py")
                 self.assertEqual(
@@ -535,7 +541,7 @@ class IntegrationRegistryTests(unittest.TestCase):
                     self.assertIn(key, PROVIDER_GAPS, key)
                     self.assertEqual(evidence.state, "unknown", key)
                     self.assertIn(PROVIDER_GAP_SOURCES[key], evidence.sources, key)
-                    self.assertEqual(evidence.checked_on, "2026-10-26", key)
+                    self.assertEqual(evidence.checked_on, "2026-11-13" if key == ("kiro", "cli") else "2026-10-26", key)
                     self.assertEqual(evidence.fixture_tests, (), key)
                     with self.assertRaises(WeaverError):
                         provider_evidence(integration.id, surface.id)

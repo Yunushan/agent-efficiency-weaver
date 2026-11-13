@@ -1299,6 +1299,30 @@
     },
     {
       "product_id": "kiro",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select an account-managed model for Kiro CLI V3. A session flag takes precedence over the custom-agent model pin and saved default.",
+        "fields": ["chat.defaultModel", "model", "--model"],
+        "commands": ["/model", "/effort"],
+        "ui_steps": ["Select a model in /model", "Choose Effort when the model exposes it"],
+        "sources": ["https://kiro.dev/docs/cli/headless/", "https://kiro.dev/docs/models/"]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {"kind": "effort", "field": "--effort", "values": null, "model_dependent": true},
+          {"kind": "effort", "field": "chat.modelDefaults", "values": null, "model_dependent": true}
+        ],
+        "sources": ["https://kiro.dev/docs/models/effort/"]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": ["tests/test_model_hosts.py"],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kiro",
       "surface_id": "ide",
       "selection": {
         "state": "manual",

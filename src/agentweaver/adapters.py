@@ -226,7 +226,7 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         if not isinstance(dialect, str):
             raise WeaverError('MCP dialect is not documented')
         document = _json_document(dialect, selected, spec.id)
-        if spec.id == 'cline' and surface in ('cli', 'desktop'):
+        if (spec.id, surface) in {('cline', 'cli'), ('cline', 'desktop'), ('kiro', 'cli')}:
             for entry in document['mcpServers'].values():
                 entry['disabled'] = True
         content = json_bytes(document)

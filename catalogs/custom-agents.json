@@ -858,6 +858,32 @@
     },
     {
       "product_id": "kiro",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "kiro-json",
+      "path_template": ".kiro/agents/{name}.json",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omit the model to use the Kiro default. An explicit Kiro model ID pins the agent if the model is available to the account.",
+      "reasoning_behavior": "Use Kiro CLI V3 model settings or session controls to set reasoning. The agent profile has no effort field.",
+      "permission_behavior": "Only read tools are selected. includeMcpJson and includePowers are false; fs_write/shell/mcp/subagent are denied. Kiro workspace trust and managed policy apply.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://kiro.dev/docs/custom-agents/",
+          "https://kiro.dev/docs/custom-agents/configuration-reference/",
+          "https://kiro.dev/docs/models/effort/"
+        ],
+        "checked_on": "2026-11-13",
+        "version_constraint": "Kiro CLI V3",
+        "fixture_tests": ["tests/test_agent_definitions.py", "tests/test_cli_capabilities.py"],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kiro",
       "surface_id": "ide",
       "state": "native",
       "format": "kiro-json",

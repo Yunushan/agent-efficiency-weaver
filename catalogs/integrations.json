@@ -1711,6 +1711,74 @@
       "default_surface": "ide",
       "surfaces": [
         {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url",
+            "disabled"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".kiro/settings/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "steering",
+          "instruction_paths": [
+            ".kiro/steering/agentweaver.md"
+          ],
+          "skills_path": ".kiro/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "manual",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": ["https://kiro.dev/docs/configuration/", "https://kiro.dev/docs/mcp/configuration/"],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Kiro CLI V3",
+              "fixture_tests": ["tests/test_cli_capabilities.py", "tests/test_stdio_adapters.py"],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": ["https://kiro.dev/docs/configuration/", "https://kiro.dev/docs/steering/"],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Kiro CLI V3",
+              "fixture_tests": ["tests/test_cli_capabilities.py"],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": ["https://kiro.dev/docs/configuration/", "https://kiro.dev/docs/skills/"],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Kiro CLI V3",
+              "fixture_tests": ["tests/test_cli_capabilities.py"],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": ["https://kiro.dev/docs/models/", "https://kiro.dev/docs/getting-started/authentication/"],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": ["https://kiro.dev/docs/getting-started/installation/", "https://kiro.dev/docs/cli/agent-harness/"],
+              "checked_on": "2026-11-13",
+              "version_constraint": "CLI V3 in 3.0.0 or later on macOS and Windows 11 (PowerShell); Linux depends on V3 harness compatibility.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
           "id": "ide",
           "mcp_dialect": "mcpServers.url",
           "config_fields": [

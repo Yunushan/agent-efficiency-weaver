@@ -99,7 +99,7 @@ def _parser() -> argparse.ArgumentParser:
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
         elif name in ('provider', 'model'):
-            command.add_argument('--provider', required=True)
+            command.add_argument('--provider', required=name == 'provider')
             command.add_argument('--model', required=True)
             command.add_argument('--catalog', type=Path)
             command.add_argument('--protocol')
@@ -113,6 +113,8 @@ def _parser() -> argparse.ArgumentParser:
             if name == 'model':
                 command.add_argument('--zed-subagent', action='store_true',
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
+                command.add_argument('--kiro-model-defaults', action='store_true',
+                                     help='Stage Kiro CLI V3 per-model reasoning settings')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -208,7 +210,7 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
              f'Target OS: {target_os}. Generating host: {host_os}.',
              'Documentation and fixture tests are not installed-client or native-device verification.', '']
     if mcp:
-        if spec.id == 'cline' and surface in ('cli', 'desktop'):
+        if (spec.id, surface) in {('cline', 'cli'), ('cline', 'desktop'), ('kiro', 'cli')}:
             lines.extend(['Every staged server is disabled. Review each transport and its tool access.',
                           'Merge selected entries into the MCP settings and explicitly enable approved servers.'])
         if target.config_scope == 'user':
@@ -435,9 +437,21 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             if errors:
                 raise WeaverError('; '.join(errors))
             artifacts = render_instruction_bundle(spec, surface, profile, args.skill, root)
+    elif args.cmd == 'model' and (spec.id, surface) == ('kiro', 'cli'):
+        from .models import render_kiro_cli_model
+
+        if args.zed_subagent or any(getattr(args, option) is not None for option in
+                                   ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning',
+                                    'reasoning_mode', 'context_size', 'batch_endpoint')):
+            raise WeaverError('Kiro CLI model staging uses Kiro model IDs and an optional reasoning effort')
+        artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults)
     elif args.cmd in ('provider', 'model'):
         from .providers import render_provider_setup
 
+        if args.provider is None:
+            raise WeaverError('This model route requires an explicit provider')
+        if getattr(args, 'kiro_model_defaults', False):
+            raise WeaverError('Kiro per-model defaults require the Kiro CLI surface')
         extended = args.cmd == 'model' or args.provider != 'openrouter' or any(
             getattr(args, key) is not None for key in
             ('catalog', 'protocol', 'reasoning_effort', 'reasoning_budget', 'reasoning', 'reasoning_mode',

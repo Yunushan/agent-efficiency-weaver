@@ -934,6 +934,57 @@ def _json_artifact(path: str, value: object, kind: str) -> RenderedArtifact:
     return RenderedArtifact(PurePosixPath(path), (json.dumps(value, indent=2, ensure_ascii=True) + "\n").encode(), kind)
 
 
+def render_kiro_cli_model(model: str, effort: str | None, *, persistent: bool = False) -> list[RenderedArtifact]:
+    """Stage Kiro service model settings using the documented V3 controls."""
+    identifier = _model_id(model)
+    if "/" in identifier or identifier.startswith(("~", "-")):
+        _fail("Kiro requires a Kiro model service ID")
+    claude_efforts = {"low", "medium", "high", "max"}
+    extended_claude = {"claude-opus-5", "claude-opus-4.8", "claude-opus-4.7", "claude-sonnet-5"}
+    gpt_models = {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"}
+    if identifier in gpt_models or identifier in extended_claude:
+        allowed = claude_efforts | {"xhigh"}
+    elif identifier == "claude-sonnet-5.5":
+        # Use the intersection of the effort table and the model's specific note.
+        allowed = {"low", "medium", "high"}
+    elif identifier in {"claude-opus-4.6", "claude-sonnet-4.6"}:
+        allowed = claude_efforts
+    else:
+        allowed = set()
+    if persistent:
+        if identifier in gpt_models:
+            allowed.add("none")
+        if effort is None:
+            _fail("Kiro per-model defaults require an explicit reasoning effort")
+    if effort is not None and effort not in allowed:
+        _fail("Requested effort is unsupported or unknown for this Kiro CLI model")
+
+    if persistent:
+        field = "reasoning" if identifier in gpt_models else "output_config"
+        fragment = {"chat.modelDefaults": {identifier: {field: {"effort": effort}}}}
+        output = _json_artifact("kiro/model/cli.fragment.json", fragment, "model-config")
+        instructions = (
+            "Review and merge only the selected model entry under chat.modelDefaults in "
+            ".kiro/settings/cli.json for this workspace or ~/.kiro/settings/cli.json for this user. "
+            "Preserve other model settings and entries. The selected model's effort can be overridden by the session."
+        )
+    else:
+        arguments = ["chat", "--v3", "--model", identifier]
+        if effort is not None:
+            arguments.extend(["--effort", effort])
+        output = _json_artifact("kiro/model/session-arguments.json", arguments, "session-arguments")
+        instructions = "Pass these arguments to kiro-cli to select the model and optional effort for one V3 session."
+    handoff = (
+        "# Kiro CLI V3 model setup\n\n"
+        f"{instructions}\n\n"
+        "Confirm the model and effort in Kiro's /model picker. Account and region determine availability. "
+        "Weaver only stages files and performs no authentication, client launch, or inference.\n\n"
+        "- https://kiro.dev/docs/models/effort/\n"
+        "- https://kiro.dev/docs/cli/headless/\n"
+    )
+    return [output, RenderedArtifact(PurePosixPath("kiro/model/model-setup.md"), handoff.encode(), "model-setup")]
+
+
 def _hermes_model_config(checked: Mapping[str, Any], api_base: str, effort: str | None,
                          context_size: int | None) -> dict[str, Any] | None:
     architecture = checked["architecture"]

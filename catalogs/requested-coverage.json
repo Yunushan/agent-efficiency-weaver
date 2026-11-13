@@ -63,7 +63,7 @@
     },
     {
       "id": "kiro", "label": "Kiro", "aliases": ["kiro"],
-      "targets": [{"product_id": "kiro", "surface_id": "ide"}]
+      "targets": [{"product_id": "kiro", "surface_id": "ide"}, {"product_id": "kiro", "surface_id": "cli"}]
     },
     {
       "id": "antigravity", "label": "Google Antigravity", "aliases": ["antigravity", "GoogleAntigravity", "Google Antigravity"],

@@ -429,6 +429,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         return _hermes_profile(root, identifier, summary, prompt, profile_skills or [], config,
                                stage_route=hermes_profile_route)
     row = _load_definitions(root).get((spec.id, surface), _unknown_row(spec.id, surface))
+    if (spec.id, surface) == ("kiro", "cli") and (
+        provider_id is not None or snapshot is not None or (model_id is not None and "/" in model_id)
+    ):
+        raise WeaverError("Kiro CLI profiles use model IDs from the Kiro model service")
     if identifier in row["reserved_names"]:
         raise WeaverError("Agent name is reserved or would replace a built-in agent; choose a distinct custom name")
     state = row["state"]

@@ -115,6 +115,13 @@ class StdioConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(WeaverError, "OpenCode CLI"):
             render_mcp(self.integrations["kilo"], "cli", self.profile, self.catalog, [], opencode_v2=True)
 
+    def test_kiro_cli_stages_stdio_with_disabled_flag(self):
+        artifact = self.artifact("kiro", "cli")
+        self.assertEqual(artifact.relative_path.as_posix(), "kiro/.kiro/settings/mcp.json")
+        self.assertEqual(json.loads(artifact.content), {"mcpServers": {
+            "synthetic-stdio": {"command": COMMAND, "args": ARGS, "disabled": True},
+        }})
+
     def test_hermes_profile_mcp_disables_both_transports_without_changing_fragment_behavior(self):
         selected = ["context7", "synthetic-stdio"]
         expected = {
@@ -172,7 +179,7 @@ class StdioConfigurationTests(unittest.TestCase):
                                 {"type": "local", "command": [COMMAND, *ARGS], "enabled": True} if product in LOCAL_ARRAY else
                                 {"type": "stdio", "name": "synthetic-stdio", "enabled": True, "cmd": COMMAND, "args": ARGS} if product == "goose" else
                                 {**base, "enabled": True} if product == "hermes" else base)
-                    if product == "cline" and surface.id in {"cli", "desktop"}:
+                    if (product, surface.id) in {("cline", "cli"), ("cline", "desktop"), ("kiro", "cli")}:
                         expected["disabled"] = True
                     self.assertEqual(entry, expected)
                     for remote_field in ("url", "serverUrl", "httpUrl", "uri"):

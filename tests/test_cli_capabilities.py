@@ -17,6 +17,68 @@ ROOT_ARGS = ('--root', str(ROOT))
 
 
 class CapabilityCliTests(unittest.TestCase):
+    def test_kiro_v3_cli_stages_project_artifacts_and_keeps_mcp_disabled(self):
+        target = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run')
+        base = (*target, '--profile', 'efficient')
+        code, output, error = invoke('render', *base, '--enable', 'context7')
+        self.assertEqual(code, 0, error)
+        items = {entry['kind']: entry for entry in json.loads(output)['artifacts']}
+        self.assertEqual(items['mcp']['path'], 'kiro/.kiro/settings/mcp.json')
+        self.assertEqual(json.loads(items['mcp']['content']), {'mcpServers': {'context7': {
+            'url': 'https://mcp.context7.com/mcp', 'disabled': True,
+        }}})
+        self.assertIn('Every staged server is disabled', items['handoff']['content'])
+
+        code, output, error = invoke('bundle', *base, '--skill', 'security-review')
+        self.assertEqual(code, 0, error)
+        paths = [item['path'] for item in json.loads(output)['artifacts']]
+        self.assertIn('kiro/.kiro/skills/security-review/SKILL.md', paths)
+        self.assertTrue(any(path.startswith('kiro/.kiro/steering/') and path.endswith('.md') for path in paths))
+
+        with tempfile.TemporaryDirectory() as scratch:
+            prompt = Path(scratch, 'role.md')
+            prompt.write_text('Review the proposed changes.', encoding='utf-8')
+            command = (*target, '--name', 'reviewer', '--description', 'Review changes', '--instructions-file',
+                       str(prompt), '--model', 'claude-sonnet-4.6')
+            code, output, error = invoke('agent', *command)
+            self.assertEqual(code, 0, error)
+            entry = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'agent-definition')
+            self.assertEqual(entry['path'], 'kiro/.kiro/agents/reviewer.json')
+            agent = json.loads(entry['content'])
+            self.assertEqual(agent['model'], 'claude-sonnet-4.6')
+            self.assertEqual(agent['tools'], ['read'])
+            self.assertFalse(agent['includeMcpJson'])
+            self.assertFalse(agent['includePowers'])
+            self.assertEqual(invoke('agent', *command, '--reasoning-effort', 'high')[0], 2)
+            self.assertEqual(invoke('agent', *command, '--provider', 'anthropic')[0], 2)
+
+    def test_kiro_model_settings_use_model_specific_cli_and_persistent_shapes(self):
+        base = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run')
+        for model, effort, default_key in (('gpt-5.6-terra', 'xhigh', 'reasoning'),
+                                           ('claude-sonnet-4.6', 'max', 'output_config')):
+            params = (*base, '--model', model, '--reasoning-effort', effort)
+            code, output, error = invoke('model', *params)
+            self.assertEqual(code, 0, error)
+            args = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'session-arguments')
+            self.assertEqual(json.loads(args['content']), ['chat', '--v3', '--model', model, '--effort', effort])
+            code, output, error = invoke('model', *params, '--kiro-model-defaults')
+            self.assertEqual(code, 0, error)
+            config = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'model-config')
+            self.assertEqual(config['path'], 'kiro/model/cli.fragment.json')
+            self.assertEqual(json.loads(config['content']), {'chat.modelDefaults': {
+                model: {default_key: {'effort': effort}},
+            }})
+        for params in (('--model', 'claude-sonnet-4.6', '--reasoning-effort', 'xhigh'),
+                       ('--model', 'new-model', '--reasoning-effort', 'high'),
+                       ('--model', 'gpt-5.6-terra', '--reasoning-effort', 'none'),
+                       ('--model', 'gpt-5.6-terra', '--kiro-model-defaults'),
+                       ('--model', 'openai/gpt-5.6-terra'),
+                       ('--model', 'gpt-5.6-terra', '--provider', 'openai')):
+            self.assertEqual(invoke('model', *base, *params)[0], 2)
+        self.assertEqual(invoke('model', *base, '--model', 'new-model')[0], 0)
+        self.assertEqual(invoke('model', *base, '--model', 'gpt-5.6-terra', '--reasoning-effort', 'none',
+                                '--kiro-model-defaults')[0], 0)
+
     def test_cline_desktop_stages_workspace_skills_and_disabled_mcp_for_desktop_ui(self):
         base = (*ROOT_ARGS, '--agent', 'cline', '--surface', 'desktop', '--profile', 'efficient', '--dry-run')
         code, output, error = invoke('render', *base, '--enable', 'context7')
