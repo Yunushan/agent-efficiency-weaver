@@ -18,6 +18,7 @@ from .artifacts import RenderedArtifact
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url, safe_name
 from .copilot_models import validate_copilot_selection
+from .factory_models import inspect_factory_models
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
 from .opencode_models import validate_kilo_selection, validate_opencode_selection
@@ -367,7 +368,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             profile_context_size: int | None = None,
                             hermes_profile_route: bool = False, copilot_catalog: Path | None = None,
                             copilot_fallbacks: list[str] | None = None,
-                            kilo_catalog: Path | None = None) -> list[RenderedArtifact]:
+                            kilo_catalog: Path | None = None,
+                            factory_catalog: Path | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -379,6 +381,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if model_variant is not None and opencode_catalog is None and kilo_catalog is None:
         raise WeaverError("A model variant requires a saved OpenCode V2 or Kilo model catalog")
+    if factory_catalog is not None:
+        if (spec.id, surface) != ("factory", "cli") or hermes_profile:
+            raise WeaverError("A Factory Droid SDK catalog requires a Factory CLI custom-agent target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog,
+                                               opencode_catalog, copilot_catalog, kilo_catalog)):
+            raise WeaverError("A Factory Droid SDK catalog conflicts with other model discovery options")
     if kilo_catalog is not None:
         if spec.id != "kilo" or surface not in {"cli", "ide"} or hermes_profile:
             raise WeaverError("A Kilo catalog requires a Kilo CLI or VS Code custom-agent target")
@@ -446,9 +454,18 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     opencode_digest: str | None = None
     copilot_digest: str | None = None
     kilo_digest: str | None = None
+    factory_digest: str | None = None
     copilot_models: list[str] | None = None
     skill_ids: tuple[str, ...] = ()
-    if kilo_catalog is not None:
+    if factory_catalog is not None:
+        if row["format"] != "factory-markdown" or model_id in {None, "inherit"}:
+            raise WeaverError("A Factory Droid SDK catalog requires an explicit custom-droid model")
+        if effort is not None and effort not in row["efforts"]:
+            raise WeaverError("Factory custom-agent effort is limited to low/medium/high")
+        model, checked = _model_selection(row, root, model_id, None, None, None)
+        factory_report = inspect_factory_models(factory_catalog, model=model_id, effort=effort)
+        factory_digest = factory_report["snapshot_sha256"]
+    elif kilo_catalog is not None:
         if row["format"] != "kilo-markdown" or row["effort_field"] != "variant":
             raise WeaverError("Kilo variant staging requires the documented Markdown agent format")
         if model_id is None or model_id == "inherit":
@@ -614,6 +631,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "verify the installed client or inference."])
         if model_variant is not None:
             lines.append(f"Explicit Kilo model variant: {model_variant}")
+    if factory_digest is not None:
+        lines.extend(["", f"Saved Factory Droid SDK listModels() SHA-256: {factory_digest}",
+                      "Verify the selected model in the target project and account before use. "
+                      "This catalog snapshot does not prove current availability or inference."])
     if cline_configured_agent and skill_ids:
         lines.extend(["", "Cline Skill IDs: " + ", ".join(skill_ids) + ".",
                       f"Stage matching files with bundle --agent cline --surface {surface} and each --skill ID."])

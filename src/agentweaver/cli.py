@@ -66,6 +66,10 @@ def _parser() -> argparse.ArgumentParser:
     codex_models.add_argument('--input', type=Path, required=True)
     codex_models.add_argument('--model')
     codex_models.add_argument('--reasoning-effort')
+    factory_models = subs.add_parser('factory-models', help='Inspect a saved Factory Droid SDK listModels() array')
+    factory_models.add_argument('--input', type=Path, required=True)
+    factory_models.add_argument('--model')
+    factory_models.add_argument('--reasoning-effort')
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -111,6 +115,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--batch-endpoint', choices=OPENROUTER_BATCH_ENDPOINTS,
                                  help='Request body endpoint for OpenRouter batch staging')
             if name == 'model':
+                command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
                 command.add_argument('--zed-subagent', action='store_true',
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
                 command.add_argument('--kiro-model-defaults', action='store_true',
@@ -125,6 +130,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--catalog', type=Path)
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
+            command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
@@ -437,6 +443,18 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             if errors:
                 raise WeaverError('; '.join(errors))
             artifacts = render_instruction_bundle(spec, surface, profile, args.skill, root)
+    elif args.cmd == 'model' and args.factory_catalog is not None:
+        from .factory_models import render_factory_exec
+
+        if (spec.id, surface) != ('factory', 'cli'):
+            raise WeaverError('A Factory Droid SDK catalog requires the Factory CLI target')
+        if args.zed_subagent or args.kiro_model_defaults or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
+        ):
+            raise WeaverError('A Factory Droid SDK catalog uses a managed model ID and optional reasoning effort')
+        artifacts = render_factory_exec(args.factory_catalog, args.model, args.reasoning_effort)
     elif args.cmd == 'model' and (spec.id, surface) == ('kiro', 'cli'):
         from .models import render_kiro_cli_model
 
@@ -487,6 +505,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             copilot_catalog=args.copilot_catalog, copilot_fallbacks=args.copilot_fallback_model,
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             kilo_catalog=args.kilo_catalog,
+            factory_catalog=args.factory_catalog,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             hermes_profile_route=args.hermes_profile_route,
@@ -524,6 +543,12 @@ def main(argv: list[str] | None = None) -> int:
             from .codex_models import inspect_codex_models
 
             result = inspect_codex_models(args.input, model=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'factory-models':
+            from .factory_models import inspect_factory_models
+
+            result = inspect_factory_models(args.input, model=args.model, effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:

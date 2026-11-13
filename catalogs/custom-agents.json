@@ -577,17 +577,19 @@
         "high"
       ],
       "model_behavior": "model: inherit follows the parent; explicit managed IDs or configured custom: IDs use Factory model configuration.",
-      "reasoning_behavior": "reasoningEffort accepts low/medium/high only on a supporting explicit model; Factory ignores it with model: inherit, so that combination is rejected.",
+      "reasoning_behavior": "reasoningEffort accepts low/medium/high only on a supporting explicit model. Pass --factory-catalog to validate the exact model and effort against a saved SDK list.",
       "permission_behavior": "tools: read-only and mcpServers: [] narrow tools. Factory always includes TodoWrite and Skill; this is not an OS sandbox.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://docs.factory.com/harness/subagents"
+          "https://docs.factory.com/harness/subagents",
+          "https://docs.factory.com/sdk/typescript"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-13",
         "version_constraint": null,
         "fixture_tests": [
-          "tests/test_agent_definitions.py"
+          "tests/test_agent_definitions.py",
+          "tests/test_factory_models.py"
         ],
         "runtime_checks": []
       }

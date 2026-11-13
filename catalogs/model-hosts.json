@@ -848,8 +848,9 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a built-in or custom model; custom model thinking settings depend on provider and model recognition.",
+        "mechanism": "Select a built-in or custom model. A saved SDK list can validate managed exec selections and custom-droid model pins.",
         "fields": [
+          "--model",
           "customModels[].model"
         ],
         "commands": [
@@ -858,12 +859,19 @@
         ],
         "ui_steps": [],
         "sources": [
-          "https://docs.factory.com/model-independence/byok"
+          "https://docs.factory.com/model-independence/byok",
+          "https://docs.factory.com/sdk/typescript"
         ]
       },
       "reasoning": {
         "state": "manual",
         "controls": [
+          {
+            "kind": "effort",
+            "field": "--reasoning-effort",
+            "values": null,
+            "model_dependent": true
+          },
           {
             "kind": "effort",
             "field": "customModels[].reasoningEffort",
@@ -887,10 +895,11 @@
           }
         ],
         "sources": [
-          "https://docs.factory.com/model-independence/byok"
+          "https://docs.factory.com/model-independence/byok",
+          "https://docs.factory.com/droid-exec/overview"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-13",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
