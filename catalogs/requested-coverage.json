@@ -1203,6 +1203,65 @@
           "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
         }
       ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "desktop",
+      "product_version": "0.27.3",
+      "engine_version": "22.20.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-daemon-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "46856f2c36b3abd1b7fbaa3c90060e55d943d46b",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-skill-use",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-agent-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-mcp-pending-approval",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-approved-stdio-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-startup-model",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-session-effort",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-child-model-request",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-child-effort-request",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        }
+      ]
     }
   ]
 }

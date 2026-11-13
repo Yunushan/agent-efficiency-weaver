@@ -112,6 +112,15 @@ _OBSERVATION_CHECKS = {
     ),
     "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
+    "qwen-daemon-skill-use": (
+        "skills", "The bundled daemon invoked the generated Skill and included its instructions in a loopback request.",
+    ),
+    "qwen-daemon-child-model-request": (
+        "models", "The generated subagent used its own configured model in a scripted loopback Responses request.",
+    ),
+    "qwen-daemon-child-effort-request": (
+        "reasoning", "The delegated subagent sent its selected model's high effort while the parent sent low.",
+    ),
     "opencode-v2-disabled-mcp-load": ("mcp", "The V2 server read the generated MCP entry with discovery disabled."),
     "opencode-v2-model-variant-catalog": ("models", "The V2 server listed built-in model and variant IDs."),
     "opencode-v2-agent-variant-load": (
@@ -239,6 +248,7 @@ _OBSERVATION_INTERFACES = {
     ("claude-code", "vscode", "bundled-runtime"),
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
+    ("qwen-code", "desktop", "bundled-daemon-http"),
     ("opencode", "cli", "serve-http"),
     ("opencode", "cli", "exec-loopback"),
     ("kilo", "cli", "serve-http"),
@@ -394,6 +404,7 @@ def _load_observations(
         }
         environments = {
             ("qwen-code", "cli"): {"isolated-release-loopback"},
+            ("qwen-code", "desktop"): {"isolated-release-loopback"},
             ("opencode", "cli"): {"isolated-release-loopback"},
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},

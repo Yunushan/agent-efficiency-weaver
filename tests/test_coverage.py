@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 15)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 131)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 16)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 142)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -236,10 +236,9 @@ class RequestedCoverageTests(unittest.TestCase):
                           "claude-child-mcp-tool-filter": "mcp"})
         self.assertEqual(targets["vscode"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
-    def test_qwen_release_daemon_observations_stay_on_the_cli_surface(self):
+    def test_qwen_release_daemon_observations_identify_each_packaged_runtime(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        self.assertEqual(targets["desktop"]["runtime_observations"], [])
         self.assertEqual(targets["vscode"]["runtime_observations"], [])
         record, discovery, execution = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "0.27.3")
@@ -257,6 +256,26 @@ class RequestedCoverageTests(unittest.TestCase):
             [check] = observation["checks"]
             self.assertEqual(check["check"], expected)
             self.assertEqual(check["capability"], "mcp")
+        desktop, = targets["desktop"]["runtime_observations"]
+        self.assertEqual(desktop["product_version"], "0.27.3")
+        self.assertEqual(desktop["engine_version"], "22.20.0")
+        self.assertEqual(desktop["interface"], "bundled-daemon-http")
+        self.assertEqual(desktop["environment"], "isolated-release-loopback")
+        self.assertEqual(desktop["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(desktop["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in desktop["checks"]}, {
+            "skill-discovery": "skills",
+            "qwen-daemon-skill-use": "skills",
+            "qwen-daemon-agent-discovery": "agents",
+            "agent-load": "agents",
+            "qwen-daemon-mcp-pending-approval": "mcp",
+            "qwen-daemon-approved-stdio-discovery": "mcp",
+            "stdio-tool-call": "mcp",
+            "qwen-daemon-startup-model": "models",
+            "qwen-daemon-session-effort": "reasoning",
+            "qwen-daemon-child-model-request": "models",
+            "qwen-daemon-child-effort-request": "reasoning",
+        })
 
     def test_opencode_v2_runtime_records_distinguish_config_discovery_and_execution(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "opencode")
