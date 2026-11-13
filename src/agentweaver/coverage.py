@@ -47,6 +47,12 @@ _OBSERVATION_CHECKS = {
     "agent-model-array-rejected": (
         "models", "The direct runtime loader rejected the generated fallback array because it expected a scalar model.",
     ),
+    "named-profile-model-request": (
+        "models", "The CLI sent the generated named profile's model to a scripted loopback Responses endpoint.",
+    ),
+    "named-profile-effort-precedence": (
+        "reasoning", "The scripted endpoint observed the profile effort and the higher-priority command-line override.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -54,6 +60,7 @@ _OBSERVATION_FIELDS = {
 }
 _OBSERVATION_INTERFACES = {
     ("codex", "cli", "app-server-stdio"),
+    ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
 }
