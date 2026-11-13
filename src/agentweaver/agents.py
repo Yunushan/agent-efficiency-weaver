@@ -18,6 +18,7 @@ from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model
+from .opencode_models import validate_opencode_selection
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
@@ -269,7 +270,7 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 
 
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
-            model: str | None, effort: str | None) -> bytes:
+            model: str | None, effort: str | None, *, opencode_v2: bool = False) -> bytes:
     format_name = row["format"]
     if format_name == "codex-toml":
         fields = {"name": name, "description": description, "developer_instructions": instructions}
@@ -301,6 +302,13 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields_any.update(tools=["Read", "Grep", "Glob"], subagents=[], override=False)
     elif format_name == "cursor-markdown":
         fields_any.update(model=model or "inherit", readonly=True)
+    elif opencode_v2:
+        fields_any.pop("name")
+        rules = [{"action": "*", "resource": "*", "effect": "deny"}]
+        rules.extend({"action": action, "resource": "*", "effect": "allow"} for action in ("read", "glob", "grep"))
+        rules.extend({"action": "read", "resource": pattern, "effect": "deny"}
+                     for pattern in ("*.env", "*.env.*"))
+        fields_any.update(mode="subagent", permissions=rules)
     elif format_name in {"opencode-markdown", "kilo-markdown"}:
         fields_any.pop("name")  # Both hosts derive the identifier from the filename.
         permission = ({"*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow"}
@@ -331,7 +339,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             effort: str | None = None, provider_id: str | None = None,
                             snapshot: Mapping[str, Any] | None = None,
                             llm_profile: str | None = None,
-                            codex_catalog: Path | None = None) -> list[RenderedArtifact]:
+                            codex_catalog: Path | None = None, opencode_catalog: Path | None = None,
+                            model_variant: str | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -341,6 +350,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             _text(value, label, maximum=250)
     if snapshot is not None and not isinstance(snapshot, Mapping):
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
+    if model_variant is not None and opencode_catalog is None:
+        raise WeaverError("A model variant requires an OpenCode V2 catalog")
     spec.surface(surface)
     registered = load_integrations(root).get(spec.id)
     if registered != spec:
@@ -359,7 +370,17 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     model: str | None
     checked: dict[str, Any] | None
     codex_digest: str | None = None
-    if codex_catalog is not None:
+    opencode_digest: str | None = None
+    if opencode_catalog is not None:
+        if (spec.id, surface, row["format"]) != ("opencode", "cli", "opencode-markdown"):
+            raise WeaverError("An OpenCode V2 model catalog requires an OpenCode CLI custom-agent target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, effort)):
+            raise WeaverError("An OpenCode V2 catalog conflicts with provider, catalog, profile or effort overrides")
+        if model_id is None or model_id == "inherit":
+            raise WeaverError("An OpenCode V2 model catalog requires an explicit provider/model")
+        model, opencode_digest = validate_opencode_selection(opencode_catalog, model_id, model_variant)
+        checked = None
+    elif codex_catalog is not None:
         if spec.id != "codex" or row["format"] != "codex-toml":
             raise WeaverError("A Codex model catalog requires a native Codex custom-agent target")
         if any(value is not None for value in (provider_id, snapshot, llm_profile)):
@@ -378,13 +399,16 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         model, checked = _llm_profile(llm_profile), None
     else:
         model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
+    permission_behavior = (row["permission_behavior"] if opencode_digest is None else
+                           "V2 ordered rules deny all actions first, allow read/glob/grep, and deny reads of "
+                           "*.env and *.env.*. Review effective policy before use.")
     lines = ["# Custom agent definition handoff", "", f"Product: {spec.name} ({spec.id})",
              f"Surface: {surface}", f"Agent: {identifier}", f"Description: {summary}",
              f"Export route: {state}", "", "This is an offline staged artifact. Review and import it manually. "
              "No agent was installed or executed; no project trust, credentials, services, or production writes were enabled.",
              "", "Model behavior: " + row["model_behavior"],
              "Reasoning behavior: " + row["reasoning_behavior"],
-             "Permission behavior: " + row["permission_behavior"],
+             "Permission behavior: " + permission_behavior,
              "Tool filters and prompt instructions do not establish an OS sandbox. Parent policy, managed settings, "
              "and the host's installed version still apply. This file grants no new authorization.",
              "Model and reasoning defaults follow the selected host behavior described above. "
@@ -455,6 +479,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "This selection matches a picker-visible model in a caller-supplied Codex catalog page. "
                       "The page may be partial or stale. It does not prove account access, inference, or "
                       "compatibility with the target client. The parent's provider is unchanged."])
+    if opencode_digest is not None:
+        lines.extend(["", f"Saved OpenCode V2 GET /api/model response SHA-256: {opencode_digest}",
+                      "This definition uses V2 model selectors and ordered permissions. Review the effective "
+                      "policy and model availability in your OpenCode project before use. The saved catalog "
+                      "describes its source project at capture time. No model request was made."])
     if llm_profile is not None:
         lines.append(f"Explicit local LLM profile reference: {model}")
     elif model is not None:
@@ -469,8 +498,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     artifacts: list[RenderedArtifact] = []
     if state == "native":
         path = row["path_template"].replace("{name}", identifier)
-        artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path),
-                                          _native(row, identifier, summary, prompt, model, effort), "agent-definition"))
+        content = _native(row, identifier, summary, prompt, model, effort, opencode_v2=opencode_digest is not None)
+        artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
         lines.extend(["", f"Native project path: {path}"])
     else:
         lines.extend(["", "No native definition path is established for this route. Apply the role through the "

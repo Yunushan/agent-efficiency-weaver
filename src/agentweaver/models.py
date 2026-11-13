@@ -17,7 +17,7 @@ from typing import Any, NoReturn
 from urllib.parse import parse_qsl, urlsplit
 
 from .artifacts import RenderedArtifact
-from .config import WeaverError, load_json, safe_https_url
+from .config import WeaverError, _invalid_constant, _json_float, _json_object, load_json, safe_https_url
 from .integrations import IntegrationSpec, get_integration, load_integrations
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -97,6 +97,29 @@ def _strings(value: object, label: str, *, allowed: set[str] | None = None) -> l
     if len(result) != len(set(result)) or (allowed is not None and set(result) - allowed):
         _fail(f"{label}: duplicate or unsupported value")
     return result
+
+
+def _load_bounded_snapshot(path: Path, label: str) -> tuple[object, str]:
+    def read() -> bytes:
+        try:
+            with path.open("rb") as stream:
+                content = stream.read(_MAX_SNAPSHOT_BYTES + 1)
+        except OSError:
+            raise WeaverError(f"Cannot read {label}") from None
+        if len(content) > _MAX_SNAPSHOT_BYTES:
+            raise WeaverError(f"{label} exceeds 32 MiB")
+        return content
+
+    data = read()
+    try:
+        parsed = json.loads(data.decode("utf-8"), object_pairs_hook=_json_object,
+                            parse_constant=_invalid_constant, parse_float=_json_float)
+    except (UnicodeError, ValueError, RecursionError):
+        raise WeaverError(f"Cannot read valid UTF-8 {label}") from None
+    if read() != data:
+        raise WeaverError(f"{label} changed while reading")
+    _scan(parsed)
+    return parsed, hashlib.sha256(data).hexdigest()
 
 
 def _reasoning(value: object) -> dict[str, Any]:

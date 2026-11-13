@@ -215,6 +215,39 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 with self.subTest(rows=rows), self.assertRaises(WeaverError):
                     self.render(model_id="model", effort="high", codex_catalog=catalog)
 
+    def test_opencode_v2_uses_catalog_alias_variant_and_ordered_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "opencode.json"
+            entry = {"providerID": "gateway", "id": "team/review", "modelID": "upstream-deployment",
+                     "enabled": True, "type": "chat", "variants": [{"id": "review-fast",
+                     "body": {"temperature": 0.2}}]}
+            catalog.write_text(json.dumps({"location": {}, "data": [entry]}), encoding="utf-8")
+            artifacts = self.render("opencode", model_id="gateway/team/review", model_variant="review-fast",
+                                    opencode_catalog=catalog)
+            parsed, body = parse_definition(artifacts[0].content, NATIVE_PATHS["opencode", "cli"])
+            self.assertEqual(parsed["model"], "gateway/team/review#review-fast")
+            self.assertEqual(set(parsed), {"description", "model", "mode", "permissions"})
+            self.assertEqual(parsed["permissions"], [
+                {"action": "*", "resource": "*", "effect": "deny"},
+                *({"action": action, "resource": "*", "effect": "allow"} for action in ("read", "glob", "grep")),
+                *({"action": "read", "resource": pattern, "effect": "deny"} for pattern in ("*.env", "*.env.*")),
+            ])
+            self.assertIn("Inspect the requested code", body)
+            self.assertIn(hashlib.sha256(catalog.read_bytes()).hexdigest(), artifacts[1].content.decode())
+            for options in ({"model_id": "gateway/upstream-deployment"},
+                            {"model_variant": "unlisted"}, {"model_variant": "bad#variant"},
+                            {"effort": "high"}, {"provider_id": "openrouter"}):
+                with self.subTest(options=options), self.assertRaises(WeaverError):
+                    self.render("opencode", **({"model_id": "gateway/team/review",
+                                                "opencode_catalog": catalog} | options))
+            for rows in ([{**entry, "enabled": False}], [{**entry, "type": "image"}],
+                         [entry, entry], [{**entry, "headers": {"Authorization": "redacted"}}]):
+                catalog.write_text(json.dumps({"location": {}, "data": rows}), encoding="utf-8")
+                with self.subTest(rows=rows), self.assertRaises(WeaverError):
+                    self.render("opencode", model_id="gateway/team/review", opencode_catalog=catalog)
+        with self.assertRaisesRegex(WeaverError, "requires an OpenCode V2 catalog"):
+            self.render("opencode", model_id="gateway/team/review", model_variant="review-fast")
+
     def test_model_controls_preserve_host_semantics(self):
         for product, surface in (("kimi-code", "cli"), ("qoder", "ide")):
             with self.subTest(product=product), self.assertRaises(WeaverError):

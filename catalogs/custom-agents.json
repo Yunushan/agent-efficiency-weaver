@@ -939,8 +939,8 @@
         "max"
       ],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Additional reasoningEffort is provider/model-specific and requires explicit model evidence; omitted by default.",
-      "permission_behavior": "mode: subagent; wildcard permission denies tools first, then read/glob/grep/list are allowed. Parent and managed policy still apply.",
+      "reasoning_behavior": "V1 reasoningEffort requires explicit provider model evidence. V2 uses an optional named variant checked against a saved OpenCode model catalog.",
+      "permission_behavior": "V1 mode: subagent; wildcard permission denies tools first, then read/glob/grep/list are allowed. Managed policy still applies.",
       "reserved_names": [
         "build",
         "plan",
@@ -952,7 +952,10 @@
       ],
       "evidence": {
         "sources": [
-          "https://opencode.ai/docs/agents/"
+          "https://opencode.ai/docs/agents/",
+          "https://opencode.ai/docs/permissions/",
+          "https://opencode.ai/docs/openapi.json",
+          "https://opencode.ai/docs/migrate-v1"
         ],
         "checked_on": "2026-10-26",
         "version_constraint": null,
