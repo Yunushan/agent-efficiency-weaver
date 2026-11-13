@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from test_cli_exports import invoke
+from test_cli_exports import ROOT, invoke
 
 from agentweaver.config import WeaverError
 from agentweaver.kimi_models import inspect_kimi_models
@@ -67,6 +67,30 @@ class KimiModelsTests(unittest.TestCase):
                         {"model": "managed fixture/model-a", "effort": "max"}):
             with self.subTest(options=options), self.assertRaises(WeaverError):
                 inspect_kimi_models(self.path, **options)
+
+    def test_stage_session_uses_configured_alias_and_optional_profile_and_effort(self):
+        base = ("--root", str(ROOT), "--agent", "kimi-code", "--kimi-catalog", str(self.path), "--dry-run")
+        model = ("--model", "managed fixture/model-a")
+        workspace = ("--kimi-workspace-id", "workspace_fixture")
+        with mock.patch.object(socket, "create_connection", side_effect=AssertionError("network")):
+            code, out, err = invoke("model", *base, *workspace, *model, "--reasoning-effort", "high",
+                                    "--kimi-agent-profile", "fixture-reviewer")
+        self.assertEqual(code, 0, err)
+        config = next(item for item in json.loads(out)["artifacts"] if item["kind"] == "session-create")
+        self.assertEqual(config["path"], "kimi-code/model/session-create.json")
+        self.assertEqual(json.loads(config["content"]), {
+            "workspace_id": "workspace_fixture", "environment_id": "local",
+            "agent_config": {"model": "managed fixture/model-a", "thinking": "high", "profile": "fixture-reviewer"},
+        })
+        self.assertNotIn("synthetic-request", out)
+        code, out, err = invoke("model", *base, *workspace, "--model", "bare-alias")
+        self.assertEqual(code, 0, err)
+        config = next(item for item in json.loads(out)["artifacts"] if item["kind"] == "session-create")
+        self.assertEqual(json.loads(config["content"])["agent_config"], {"model": "bare-alias"})
+        for extra in (("--reasoning-effort", "max"), ("--provider", "openai"), ("--agent", "qwen-code"),
+                      ("--kimi-workspace-id", "../project"), ("--kimi-agent-profile", "bad/profile")):
+            self.assertEqual(invoke("model", *base, *workspace, *model, *extra)[0], 2)
+        self.assertEqual(invoke("model", *base, *model)[0], 2)
 
     def test_preserves_future_effort_labels_but_does_not_validate_them_as_supported_wire_values(self):
         data = copy.deepcopy(SYNTHETIC)
@@ -138,7 +162,7 @@ class KimiModelsTests(unittest.TestCase):
         with mock.patch.object(Path, "open", side_effect=[io.BytesIO(original), io.BytesIO(original + b" ")]):
             with self.assertRaisesRegex(WeaverError, "changed while reading"):
                 inspect_kimi_models(self.path)
-        with mock.patch("agentweaver.kimi_models._MAX_SNAPSHOT_BYTES", 32):
+        with mock.patch("agentweaver.models._MAX_SNAPSHOT_BYTES", 32):
             with self.assertRaisesRegex(WeaverError, "exceeds 32 MiB"):
                 inspect_kimi_models(self.path)
 

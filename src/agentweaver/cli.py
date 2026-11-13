@@ -129,6 +129,9 @@ def _parser() -> argparse.ArgumentParser:
                 host_catalog.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
                 host_catalog.add_argument('--qwen-workspace-catalog', type=Path,
                                           help='Saved Qwen daemon GET /workspace/providers response')
+                host_catalog.add_argument('--kimi-catalog', type=Path, help='Saved Kimi web GET /api/v1/models response')
+                command.add_argument('--kimi-workspace-id', help='Registered local workspace for Kimi web session staging')
+                command.add_argument('--kimi-agent-profile', help='Existing Kimi main-agent profile name')
                 command.add_argument('--qwen-auth-type', help='Filter the saved Qwen workspace catalog by authentication type')
                 command.add_argument('--zed-subagent', action='store_true',
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
@@ -441,6 +444,9 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     spec, surface, target_os, host_os = _selection(args, root)
     if args.cmd == 'model' and args.qwen_auth_type is not None and args.qwen_workspace_catalog is None:
         raise WeaverError('Qwen model authentication filtering requires --qwen-workspace-catalog')
+    if (args.cmd == 'model' and args.kimi_catalog is None
+            and any(value is not None for value in (args.kimi_workspace_id, args.kimi_agent_profile))):
+        raise WeaverError('Kimi web session options require --kimi-catalog')
     if args.cmd == 'doctor':
         diagnosis = describe_workflow(spec, target_os, host_os, surface_id=surface)
         if args.format == 'json':
@@ -464,6 +470,21 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             if errors:
                 raise WeaverError('; '.join(errors))
             artifacts = render_instruction_bundle(spec, surface, profile, args.skill, root)
+    elif args.cmd == 'model' and args.kimi_catalog is not None:
+        from .kimi_models import render_kimi_session
+
+        if (spec.id, surface) != ('kimi-code', 'cli'):
+            raise WeaverError('A Kimi web model catalog requires the Kimi Code CLI target')
+        if args.kimi_workspace_id is None:
+            raise WeaverError('Kimi web session staging requires --kimi-workspace-id')
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
+        ):
+            raise WeaverError('Kimi web session staging uses a configured alias and optional thinking effort')
+        artifacts = render_kimi_session(args.kimi_catalog, args.model, args.reasoning_effort,
+                                       workspace_id=args.kimi_workspace_id, profile=args.kimi_agent_profile)
     elif args.cmd == 'model' and args.qwen_workspace_catalog is not None:
         from .qwen_models import render_qwen_startup
 

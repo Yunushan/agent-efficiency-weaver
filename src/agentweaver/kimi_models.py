@@ -1,13 +1,12 @@
 """Inspect caller-supplied Kimi Code model aliases without contacting its server."""
 from __future__ import annotations
 
-import hashlib
-import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .config import WeaverError, _invalid_constant, _json_float, _json_object
-from .models import _MAX_SNAPSHOT_BYTES, _scan, _strings, _text
+from .artifacts import RenderedArtifact
+from .config import WeaverError, safe_name
+from .models import _json_artifact, _load_bounded_snapshot, _strings, _text
 
 _KIMI_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
@@ -21,27 +20,9 @@ def _alias(value: object) -> str:
 
 def inspect_kimi_models(path: Path, *, model: str | None = None, effort: str | None = None) -> dict[str, Any]:
     """Read a saved successful Kimi web GET /api/v1/models envelope."""
-    def read_bounded() -> bytes:
-        try:
-            with path.open("rb") as stream:
-                content = stream.read(_MAX_SNAPSHOT_BYTES + 1)
-        except OSError:
-            raise WeaverError("Cannot read Kimi model snapshot") from None
-        if len(content) > _MAX_SNAPSHOT_BYTES:
-            raise WeaverError("Kimi model snapshot exceeds 32 MiB")
-        return content
-
-    content = read_bounded()
-    try:
-        raw = json.loads(content.decode("utf-8"), object_pairs_hook=_json_object,
-                         parse_constant=_invalid_constant, parse_float=_json_float)
-    except (UnicodeError, ValueError, RecursionError):
-        raise WeaverError("Cannot read valid UTF-8 JSON object") from None
+    raw, digest = _load_bounded_snapshot(path, "Kimi model snapshot")
     if not isinstance(raw, dict):
         raise WeaverError("Expected JSON object")
-    if read_bounded() != content:
-        raise WeaverError("Kimi model snapshot changed while reading")
-    _scan(raw)
     if type(raw.get("code")) is not int or raw["code"] != 0:
         raise WeaverError("Kimi model snapshot is not a successful response")
     data = raw.get("data")
@@ -94,7 +75,41 @@ def inspect_kimi_models(path: Path, *, model: str | None = None, effort: str | N
                 raise WeaverError("Kimi effort is undocumented, unsupported or unknown for this alias")
             selection["effort"] = chosen
     return {"schema_version": 1, "source": "caller-supplied Kimi web GET /api/v1/models response",
-            "sha256": hashlib.sha256(content).hexdigest(), "snapshot_completeness": "unknown",
+            "sha256": digest, "snapshot_completeness": "unknown",
             "scope": "Configured aliases at capture time; upstream account access and current availability are unknown",
             "models": models, "selection": selection, "network_used": False,
             "credentials_read": False, "inference_tested": False}
+
+
+def render_kimi_session(path: Path, model: str, effort: str | None, *,
+                        workspace_id: str, profile: str | None = None) -> list[RenderedArtifact]:
+    """Stage a model-bound Kimi web session creation body."""
+    workspace = _text(workspace_id, "Kimi workspace ID")
+    if len(workspace) > 250 or not safe_name(workspace):
+        raise WeaverError("Invalid registered Kimi workspace ID")
+    if profile is not None:
+        _text(profile, "Kimi agent profile")
+        if len(profile) > 64 or not safe_name(profile):
+            raise WeaverError("Invalid Kimi agent profile name")
+    report = inspect_kimi_models(path, model=model, effort=effort)
+    selected = report["selection"]
+    config = {"model": selected["alias"]}
+    if "effort" in selected:
+        config["thinking"] = selected["effort"]
+    if profile is not None:
+        config["profile"] = profile
+    body = {"workspace_id": workspace, "environment_id": "local", "agent_config": config}
+    source = "https://moonshotai.github.io/kimi-code/en/reference/server-api-sessions.html"
+    note = (
+        "# Kimi Code web session setup\n\n"
+        "Review the staged body for POST /api/v1/sessions against the local server's /openapi.json. "
+        "Supply authentication separately. Verify the workspace, model alias, and any named agent "
+        "profile against that server before use. The model catalog covers model aliases and thinking efforts.\n\n"
+        "Check the creation response before sending a prompt. Weaver only stages the body.\n\n"
+        f"Model snapshot SHA-256: {report['sha256']}\n\n"
+        f"- {source}\n"
+    )
+    return [
+        _json_artifact("kimi-code/model/session-create.json", body, "session-create"),
+        RenderedArtifact(PurePosixPath("kimi-code/model/model-setup.md"), note.encode(), "model-setup"),
+    ]
