@@ -230,6 +230,64 @@
       ]
     },
     {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "product_version": "26.1106.6628.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
       "product_id": "copilot",
       "surface_id": "vscode",
       "product_version": "1.146.0",
