@@ -29,6 +29,14 @@ _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
 _LLM_PROFILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _MODEL = re.compile(r"^~?[A-Za-z0-9][A-Za-z0-9._:+@/-]*$")
+# Provider-backed routes that Weaver can check against its own catalog.
+_QWEN_PROVIDER_ROUTES = {
+    "openai": ("openai", "openai-chat"),
+    "openai-responses": ("openai", "openai-responses"),
+    "anthropic": ("anthropic", "anthropic-messages"),
+    "gemini": ("google", "google-generate-content"),
+}
+_QWEN_AUTH_TYPES = {*_QWEN_PROVIDER_ROUTES, "vertex-ai", "qwen-oauth", "qwen-subscription"}
 _MODEL_SECRET = re.compile(
     r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|"
     r"gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})", re.IGNORECASE,
@@ -219,7 +227,8 @@ def agent_inventory(root: Path) -> dict[str, Any]:
 
 
 def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, effort: str | None,
-                     provider_id: str | None, snapshot: Mapping[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:
+                     provider_id: str | None, snapshot: Mapping[str, Any] | None, *,
+                     protocol: str | None = None) -> tuple[str | None, dict[str, Any] | None]:
     if row["model_style"] == "local-profile":
         if model_id not in {None, "inherit"} or any(value is not None for value in (effort, provider_id, snapshot)):
             raise WeaverError("OpenHands custom agents accept a local LLM profile reference or inheritance; raw model/provider/effort overrides are not exported")
@@ -254,7 +263,8 @@ def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, e
         raise WeaverError("Explicit custom-agent effort requires provider-specific reasoning evidence")
     bare_model = (model.removeprefix(provider_id + "/")
                   if style == "provider/model" and provider_id is not None else model)
-    checked = check_model(root, provider_id, bare_model, snapshot, effort=effort) if provider_id is not None else None
+    checked = (check_model(root, provider_id, bare_model, snapshot, effort=effort, protocol=protocol)
+               if provider_id is not None else None)
     if checked is not None:
         architecture = checked["architecture"]
         outputs = architecture.get("output_modalities") if architecture is not None else None
@@ -371,7 +381,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             copilot_fallbacks: list[str] | None = None,
                             kilo_catalog: Path | None = None,
                             factory_catalog: Path | None = None,
-                            qoder_catalog: Path | None = None) -> list[RenderedArtifact]:
+                            qoder_catalog: Path | None = None,
+                            qwen_auth_type: str | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -383,6 +394,19 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if model_variant is not None and opencode_catalog is None and kilo_catalog is None:
         raise WeaverError("A model variant requires a saved OpenCode V2 or Kilo model catalog")
+    qwen_protocol = None
+    if qwen_auth_type is not None:
+        if (spec.id, surface) != ("qwen-code", "cli"):
+            raise WeaverError("A Qwen authentication type requires the Qwen Code CLI custom-agent target")
+        if qwen_auth_type not in _QWEN_AUTH_TYPES:
+            raise WeaverError("Unknown built-in Qwen authentication type")
+        if model_id in {None, "inherit", "fast"}:
+            raise WeaverError("A Qwen authentication type requires an explicit Qwen model ID")
+        if provider_id is not None:
+            qwen_route = _QWEN_PROVIDER_ROUTES.get(qwen_auth_type)
+            if qwen_route is None or qwen_route[0] != provider_id:
+                raise WeaverError("Provider validation requires the matching built-in Qwen authentication type")
+            qwen_protocol = qwen_route[1]
     if qoder_catalog is not None:
         if (spec.id, surface) != ("qoder", "cli") or hermes_profile:
             raise WeaverError("A Qoder SDK catalog requires a Qoder CLI custom-agent target")
@@ -537,9 +561,20 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("Copilot custom-agent effort requires --copilot-catalog")
         if cline_configured_agent and model_id not in {None, "inherit"} and provider_id not in {"openrouter", "anthropic"}:
             raise WeaverError("Explicit Cline agent models require a documented Cline provider: openrouter or anthropic")
-        model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
+        model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot, protocol=qwen_protocol)
         if cline_configured_agent and allowed_skills:
             skill_ids = selected_portable_skill_ids(root, allowed_skills)
+    if qwen_auth_type is not None:
+        if row["format"] != "qwen-markdown" or model is None:
+            raise WeaverError("A Qwen authentication type requires a native Qwen subagent model")
+        auth_prefix, separator, _ = model.partition(":")
+        if separator and auth_prefix in _QWEN_AUTH_TYPES:
+            raise WeaverError("Supply the Qwen model ID separately from its authentication type")
+        if qwen_auth_type in {"gemini", "vertex-ai"}:
+            model = model.removeprefix("models/")
+        if not model:
+            raise WeaverError("A Qwen authentication type requires a non-empty model ID")
+        model = f"{qwen_auth_type}:{model}"
     permission_behavior = (row["permission_behavior"] if opencode_digest is None else
                            "V2 ordered rules deny all actions first, allow read/glob/grep, and deny reads of "
                            "*.env and *.env.*. Review effective policy before use.")
@@ -619,6 +654,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.extend(["", f"Model validation provider: {checked['provider_id']}",
                       "Provider validation does not change the parent's provider or prove availability, entitlement, "
                       "successful inference, or installed-host compatibility."])
+    if row["format"] == "qwen-markdown":
+        lines.extend(["", "A qualified model selector uses the named Qwen provider configured in the target profile. "
+                      "A bare ID is resolved using Qwen's provider lookup. The fast selector uses fastModel "
+                      "and falls back to the parent model when that setting cannot be resolved.",
+                      "Review the destination and its credentials before using the agent. Configure model-dependent "
+                      "reasoning through the selected Qwen provider entry or the session controls."])
     if codex_digest is not None:
         lines.extend(["", f"Saved Codex model/list snapshot SHA-256: {codex_digest}",
                       "This selection matches a picker-visible model in the caller-supplied Codex catalog. "

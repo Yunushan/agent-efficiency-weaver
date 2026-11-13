@@ -85,7 +85,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
-                                 ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13"}
+                                 ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
+                                 ("qwen-code", "cli"): "2026-11-13"}
                     expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
@@ -187,6 +188,47 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                         dict(model_id="gpt-6.1-sol", provider_id="openai", effort="max")):
             with self.subTest(factory=options), self.assertRaises(WeaverError):
                 self.render("factory", **options)
+
+    def test_qwen_subagent_can_select_configured_provider_with_exact_model(self):
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            instructions = Path(directory, "role.md")
+            instructions.write_text("Review the staged change.", encoding="utf-8")
+            args = ("--root", str(ROOT), "--agent", "qwen-code", "--name", "reviewer",
+                    "--description", "Review", "--instructions-file", str(instructions), "--dry-run")
+            for model, auth_type, provider, selector in (
+                ("models/gemini-3.8-flash", "gemini", "google", "gemini:gemini-3.8-flash"),
+                ("claude-sonnet-4-6", "anthropic", "anthropic", "anthropic:claude-sonnet-4-6"),
+                ("runtime/model:free", "openai", None, "openai:runtime/model:free"),
+                ("gpt-6.1-sol", "openai-responses", "openai", "openai-responses:gpt-6.1-sol"),
+                ("fast", None, None, "fast"),
+                ("openai:gpt-4o", None, None, "openai:gpt-4o"),
+            ):
+                with self.subTest(model=model):
+                    options = ("--qwen-auth-type", auth_type) if auth_type else ()
+                    if provider:
+                        options += ("--provider", provider)
+                    code, out, err = invoke("agent", *args, "--model", model, *options)
+                    self.assertEqual(code, 0, err)
+                    result = json.loads(out)
+                    definition = next(item for item in result["artifacts"] if item["kind"] == "agent-definition")
+                    parsed, _ = parse_definition(definition["content"].encode(), ".qwen/agents/reviewer.md")
+                    self.assertEqual(parsed["model"], selector)
+                    self.assertEqual(parsed["tools"], ["read_file", "grep_search", "glob"])
+                    self.assertNotIn("effort", parsed)
+            for model, auth, extra in (
+                ("fast", "openai", ()),
+                ("openai:gpt-4o", "anthropic", ()),
+                ("fixture", "gemini", ("--provider", "anthropic")),
+                ("fixture", "openai/x", ()),
+                ("fixture", "company-gateway", ()),
+                ("fixture", "openai", ("--reasoning-effort", "high")),
+            ):
+                with self.subTest(model=model, auth=auth):
+                    self.assertEqual(invoke("agent", *args, "--model", model, "--qwen-auth-type", auth, *extra)[0], 2)
+            self.assertEqual(invoke("agent", *args, "--agent", "codex", "--model", "fixture",
+                                    "--qwen-auth-type", "openai")[0], 2)
 
     def test_copilot_sdk_catalog_stages_ordered_models_shared_effort_and_selected_skills(self):
         from tests.test_cli_exports import invoke

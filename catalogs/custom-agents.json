@@ -1306,15 +1306,17 @@
       "model_style": "bare",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "model: inherit is the default; configured raw IDs or authType:model-id selectors are host-owned. Provider validation does not change Qwen authentication.",
-      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "model_behavior": "The default is inherit. Qwen also resolves fast, bare model IDs, and authType:model-id against the target profile. Weaver can stage an explicit Qwen authentication type.",
+      "reasoning_behavior": "The selected provider entry and session determine reasoning. The generated definition has no effort field.",
       "permission_behavior": "Only read_file/grep_search/glob are selected. No MCP tools are named; parent approval mode and trust still apply.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/"
+          "https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/",
+          "https://github.com/QwenLM/qwen-code/blob/0207b035186e20886ccb23c80a8f546c234b7cd5/packages/core/src/utils/modelId.ts#L82-L119",
+          "https://github.com/QwenLM/qwen-code/blob/0207b035186e20886ccb23c80a8f546c234b7cd5/packages/core/src/utils/auth-type.ts#L8-L16"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-13",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"

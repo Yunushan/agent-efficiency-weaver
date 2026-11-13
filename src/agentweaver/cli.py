@@ -134,6 +134,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--instructions-file', type=Path, required=True)
             command.add_argument('--model')
             command.add_argument('--llm-profile', help='Existing OpenHands local LLM profile reference; no profile is read or created')
+            command.add_argument('--qwen-auth-type', help='Built-in Qwen Code authentication type for a subagent model')
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
@@ -528,6 +529,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             kilo_catalog=args.kilo_catalog,
             factory_catalog=args.factory_catalog,
             qoder_catalog=args.qoder_catalog,
+            qwen_auth_type=args.qwen_auth_type,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             hermes_profile_route=args.hermes_profile_route,
