@@ -76,7 +76,12 @@ class QwenWorkspaceModelTests(unittest.TestCase):
         self.row["modelId"] = "qwen-route:v1:fixtureA"
         self.response["providers"][0]["models"].append(self.row | {"modelId": "qwen-route:v1:fixtureB"})
         self.save()
-        base = ("--root", str(ROOT), "--agent", "qwen-code", "--surface", "vscode",
+        for surface in ("desktop", "vscode"):
+            with self.subTest(surface=surface):
+                self._check_startup_route(surface)
+
+    def _check_startup_route(self, surface):
+        base = ("--root", str(ROOT), "--agent", "qwen-code", "--surface", surface,
                 "--qwen-workspace-catalog", str(self.path), "--qwen-auth-type", "openai", "--dry-run")
         for effort in (None, "none", "default", "high"):
             with self.subTest(effort=effort):

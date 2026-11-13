@@ -4570,6 +4570,106 @@
           }
         },
         {
+          "id": "desktop",
+          "mcp_dialect": "mcpServers.httpUrl",
+          "config_fields": [
+            "mcpServers",
+            "httpUrl"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".qwen/settings.json",
+          "documented_location": null,
+          "instruction_mode": "qwen-md",
+          "instruction_paths": [
+            "QWEN.md",
+            "AGENTS.md"
+          ],
+          "skills_path": ".qwen/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs#L537-L551",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/acp-integration/acpAgent.ts#L5970-L6015",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/memory/",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs#L537-L551",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/acp-integration/acpAgent.ts#L5970-L6015",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs#L537-L551",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/acp-integration/acpAgent.ts#L16755-L16771"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+                "https://openrouter.ai/docs/quickstart",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs#L537-L551",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/serve/workspace-providers-status.ts#L69-L96"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_expanded_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://github.com/QwenLM/qwen-code/releases/tag/desktop-v0.27.3",
+                "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs#L537-L551"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Qwen Code Desktop 0.27.3 local bundled daemon. Published installers cover Windows x64, macOS x64/arm64, and Linux x64/arm64. Installed runtime, native UI, and minimum OS versions are unverified.",
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
           "id": "vscode",
           "mcp_dialect": "mcpServers.httpUrl",
           "config_fields": [

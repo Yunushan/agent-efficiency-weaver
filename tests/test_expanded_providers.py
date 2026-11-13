@@ -27,6 +27,14 @@ class ExpandedProviderTests(unittest.TestCase):
                 render_provider_setup(spec(agent, surfaces=(surface,)), surface,
                                       provider_id="openrouter", model_id="vendor/model")
 
+    def test_qwen_desktop_provider_handoff_names_its_local_workspace(self) -> None:
+        artifacts = render_provider_setup(spec("qwen-code", surfaces=("desktop",)), "desktop",
+                                          provider_id="openrouter", model_id="vendor/model")
+        self.assertEqual([item.kind for item in artifacts], ["provider-setup"])
+        text = setup_text(artifacts)
+        for expected in ("local Desktop workspace", "vendor/model", "OPENROUTER_API_KEY"):
+            self.assertIn(expected, text)
+
     def test_codex_shared_config_route_has_native_fragments_on_local_surfaces(self) -> None:
         for surface in ("cli", "desktop", "ide"):
             with self.subTest(surface=surface):

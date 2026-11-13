@@ -36,6 +36,7 @@ NATIVE_PATHS = {
     ("kilo", "cli"): ".kilo/agents/reviewer.md",
     ("kilo", "ide"): ".kilo/agents/reviewer.md",
     ("qwen-code", "cli"): ".qwen/agents/reviewer.md",
+    ("qwen-code", "desktop"): ".qwen/agents/reviewer.md",
     ("qwen-code", "vscode"): ".qwen/agents/reviewer.md",
     ("kimi-code", "cli"): ".kimi-code/agents/reviewer.md",
     ("cursor", "ide"): ".cursor/agents/reviewer.md",
@@ -91,7 +92,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
-                                 ("qwen-code", "cli"): "2026-11-13", ("qwen-code", "vscode"): "2026-11-13",
+                                 ("qwen-code", "cli"): "2026-11-13", ("qwen-code", "desktop"): "2026-11-13",
+                                 ("qwen-code", "vscode"): "2026-11-13",
                                  ("kimi-code", "cli"): "2026-11-13", ("copilot", "cli"): "2026-11-13",
                                  ("copilot", "desktop"): "2026-11-13", ("claude-code", "vscode"): "2026-11-13",
                                  ("claude-code", "desktop"): "2026-11-13"}

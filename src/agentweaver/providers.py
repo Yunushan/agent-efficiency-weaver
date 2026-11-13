@@ -331,11 +331,18 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
     if agent_id == "openrouter":
         _fail("OpenRouter is a provider gateway, not an agent")
     route = _route(agent_id, surface)
-    companion = (agent_id, surface) == ("qwen-code", "vscode")
+    extra_sources = {
+        ("qwen-code", "vscode"): ("https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/",),
+        ("qwen-code", "desktop"): (
+            "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/"
+            "packages/desktop/src-tauri/src/runtime.rs#L537-L551",
+            "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/"
+            "packages/cli/src/serve/workspace-providers-status.ts#L69-L96",
+        ),
+    }
     return {
         "state": "available" if route.native_toml or (agent_id, surface) == ("copilot", "cli") else "manual",
-        "sources": [*route.sources, "https://qwenlm.github.io/qwen-code-docs/en/users/integration-vscode/"]
-        if companion else list(route.sources),
+        "sources": [*route.sources, *extra_sources.get((agent_id, surface), ())],
         "checked_on": _checked_on(agent_id, surface),
         "fixture_tests": (["tests/test_providers.py", "tests/test_expanded_providers.py"] if agent_id == "codex" else
                           ["tests/test_expanded_providers.py" if agent_id in _EXPANDED_ROUTE_IDS else "tests/test_providers.py"]),
@@ -344,7 +351,7 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
 
 def _checked_on(agent_id: str, surface: str) -> str:
     if (agent_id, surface) in {
-        ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"),
+        ("qwen-code", "desktop"), ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"),
         ("claude-code", "vscode"), ("claude-code", "desktop"),
     }:
         return "2026-11-13"
@@ -932,12 +939,12 @@ _ROUTES.update({
         sources=("https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models", _OPENROUTER),
     ),
     "qwen-code": _Route(
-        allowed_surfaces=("cli", "vscode"), model_prefix="",
+        allowed_surfaces=("cli", "desktop", "vscode"), model_prefix="",
         model_guidance="Place `{model}` under modelProviders.openai[].id with an explicit endpoint and envKey.",
         steps=("Review ~/.qwen/settings.json before changing modelProviders.",
                "Add an OpenAI-compatible route with the OpenRouter baseUrl, envKey OPENROUTER_API_KEY and id `{model}`.",
-               "Choose the route in Qwen's model picker. In VS Code use a Qwen Code Companion ACP workspace. "
-               "Provider arrays replace their matching settings scope."),
+               "Choose the route in Qwen's model picker. Use a local Desktop workspace or a VS Code Companion "
+               "ACP workspace when setting up those clients. Provider arrays replace their matching settings scope."),
         env=(("OPENROUTER_API_KEY", "Referenced through modelProviders.openai[].envKey."),),
         credential_note="Keep only the environment variable name in envKey; no key is read or written.",
         endpoint=None, endpoint_note="Explicit OpenAI-compatible Chat Completions route; other protocols are separate routes.",

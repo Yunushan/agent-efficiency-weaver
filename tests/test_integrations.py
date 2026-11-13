@@ -161,6 +161,7 @@ PROVIDER_ROUTES = {
     ("factory", "cli"): "manual",
     ("hermes", "cli"): "manual",
     ("qwen-code", "cli"): "manual",
+    ("qwen-code", "desktop"): "manual",
     ("qwen-code", "vscode"): "manual",
     ("kimi-code", "cli"): "manual",
     ("abacus", "desktop"): "manual",

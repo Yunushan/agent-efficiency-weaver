@@ -17,8 +17,13 @@ ROOT_ARGS = ('--root', str(ROOT))
 
 
 class CapabilityCliTests(unittest.TestCase):
-    def test_qwen_vscode_companion_acp_stages_workspace_artifacts(self):
-        target = (*ROOT_ARGS, '--agent', 'qwen-code', '--surface', 'vscode', '--dry-run')
+    def test_qwen_workspace_clients_stage_workspace_artifacts(self):
+        for surface in ('vscode', 'desktop'):
+            with self.subTest(surface=surface):
+                self._check_qwen_workspace_artifacts(surface)
+
+    def _check_qwen_workspace_artifacts(self, surface):
+        target = (*ROOT_ARGS, '--agent', 'qwen-code', '--surface', surface, '--dry-run')
         base = (*target, '--profile', 'efficient')
         code, out, err = invoke('render', *base)
         self.assertEqual(code, 0, err)

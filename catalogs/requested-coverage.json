@@ -75,7 +75,7 @@
     },
     {
       "id": "qwen-code", "label": "Qwen Code", "aliases": ["qwen-code", "QwenCode", "Qwen Code"],
-      "targets": [{"product_id": "qwen-code", "surface_id": "cli"}, {"product_id": "qwen-code", "surface_id": "vscode"}]
+      "targets": [{"product_id": "qwen-code", "surface_id": "cli"}, {"product_id": "qwen-code", "surface_id": "vscode"}, {"product_id": "qwen-code", "surface_id": "desktop"}]
     },
     {
       "id": "qoder", "label": "Qoder", "aliases": ["qoder"],

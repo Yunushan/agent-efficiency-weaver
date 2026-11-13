@@ -171,6 +171,7 @@ class ExpandedAdapterTests(unittest.TestCase):
                         if evidence.sources:
                             expected_date = {
                                 ("jetbrains-air", "ide"): "2026-10-27",
+                                ("qwen-code", "desktop"): "2026-11-13",
                                 ("qwen-code", "vscode"): "2026-11-13",
                             }.get((identifier, surface.id), "2026-10-26")
                             self.assertEqual(evidence.checked_on, expected_date)

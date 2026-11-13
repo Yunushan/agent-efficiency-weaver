@@ -64,6 +64,9 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({target.surface_id for target in items["lm-studio"].targets}, {
             "desktop", "bionic", "api",
         })
+        self.assertEqual({target.surface_id for target in items["qwen-code"].targets}, {
+            "cli", "desktop", "vscode",
+        })
 
     def test_reviewed_documentation_does_not_erase_unknown_support_or_pending_runtime(self):
         report = coverage_report(ROOT)

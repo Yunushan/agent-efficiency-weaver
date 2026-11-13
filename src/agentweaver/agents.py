@@ -409,8 +409,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("A model variant requires a saved OpenCode V2 or Kilo model catalog")
     qwen_protocol = None
     if qwen_auth_type is not None:
-        if spec.id != "qwen-code" or surface not in {"cli", "vscode"}:
-            raise WeaverError("A Qwen authentication type requires a Qwen Code CLI or VS Code custom-agent target")
+        if spec.id != "qwen-code" or surface not in {"cli", "desktop", "vscode"}:
+            raise WeaverError("A Qwen authentication type requires a Qwen Code workspace custom-agent target")
         if qwen_auth_type not in _QWEN_AUTH_TYPES:
             raise WeaverError("Unknown built-in Qwen authentication type")
         if model_id in {None, "inherit", "fast"}:

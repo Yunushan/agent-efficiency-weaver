@@ -1239,7 +1239,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "They select the session model and optional thinking effort. "
             "Review Cline's tool and delegation settings before submitting work."
         )
-    elif (text_candidate and registered.id == "qwen-code" and surface in {"cli", "vscode"}
+    elif (text_candidate and registered.id == "qwen-code" and surface in {"cli", "desktop", "vscode"}
             and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
@@ -1260,7 +1260,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         artifacts.append(_json_artifact(f"{prefix}/settings.fragment.json", fragment, "model-config"))
         native = True
         native_note = "Merge the staged fragment into Qwen settings deliberately; modelProviders replaces its matching scope."
-    elif (text_candidate and registered.id == "qwen-code" and surface in {"cli", "vscode"}
+    elif (text_candidate and registered.id == "qwen-code" and surface in {"cli", "desktop", "vscode"}
           and (provider_id, chosen) in {("anthropic", "anthropic-messages"), ("google", "google-generate-content")}
           and provider["secret_env"] is not None):
         auth_type = "anthropic" if provider_id == "anthropic" else "gemini"
@@ -1379,6 +1379,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
         if surface == "vscode":
             lines.append("- https://github.com/QwenLM/qwen-code/blob/ecf01e9ece119ee7676898f95dadcac2bdc6d6cc/packages/cli/src/acp-integration/acpAgent.ts#L5970-L6012")
+        if surface == "desktop":
+            lines.append("- https://github.com/QwenLM/qwen-code/releases/tag/desktop-v0.27.3")
         if provider_id == "anthropic":
             lines.append("- https://github.com/QwenLM/qwen-code/blob/fcfddc3700c58ab1417feb2a780b5a9b74dbbe3d/packages/core/src/core/anthropic-reasoning.ts#L78-L116")
         elif provider_id == "google":

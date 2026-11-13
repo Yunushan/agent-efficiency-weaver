@@ -2264,6 +2264,63 @@
     },
     {
       "product_id": "qwen-code",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a configured model in the Desktop local workspace chat picker. The bundled daemon reads workspace settings and exposes model routes.",
+        "fields": [
+          "model.name",
+          "modelProviders"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the Qwen chat model picker"
+        ],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+          "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs",
+          "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/serve/workspace-providers-status.ts"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "generationConfig.reasoning.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "generationConfig.reasoning.budget_tokens",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "generationConfig.reasoning",
+            "values": [
+              "false"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
+          "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/desktop/src-tauri/src/runtime.rs",
+          "https://github.com/QwenLM/qwen-code/blob/ddeba2fd3436d86780dc90cf621e46e67542656e/packages/cli/src/serve/workspace-providers-status.ts"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "qwen-code",
       "surface_id": "vscode",
       "selection": {
         "state": "manual",

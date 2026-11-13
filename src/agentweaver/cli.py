@@ -538,8 +538,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     elif args.cmd == 'model' and args.qwen_workspace_catalog is not None:
         from .qwen_models import render_qwen_startup
 
-        if spec.id != 'qwen-code' or surface not in {'cli', 'vscode'}:
-            raise WeaverError('A Qwen workspace catalog requires a Qwen Code CLI or VS Code target')
+        if spec.id != 'qwen-code' or surface not in {'cli', 'desktop', 'vscode'}:
+            raise WeaverError('A Qwen workspace catalog requires a Qwen Code workspace target')
         if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
             getattr(args, option) is not None for option in
             ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
