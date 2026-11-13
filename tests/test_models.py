@@ -393,6 +393,20 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_cline_cli_stages_model_and_thinking_with_explicit_approval(self) -> None:
+        spec = get_integration("cline", ROOT)
+        opts = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
+                    snapshot={"provider_id": "openrouter", "models": [
+                        {"id": "fixture/reasoner", "reasoning": {"efforts": ["high", "max"]}},
+                    ]})
+        for effort, tail in ((None, []), ("high", ["--thinking", "high"])):
+            artifacts = render_model_setup(spec, "cli", effort=effort, **opts)
+            argv = next(item for item in artifacts if item.kind == "session-arguments")
+            self.assertEqual(json.loads(argv.content),
+                             ["--provider", "openrouter", "--model", "fixture/reasoner", "--auto-approve", "false", *tail])
+        artifacts = render_model_setup(spec, "cli", effort="max", **opts)
+        self.assertFalse(any(item.kind == "session-arguments" for item in artifacts))
+
     def test_openrouter_batch_cli_stages_base_slug_and_body_reasoning_separately(self) -> None:
         from tests.test_cli_exports import invoke
 

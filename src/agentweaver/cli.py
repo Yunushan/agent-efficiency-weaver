@@ -119,7 +119,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant in the saved OpenCode V2 model catalog')
-            command.add_argument('--allow-skill', action='append', help='Select a portable Skill for OpenCode V2 or Copilot')
+            command.add_argument('--allow-skill', action='append', help='Select a portable Skill for OpenCode V2, Copilot, or Cline CLI')
             command.add_argument('--hermes-profile', action='store_true', help='Stage a Hermes profile distribution')
             command.add_argument('--hermes-profile-route', action='store_true',
                                  help='Stage a separate Hermes parent delegation fragment for this profile')
@@ -200,6 +200,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
              f'Target OS: {target_os}. Generating host: {host_os}.',
              'Documentation and fixture tests are not installed-client or native-device verification.', '']
     if mcp:
+        if (spec.id, surface) == ('cline', 'cli'):
+            lines.extend(['Every staged Cline CLI server is disabled. Review each transport and its tool access.',
+                          'Merge selected entries into the CLI MCP settings and explicitly enable approved servers.'])
         if target.config_scope == 'user':
             lines.extend(['User-scope fragment only: use the vendor settings interface to review and manually merge',
                           f'the selected entries at {target.documented_location or "the documented user settings location"}.',

@@ -169,6 +169,8 @@ def _metadata(provider_metadata: Mapping[str, Any] | None) -> _Metadata:
 
 
 def _route(agent_id: str, surface: str) -> _Route:
+    if (agent_id, surface) == ("cline", "cli"):
+        return _CLINE_CLI_ROUTE
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -359,6 +361,16 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_CLINE_CLI_ROUTE = _Route(
+    ("cli",), "", "Use the raw OpenRouter slug with the Cline CLI model flag.",
+    ("Authenticate through Cline's interactive provider settings.",
+     "Use --provider openrouter and --model {model} for the intended session.",
+     "Use --auto-approve false for prompted sessions that need tool review."),
+    (), "Use Cline's authentication flow.", None,
+    "Use the OpenRouter provider configured through Cline.",
+    ("Review delegation settings and permissions before approving a subagent.",),
+    ("https://docs.cline.bot/cli/cli-reference", "https://docs.cline.bot/provider-config/openrouter", _OPENROUTER),
+)
 _EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
 _REFRESHED_ROUTE_IDS = _EXPANDED_ROUTE_IDS | {"openhands"}
 _ROUTES = {

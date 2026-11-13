@@ -1060,6 +1060,19 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                 "Hermes may load a model when used. A loopback URL must resolve to the same host or network namespace "
                 "as the server. A saved model maximum does not set the loaded context."
             )
+    elif (text_candidate and (registered.id, surface, provider_id, chosen) ==
+          ("cline", "cli", "openrouter", "openrouter-chat")
+          and effort in {None, "none", "low", "medium", "high", "xhigh"}
+          and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size))):
+        argv = ["--provider", "openrouter", "--model", model_id, "--auto-approve", "false"]
+        if effort is not None:
+            argv.extend(["--thinking", effort])
+        artifacts.append(_json_artifact(f"{prefix}/session-arguments.json", argv, "session-arguments"))
+        native_note = (
+            "Pass the staged arguments to Cline CLI after authenticating separately. "
+            "They select the session model and optional thinking effort. "
+            "Review Cline's tool and delegation settings before submitting work."
+        )
     elif (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
@@ -1155,6 +1168,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       "The saved listing advertises this route for the selected model."])
     if registered.id == "qwen-code":
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
+    if (registered.id, surface) == ("cline", "cli"):
+        lines.append("- https://docs.cline.bot/cli/cli-reference")
     if registered.id == "kimi-code":
         lines.append("- https://moonshotai.github.io/kimi-code/en/configuration/providers.html")
     if chosen == "anthropic-messages" and provider_id in {"lm-studio", "perplexity-orchestrator"}:

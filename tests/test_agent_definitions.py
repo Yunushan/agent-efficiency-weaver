@@ -24,6 +24,7 @@ NATIVE_PATHS = {
     ("codex", "desktop"): ".codex/agents/reviewer.toml",
     ("codex", "ide"): ".codex/agents/reviewer.toml",
     ("claude-code", "cli"): ".claude/agents/reviewer.md",
+    ("cline", "cli"): ".cline/agents/reviewer.yaml",
     ("copilot", "vscode"): ".github/agents/reviewer.agent.md",
     ("factory", "cli"): ".factory/droids/reviewer.md",
     ("opencode", "cli"): ".opencode/agents/reviewer.md",
@@ -79,8 +80,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertFalse(row["evidence"]["runtime_checks"])
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
-                    expected_date = ("2026-10-27" if (row["product_id"], row["surface_id"]) ==
-                                     ("jetbrains-air", "ide") else "2026-10-26")
+                    refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13"}
+                    expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
 
@@ -234,6 +235,21 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertEqual(output, "")
                 self.assertNotIn("must-not-be-copied", errors)
+
+    def test_cline_cli_configured_agent_filters_tools_and_emits_explicit_selection(self):
+        artifacts = self.render("cline", "cli", model_id="fixture/reasoner", provider_id="openrouter",
+                                allowed_skills=["security-review"])
+        fields, body = parse_definition(artifacts[0].content, ".cline/agents/reviewer.yaml")
+        self.assertEqual(fields, {"name": "reviewer", "description": "Review small changes.",
+                                  "tools": ["read_files", "search_codebase"], "skills": ["security-review"],
+                                  "modelId": "fixture/reasoner", "providerId": "openrouter"})
+        self.assertIn("Inspect the requested code", body)
+        for options in ({"effort": "high"}, {"model_id": "fixture/reasoner"},
+                        {"provider_id": "openrouter"}, {"allowed_skills": ["*"]}):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("cline", "cli", **options)
+        with self.assertRaises(WeaverError):
+            self.render("cline", "ide")
 
     def test_codex_catalog_validates_client_effort_without_provider_inference(self):
         with tempfile.TemporaryDirectory() as directory:

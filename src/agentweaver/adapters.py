@@ -225,7 +225,11 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     else:
         if not isinstance(dialect, str):
             raise WeaverError('MCP dialect is not documented')
-        content = json_bytes(_json_document(dialect, selected, spec.id))
+        document = _json_document(dialect, selected, spec.id)
+        if (spec.id, surface) == ('cline', 'cli'):
+            for entry in document['mcpServers'].values():
+                entry['disabled'] = True
+        content = json_bytes(document)
     kind = ('mcp-request' if target.config_scope == 'request' else
             'mcp-fragment' if target.config_scope in ('user', 'app') else 'mcp')
     return [RenderedArtifact(path, content, kind)]

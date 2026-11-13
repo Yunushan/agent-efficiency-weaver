@@ -484,7 +484,7 @@
           ],
           "config_scope": "user",
           "native_path_hint": null,
-          "documented_location": "Cline extension MCP settings (user scope); CLI: ~/.cline/data/settings/cline_mcp_settings.json",
+          "documented_location": "Cline extension MCP settings (user scope)",
           "instruction_mode": "rules",
           "instruction_paths": [
             ".clinerules/",
@@ -560,6 +560,100 @@
               ],
               "checked_on": "2026-10-26",
               "version_constraint": "Proposal scoped to documented VS Code extension path and supported VS Code desktop hosts.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.type-streamableHttp",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url",
+            "disabled"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "~/.cline/data/settings/cline_mcp_settings.json (CLINE_MCP_SETTINGS_PATH override)",
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".clinerules/",
+            ".cline/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".cline/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/mcp/mcp-overview",
+                "https://docs.cline.bot/getting-started/config"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/customization/cline-rules"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/customization/skills",
+                "https://docs.cline.bot/getting-started/config"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/provider-config/openrouter",
+                "https://docs.cline.bot/cli/cli-reference"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_models.py",
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/getting-started/installing-cline",
+                "https://registry.npmjs.org/cline/3.0.74"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Cline CLI 3.0.74 package lists Windows, macOS and Linux x64/arm64. Installed runtime pending.",
               "fixture_tests": [],
               "runtime_checks": []
             }

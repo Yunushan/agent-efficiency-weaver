@@ -17,6 +17,21 @@ ROOT_ARGS = ('--root', str(ROOT))
 
 
 class CapabilityCliTests(unittest.TestCase):
+    def test_cline_cli_stages_disabled_mcp_and_project_skills(self):
+        base = (*ROOT_ARGS, '--agent', 'cline', '--surface', 'cli', '--profile', 'efficient', '--dry-run')
+        code, output, error = invoke('render', *base, '--enable', 'context7')
+        self.assertEqual(code, 0, error)
+        items = {entry['kind']: entry for entry in json.loads(output)['artifacts']}
+        self.assertEqual(items['mcp-fragment']['path'], 'cline/fragments/cline_mcp_settings.json')
+        self.assertEqual(json.loads(items['mcp-fragment']['content']), {'mcpServers': {'context7': {
+            'type': 'streamableHttp', 'url': 'https://mcp.context7.com/mcp', 'disabled': True,
+        }}})
+        self.assertIn('CLINE_MCP_SETTINGS_PATH', items['handoff']['content'])
+        code, output, error = invoke('bundle', *base, '--skill', 'security-review')
+        self.assertEqual(code, 0, error)
+        self.assertIn('cline/.cline/skills/security-review/SKILL.md',
+                      [item['path'] for item in json.loads(output)['artifacts']])
+
     def test_requested_scope_does_not_turn_mapping_into_full_support(self):
         with mock.patch.object(urllib.request, 'urlopen', side_effect=AssertionError('network')):
             code, output, error = invoke('coverage', *ROOT_ARGS, '--format', 'json')

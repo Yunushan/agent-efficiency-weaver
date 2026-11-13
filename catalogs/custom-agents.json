@@ -299,6 +299,35 @@
       }
     },
     {
+      "product_id": "cline",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "cline-yaml",
+      "path_template": ".cline/agents/{name}.yaml",
+      "model_field": "modelId",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omit the model and provider to inherit. Explicit OpenRouter or Anthropic selection writes modelId and providerId.",
+      "reasoning_behavior": "Cline CLI session reasoning uses --thinking. Configured agent files expose no per-agent effort field.",
+      "permission_behavior": "Select only read_files and search_codebase, plus individually requested portable Skills. Delegation approval and parent policy still apply.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.cline.bot/getting-started/config",
+          "https://docs.cline.bot/features/subagents",
+          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/sdk/packages/core/src/extensions/tools/team/configured-agent-config.ts",
+          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/sdk/packages/core/src/runtime/orchestration/runtime-builder.ts"
+        ],
+        "checked_on": "2026-11-13",
+        "version_constraint": "Source contract audited at Cline CLI 3.0.74 repository revision.",
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "codex",
       "surface_id": "cli",
       "state": "native",
