@@ -88,6 +88,8 @@ def _parser() -> argparse.ArgumentParser:
     qwen_models.add_argument('--auth-type')
     qwen_models.add_argument('--model')
     qwen_models.add_argument('--reasoning-effort')
+    opencode_models = subs.add_parser('opencode-models', help='Extract model and variant selectors from a saved OpenCode V2 response')
+    opencode_models.add_argument('--input', type=Path, required=True)
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -720,6 +722,12 @@ def main(argv: list[str] | None = None) -> int:
 
             result = inspect_qwen_models(args.input, auth_type=args.auth_type, model=args.model,
                                          effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'opencode-models':
+            from .opencode_models import project_opencode_catalog
+
+            result = project_opencode_catalog(args.input)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:

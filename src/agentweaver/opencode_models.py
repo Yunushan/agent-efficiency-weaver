@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from .config import WeaverError
-from .models import _load_bounded_snapshot, _model_id, _text
+from .models import _load_bounded_snapshot, _model_id, _read_snapshot_json, _scan, _text
 
 
 def _variant_id(value: object, host: str) -> str:
@@ -12,6 +13,42 @@ def _variant_id(value: object, host: str) -> str:
     if not variant.strip() or "#" in variant:
         raise WeaverError(f"Invalid {host} variant ID")
     return variant
+
+
+def project_opencode_catalog(path: Path) -> dict[str, Any]:
+    """Keep only selectable identity and variant fields from an OpenCode V2 response."""
+    payload, _ = _read_snapshot_json(path, "OpenCode model catalog")
+    if not isinstance(payload, dict) or not isinstance(payload.get("location"), dict) or not isinstance(
+        payload.get("data"), list
+    ):
+        raise WeaverError("Expected a saved OpenCode GET /api/model response")
+    rows = []
+    seen: set[tuple[str, str]] = set()
+    for entry in payload["data"]:
+        if not isinstance(entry, dict) or type(entry.get("enabled")) is not bool:
+            raise WeaverError("Invalid OpenCode model entry")
+        provider = _model_id(entry.get("providerID"))
+        alias = _model_id(entry.get("id"))
+        if "/" in provider or (provider, alias) in seen:
+            raise WeaverError("Invalid or duplicate OpenCode provider and model entry")
+        seen.add((provider, alias))
+        variants = entry.get("variants")
+        if not isinstance(variants, list) or any(not isinstance(variant, dict) for variant in variants):
+            raise WeaverError("Invalid OpenCode model variants")
+        variant_ids = [_variant_id(variant.get("id"), "OpenCode") for variant in variants]
+        if len(set(variant_ids)) != len(variant_ids):
+            raise WeaverError("Duplicate OpenCode model variant")
+        rows.append({
+            "providerID": provider,
+            "id": alias,
+            "modelID": _model_id(entry.get("modelID")),
+            "enabled": entry["enabled"],
+            "type": _model_id(entry.get("type", "chat")),
+            "variants": [{"id": identifier} for identifier in variant_ids],
+        })
+    result = {"location": {}, "data": rows}
+    _scan(result)
+    return result
 
 
 def validate_opencode_selection(path: Path, model: str, variant: str | None) -> tuple[str, str]:

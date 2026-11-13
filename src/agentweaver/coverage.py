@@ -83,6 +83,8 @@ _OBSERVATION_CHECKS = {
     ),
     "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
+    "opencode-v2-disabled-mcp-load": ("mcp", "The V2 server read the generated MCP entry with discovery disabled."),
+    "opencode-v2-model-variant-catalog": ("models", "The V2 server listed built-in model and variant IDs."),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -106,6 +108,7 @@ _OBSERVATION_INTERFACES = {
     ("claude-code", "vscode", "bundled-runtime"),
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
+    ("opencode", "cli", "serve-http"),
 }
 
 
@@ -248,6 +251,7 @@ def _load_observations(
         }
         environments = {
             ("qwen-code", "cli"): {"isolated-release-loopback"},
+            ("opencode", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

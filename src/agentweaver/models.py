@@ -129,7 +129,7 @@ def _strings(value: object, label: str, *, allowed: set[str] | None = None) -> l
     return result
 
 
-def _load_bounded_snapshot(path: Path, label: str, *, allow_empty_headers: bool = False) -> tuple[object, str]:
+def _read_snapshot_json(path: Path, label: str) -> tuple[object, str]:
     def read() -> bytes:
         try:
             with path.open("rb") as stream:
@@ -148,8 +148,13 @@ def _load_bounded_snapshot(path: Path, label: str, *, allow_empty_headers: bool 
         raise WeaverError(f"Cannot read valid UTF-8 {label}") from None
     if read() != data:
         raise WeaverError(f"{label} changed while reading")
-    _scan(parsed, allow_empty_headers=allow_empty_headers)
     return parsed, hashlib.sha256(data).hexdigest()
+
+
+def _load_bounded_snapshot(path: Path, label: str, *, allow_empty_headers: bool = False) -> tuple[object, str]:
+    parsed, digest = _read_snapshot_json(path, label)
+    _scan(parsed, allow_empty_headers=allow_empty_headers)
+    return parsed, digest
 
 
 def _reasoning(value: object) -> dict[str, Any]:

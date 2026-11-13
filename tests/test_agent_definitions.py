@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 import yaml
+from test_cli_exports import invoke
 
 from agentweaver.agents import agent_inventory, render_agent_definition
 from agentweaver.artifacts import write_artifacts
@@ -404,6 +405,34 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.render("opencode", model_id="gateway/team/review", opencode_catalog=catalog)
         with self.assertRaisesRegex(WeaverError, "requires a saved OpenCode V2 or Kilo model catalog"):
             self.render("opencode", model_id="gateway/team/review", model_variant="review-fast")
+
+    def test_opencode_live_catalog_projection_keeps_only_safe_selectors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory, "raw-models.json")
+            projected = Path(directory, "selectors.json")
+            entry = {"providerID": "gateway", "id": "team/review", "modelID": "upstream-deployment",
+                     "enabled": True, "type": "chat", "settings": {"apiKey": "NEVER-ECHO"},
+                     "variants": [{"id": "high", "body": {"headers": {"Authorization": "NEVER-ECHO"}}}]}
+            payload = {"location": {"directory": "NEVER-ECHO"}, "data": [entry]}
+            source.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(WeaverError, "Credentials are not accepted"):
+                self.render("opencode", model_id="gateway/team/review", opencode_catalog=source)
+            code, output, error = invoke("opencode-models", "--input", str(source))
+            self.assertEqual(code, 0, error)
+            self.assertNotIn("NEVER-ECHO", output + error)
+            self.assertEqual(json.loads(output), {"location": {}, "data": [
+                {key: value for key, value in entry.items() if key not in {"settings", "variants"}}
+                | {"variants": [{"id": "high"}]},
+            ]})
+            projected.write_text(output, encoding="utf-8")
+            definition, _ = self.render("opencode", model_id="gateway/team/review", model_variant="high",
+                                        opencode_catalog=projected)
+            self.assertIn(b"gateway/team/review#high", definition.content)
+            entry["id"] = "sk-SecretFixture96"
+            source.write_text(json.dumps(payload), encoding="utf-8")
+            code, output, error = invoke("opencode-models", "--input", str(source))
+            self.assertEqual(code, 2)
+            self.assertNotIn("sk-SecretFixture96", output + error)
 
     def test_kilo_stages_the_catalog_model_and_variant_as_separate_fields(self):
         from tests.test_cli_exports import invoke
