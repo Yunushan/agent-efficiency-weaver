@@ -101,7 +101,7 @@ _OBSERVATION_CHECKS = {
         "mcp", "The generated subagent's tool list excluded the stdio fixture visible to the parent session.",
     ),
     "kilo-stdio-discovery": (
-        "mcp", "Kilo initialized the selected project stdio fixture and requested its tools. The disabled control stayed idle.",
+        "mcp", "Kilo initialized the selected project stdio fixture and requested its tools.",
     ),
     "kilo-model-variant-catalog": (
         "models", "Kilo listed built-in model IDs and a local fixture model and variant. Weaver imported their selectors.",
@@ -114,6 +114,15 @@ _OBSERVATION_CHECKS = {
     ),
     "kilo-child-ambient-mcp": (
         "mcp", "The generated subagent could see the fixture tool explicitly allowed by the parent project.",
+    ),
+    "kilo-extension-subagent-discovery": (
+        "agents", "The extension sent the generated subagent and its model to the sidebar's complete agent list.",
+    ),
+    "kilo-extension-model-selection": (
+        "models", "The extension's sidebar model picker selected the synthetic local provider model.",
+    ),
+    "kilo-extension-variant-selection": (
+        "reasoning", "The sidebar exposed the local model's named variant and displayed it after selection.",
     ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
@@ -142,6 +151,7 @@ _OBSERVATION_INTERFACES = {
     ("opencode", "cli", "exec-loopback"),
     ("kilo", "cli", "serve-http"),
     ("kilo", "cli", "exec-loopback"),
+    ("kilo", "ide", "vscode-extension-host"),
 }
 
 
@@ -286,6 +296,7 @@ def _load_observations(
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("opencode", "cli"): {"isolated-release-loopback"},
             ("kilo", "cli"): {"isolated-release-loopback"},
+            ("kilo", "ide"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
@@ -294,7 +305,8 @@ def _load_observations(
         if "extension_version" in row:
             identity["extension_version"] = _observation_field(
                 row["extension_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "extension version")
-        is_extension = identity["interface"] == "bundled-runtime" or (product, surface) == ("codex", "ide")
+        is_extension = (identity["interface"] in {"bundled-runtime", "vscode-extension-host"}
+                        or (product, surface) == ("codex", "ide"))
         if is_extension != ("extension_version" in identity):
             raise WeaverError("Runtime observation: extension version must match the extension runtime scope")
         checks = row["checks"]

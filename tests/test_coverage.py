@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 8)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 73)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 9)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 78)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -244,7 +244,7 @@ class RequestedCoverageTests(unittest.TestCase):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "kilo")
         targets = {target["surface_id"]: target for target in item["targets"]}
         discovery, execution = targets["cli"]["runtime_observations"]
-        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        [editor] = targets["ide"]["runtime_observations"]
         for record in (discovery, execution):
             self.assertEqual(record["product_version"], "7.8.27")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -258,6 +258,14 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({check["check"]: check["capability"] for check in execution["checks"]}, {
             "stdio-tool-call": "mcp", "kilo-cli-variant-request": "reasoning", "agent-load": "agents",
             "agent-model-effort-selection": "reasoning", "kilo-child-ambient-mcp": "mcp",
+        })
+        self.assertEqual(editor["interface"], "vscode-extension-host")
+        self.assertEqual(editor["product_version"], "1.146.0")
+        self.assertEqual(editor["extension_version"], "7.8.27")
+        self.assertEqual({check["check"]: check["capability"] for check in editor["checks"]}, {
+            "skill-discovery": "skills", "kilo-extension-subagent-discovery": "agents",
+            "kilo-stdio-discovery": "mcp", "kilo-extension-model-selection": "models",
+            "kilo-extension-variant-selection": "reasoning",
         })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
