@@ -19,6 +19,7 @@ from .config import WeaverError, load_json, safe_https_url
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model
 from .opencode_models import validate_opencode_selection
+from .skills import selected_portable_skill_ids
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
@@ -270,7 +271,8 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 
 
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
-            model: str | None, effort: str | None, *, opencode_v2: bool = False) -> bytes:
+            model: str | None, effort: str | None, *, opencode_v2: bool = False,
+            skill_ids: tuple[str, ...] = ()) -> bytes:
     format_name = row["format"]
     if format_name == "codex-toml":
         fields = {"name": name, "description": description, "developer_instructions": instructions}
@@ -308,6 +310,7 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         rules.extend({"action": action, "resource": "*", "effect": "allow"} for action in ("read", "glob", "grep"))
         rules.extend({"action": "read", "resource": pattern, "effect": "deny"}
                      for pattern in ("*.env", "*.env.*"))
+        rules.extend({"action": "skill", "resource": skill_id, "effect": "allow"} for skill_id in skill_ids)
         fields_any.update(mode="subagent", permissions=rules)
     elif format_name in {"opencode-markdown", "kilo-markdown"}:
         fields_any.pop("name")  # Both hosts derive the identifier from the filename.
@@ -340,7 +343,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             snapshot: Mapping[str, Any] | None = None,
                             llm_profile: str | None = None,
                             codex_catalog: Path | None = None, opencode_catalog: Path | None = None,
-                            model_variant: str | None = None) -> list[RenderedArtifact]:
+                            model_variant: str | None = None,
+                            allowed_skills: list[str] | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -352,6 +356,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if model_variant is not None and opencode_catalog is None:
         raise WeaverError("A model variant requires an OpenCode V2 catalog")
+    if allowed_skills and opencode_catalog is None:
+        raise WeaverError("Skill permissions require the OpenCode V2 agent route")
     spec.surface(surface)
     registered = load_integrations(root).get(spec.id)
     if registered != spec:
@@ -371,6 +377,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     checked: dict[str, Any] | None
     codex_digest: str | None = None
     opencode_digest: str | None = None
+    skill_ids: tuple[str, ...] = ()
     if opencode_catalog is not None:
         if (spec.id, surface, row["format"]) != ("opencode", "cli", "opencode-markdown"):
             raise WeaverError("An OpenCode V2 model catalog requires an OpenCode CLI custom-agent target")
@@ -379,6 +386,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if model_id is None or model_id == "inherit":
             raise WeaverError("An OpenCode V2 model catalog requires an explicit provider/model")
         model, opencode_digest = validate_opencode_selection(opencode_catalog, model_id, model_variant)
+        if allowed_skills:
+            skill_ids = selected_portable_skill_ids(root, allowed_skills)
         checked = None
     elif codex_catalog is not None:
         if spec.id != "codex" or row["format"] != "codex-toml":
@@ -484,6 +493,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "This definition uses V2 model selectors and ordered permissions. Review the effective "
                       "policy and model availability in your OpenCode project before use. The saved catalog "
                       "describes its source project at capture time. No model request was made."])
+        if skill_ids:
+            lines.extend(["", "Allowed OpenCode Skill IDs: " + ", ".join(skill_ids) + ".",
+                          "Stage matching files separately with bundle --skill for each ID. "
+                          "Review which source wins for each ID in OpenCode before use. "
+                          "A Skill rule grants no additional tool permissions."])
     if llm_profile is not None:
         lines.append(f"Explicit local LLM profile reference: {model}")
     elif model is not None:
@@ -498,7 +512,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     artifacts: list[RenderedArtifact] = []
     if state == "native":
         path = row["path_template"].replace("{name}", identifier)
-        content = _native(row, identifier, summary, prompt, model, effort, opencode_v2=opencode_digest is not None)
+        content = _native(row, identifier, summary, prompt, model, effort,
+                          opencode_v2=opencode_digest is not None, skill_ids=skill_ids)
         artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
         lines.extend(["", f"Native project path: {path}"])
     else:

@@ -114,6 +114,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list JSON response')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant in the saved OpenCode V2 model catalog')
+            command.add_argument('--allow-skill', action='append', help='Allow one portable Skill ID in an OpenCode V2 agent')
             command.add_argument('--reasoning-effort')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
@@ -442,6 +443,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
             llm_profile=args.llm_profile, codex_catalog=args.codex_catalog,
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
+            allowed_skills=args.allow_skill,
         )
     else:
         raise WeaverError('Unsupported command')

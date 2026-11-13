@@ -248,6 +248,35 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         with self.assertRaisesRegex(WeaverError, "requires an OpenCode V2 catalog"):
             self.render("opencode", model_id="gateway/team/review", model_variant="review-fast")
 
+    def test_opencode_v2_skill_allowlist_matches_portable_bundle_ids(self):
+        from agentweaver.config import load_json
+        from agentweaver.skills import render_instruction_bundle
+
+        names = ["token-efficient-retrieval", "security-review"]
+        profile = load_json(ROOT / "profiles/efficient.json")
+        bundle = render_instruction_bundle(self.integrations["opencode"], "cli", profile, names, ROOT)
+        staged_ids = [artifact.relative_path.parent.name for artifact in bundle if artifact.kind == "skill"]
+        self.assertEqual(staged_ids, sorted(names))
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "opencode.json"
+            catalog.write_text(json.dumps({"location": {}, "data": [
+                {"providerID": "fixture", "id": "review", "enabled": True, "variants": []},
+            ]}), encoding="utf-8")
+            options = {"model_id": "fixture/review", "opencode_catalog": catalog}
+            baseline, _ = parse_definition(self.render("opencode", **options)[0].content,
+                                           NATIVE_PATHS["opencode", "cli"])
+            artifacts = self.render("opencode", allowed_skills=names, **options)
+            definition, _ = parse_definition(artifacts[0].content, NATIVE_PATHS["opencode", "cli"])
+            self.assertEqual(definition["permissions"], baseline["permissions"] + [
+                {"action": "skill", "resource": name, "effect": "allow"} for name in staged_ids
+            ])
+            self.assertIn("bundle --skill", artifacts[1].content.decode())
+            for invalid in (["*"], ["unknown-skill"], [names[0], names[0]]):
+                with self.subTest(invalid=invalid), self.assertRaises(WeaverError):
+                    self.render("opencode", allowed_skills=invalid, **options)
+        with self.assertRaisesRegex(WeaverError, "OpenCode V2"):
+            self.render("opencode", allowed_skills=names)
+
     def test_model_controls_preserve_host_semantics(self):
         for product, surface in (("kimi-code", "cli"), ("qoder", "ide")):
             with self.subTest(product=product), self.assertRaises(WeaverError):

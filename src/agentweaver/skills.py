@@ -316,6 +316,14 @@ def _select_skills(skills: list[str], available: dict[str, _Skill]) -> list[_Ski
     return sorted(selected, key=lambda item: item.name)
 
 
+def selected_portable_skill_ids(root: Path, skills: list[str]) -> tuple[str, ...]:
+    """Resolve exact IDs against the same validated sources used by bundle."""
+    available, errors = _scan_skills(root)
+    if errors:
+        raise WeaverError("Skill validation failed: " + "; ".join(sorted(errors)))
+    return tuple(skill.name for skill in _select_skills(skills, available))
+
+
 def _instruction_target(spec: IntegrationSpec, surface: SurfaceSpec) -> str | None:
     if spec.id == "abacus":
         if "AGENTS.md" not in surface.instruction_paths:
