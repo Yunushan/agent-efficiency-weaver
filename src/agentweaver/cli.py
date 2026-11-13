@@ -70,6 +70,11 @@ def _parser() -> argparse.ArgumentParser:
     factory_models.add_argument('--input', type=Path, required=True)
     factory_models.add_argument('--model')
     factory_models.add_argument('--reasoning-effort')
+    qoder_models = subs.add_parser('qoder-models', help='Inspect a saved Qoder Agent SDK getAvailableModels() array')
+    qoder_models.add_argument('--input', type=Path, required=True)
+    qoder_models.add_argument('--model')
+    qoder_models.add_argument('--reasoning-effort')
+    qoder_models.add_argument('--context-size', type=int)
     agents = subs.add_parser('agents')
     agents.add_argument('action', nargs='?', choices=['inventory'], default='inventory')
     agents.add_argument('--root', type=Path)
@@ -122,6 +127,7 @@ def _parser() -> argparse.ArgumentParser:
                                      help='Stage Kiro CLI V3 per-model reasoning settings')
                 command.add_argument('--qoder-settings', action='store_true',
                                      help='Stage a Qoder CLI model settings fragment for manual merge')
+                command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -133,6 +139,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
             command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
+            command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
@@ -453,7 +460,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
             getattr(args, option) is not None for option in
             ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
-             'context_size', 'batch_endpoint')
+             'context_size', 'batch_endpoint', 'qoder_catalog')
         ):
             raise WeaverError('A Factory Droid SDK catalog uses a managed model ID and optional reasoning effort')
         artifacts = render_factory_exec(args.factory_catalog, args.model, args.reasoning_effort)
@@ -462,11 +469,11 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         if args.zed_subagent or args.qoder_settings or any(getattr(args, option) is not None for option in
                                    ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning',
-                                    'reasoning_mode', 'context_size', 'batch_endpoint')):
+                                    'reasoning_mode', 'context_size', 'batch_endpoint', 'qoder_catalog')):
             raise WeaverError('Kiro CLI model staging uses Kiro model IDs and an optional reasoning effort')
         artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults)
     elif args.cmd == 'model' and (spec.id, surface) == ('qoder', 'cli'):
-        from .models import render_qoder_cli_model
+        from .qoder_models import render_qoder_cli_model
 
         if args.zed_subagent or args.kiro_model_defaults or any(
             getattr(args, option) is not None for option in
@@ -474,11 +481,11 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         ):
             raise WeaverError('Qoder CLI model staging uses a Qoder model ID, optional effort and context window')
         artifacts = render_qoder_cli_model(args.model, args.reasoning_effort, args.context_size,
-                                           persistent=args.qoder_settings)
+                                           persistent=args.qoder_settings, catalog=args.qoder_catalog)
     elif args.cmd in ('provider', 'model'):
         from .providers import render_provider_setup
 
-        if getattr(args, 'qoder_settings', False):
+        if getattr(args, 'qoder_settings', False) or getattr(args, 'qoder_catalog', None) is not None:
             raise WeaverError('Qoder model settings require the Qoder CLI surface')
         if args.provider is None:
             raise WeaverError('This model route requires an explicit provider')
@@ -520,6 +527,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             kilo_catalog=args.kilo_catalog,
             factory_catalog=args.factory_catalog,
+            qoder_catalog=args.qoder_catalog,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             hermes_profile_route=args.hermes_profile_route,
@@ -563,6 +571,13 @@ def main(argv: list[str] | None = None) -> int:
             from .factory_models import inspect_factory_models
 
             result = inspect_factory_models(args.input, model=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'qoder-models':
+            from .qoder_models import inspect_qoder_models
+
+            result = inspect_qoder_models(args.input, model=args.model, effort=args.reasoning_effort,
+                                          context_size=args.context_size)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         with resource_root(args.root, paths=_paths(args)) as root:

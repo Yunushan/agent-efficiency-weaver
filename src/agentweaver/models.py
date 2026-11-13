@@ -985,54 +985,6 @@ def render_kiro_cli_model(model: str, effort: str | None, *, persistent: bool = 
     return [output, RenderedArtifact(PurePosixPath("kiro/model/model-setup.md"), handoff.encode(), "model-setup")]
 
 
-def render_qoder_cli_model(model: str, effort: str | None, context_size: int | None, *,
-                           persistent: bool) -> list[RenderedArtifact]:
-    """Stage model settings using Qoder's CLI or settings-file vocabulary."""
-    identifier = _model_id(model)
-    efforts = {"low", "medium", "high", "xhigh", "max"}
-    if persistent:
-        efforts.update({"disabled", "off", "none"})
-    if effort is not None and effort not in efforts:
-        _fail("Unsupported Qoder reasoning effort for the selected output")
-    if context_size is not None and (type(context_size) is not int or context_size < 1):
-        _fail("Qoder context window must be a positive integer")
-
-    if persistent:
-        settings: dict[str, str | int] = {"name": identifier}
-        if effort is not None:
-            settings["reasoningEffort"] = effort
-        if context_size is not None:
-            settings["contextWindow"] = context_size
-        output = _json_artifact("qoder/model/cli.fragment.json", {"model": settings}, "model-config")
-        instructions = (
-            "Review the fragment and pass its path to qoder --settings, or merge its fields into "
-            "the model object in an existing Qoder settings file. "
-            "Use .qoder/settings.json for a trusted project, or ~/.qoder/settings.json for user defaults. "
-            "Preserve other settings, including MCP entries and existing custom model setup."
-        )
-    else:
-        arguments = ["--model", identifier]
-        if effort is not None:
-            arguments.extend(["--reasoning-effort", effort])
-        if context_size is not None:
-            arguments.extend(["--context-window", str(context_size)])
-        output = _json_artifact("qoder/model/session-arguments.json", arguments, "session-arguments")
-        instructions = "Pass these arguments to qoder for one session."
-    note = (
-        "# Qoder CLI model setup\n\n"
-        f"{instructions}\n\n"
-        "Use the exact selection ID from the target account's qoder --list-models output or already-configured "
-        "custom models. Confirm effort and context support in /model. "
-        "Account access and model-specific compatibility remain unverified. "
-        "Weaver stages these files offline.\n\n"
-        "- https://docs.qoder.com/cli/model\n"
-        "- https://docs.qoder.com/cli/cli-reference\n"
-        "- https://docs.qoder.com/cli/settings-reference\n"
-        "- https://docs.qoder.com/cli/settings\n"
-    )
-    return [output, RenderedArtifact(PurePosixPath("qoder/model/model-setup.md"), note.encode(), "model-setup")]
-
-
 def _hermes_model_config(checked: Mapping[str, Any], api_base: str, effort: str | None,
                          context_size: int | None) -> dict[str, Any] | None:
     architecture = checked["architecture"]
