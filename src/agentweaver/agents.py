@@ -15,6 +15,7 @@ from typing import Any
 
 from .adapters import hermes_profile_mcp, json_bytes
 from .artifacts import RenderedArtifact
+from .claude_models import inspect_claude_models
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url, safe_name
 from .copilot_models import validate_copilot_selection
@@ -393,7 +394,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             kilo_catalog: Path | None = None,
                             factory_catalog: Path | None = None,
                             qoder_catalog: Path | None = None,
-                            qwen_auth_type: str | None = None) -> list[RenderedArtifact]:
+                            qwen_auth_type: str | None = None,
+                            claude_catalog: Path | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -418,6 +420,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             if qwen_route is None or qwen_route[0] != provider_id:
                 raise WeaverError("Provider validation requires the matching built-in Qwen authentication type")
             qwen_protocol = qwen_route[1]
+    if claude_catalog is not None:
+        if spec.id != "claude-code" or surface not in {"cli", "vscode"} or hermes_profile:
+            raise WeaverError("A Claude Code model catalog requires the Claude Code CLI or VS Code custom-agent target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, opencode_catalog,
+                                               copilot_catalog, kilo_catalog, factory_catalog, qoder_catalog)):
+            raise WeaverError("A Claude Code model catalog conflicts with other model discovery options")
     if qoder_catalog is not None:
         if (spec.id, surface) != ("qoder", "cli") or hermes_profile:
             raise WeaverError("A Qoder SDK catalog requires a Qoder CLI custom-agent target")
@@ -501,6 +509,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     model: str | None
     checked: dict[str, Any] | None
     codex_digest: str | None = None
+    claude_digest: str | None = None
     opencode_digest: str | None = None
     copilot_digest: str | None = None
     kilo_digest: str | None = None
@@ -508,7 +517,15 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     qoder_digest: str | None = None
     copilot_models: list[str] | None = None
     skill_ids: tuple[str, ...] = ()
-    if qoder_catalog is not None:
+    if claude_catalog is not None:
+        if row["format"] != "claude-markdown" or row["model_field"] != "model" or model_id in {None, "inherit"}:
+            raise WeaverError("A Claude Code custom-agent catalog requires an explicit model selector")
+        if effort is not None and effort not in row["efforts"]:
+            raise WeaverError("Unsupported Claude Code custom-agent effort")
+        claude_report = inspect_claude_models(claude_catalog, model=model_id, effort=effort)
+        model, checked = claude_report["selection"]["value"], None
+        claude_digest = claude_report["snapshot_sha256"]
+    elif qoder_catalog is not None:
         if row["format"] != "qoder-markdown" or model_id is None or model_id == "inherit":
             raise WeaverError("A Qoder SDK catalog requires an explicit Qoder subagent model")
         if effort is not None and effort not in row["efforts"]:
@@ -684,6 +701,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "and falls back to the parent model when that setting cannot be resolved.",
                       "Review the destination and its credentials before using the agent. Configure model-dependent "
                       "reasoning through the selected Qwen provider entry or the session controls."])
+    if claude_digest is not None:
+        lines.extend(["", f"Saved Claude Code ModelInfo SHA-256: {claude_digest}",
+                      "The authored selector is preserved. Review model and effort in the target session. "
+                      "The saved list describes its source session."])
     if codex_digest is not None:
         lines.extend(["", f"Saved Codex model/list snapshot SHA-256: {codex_digest}",
                       "This selection matches a picker-visible model in the caller-supplied Codex catalog. "

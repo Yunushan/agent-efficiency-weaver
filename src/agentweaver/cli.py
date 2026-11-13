@@ -70,6 +70,10 @@ def _parser() -> argparse.ArgumentParser:
     copilot_models.add_argument('--input', type=Path, required=True)
     copilot_models.add_argument('--model', action='append', help='Model ID to check; repeat to check fallbacks')
     copilot_models.add_argument('--reasoning-effort')
+    claude_models = subs.add_parser('claude-models', help='Inspect a saved Claude Code Agent SDK ModelInfo array')
+    claude_models.add_argument('--input', type=Path, required=True)
+    claude_models.add_argument('--model')
+    claude_models.add_argument('--reasoning-effort')
     factory_models = subs.add_parser('factory-models', help='Inspect a saved Factory Droid SDK listModels() array')
     factory_models.add_argument('--input', type=Path, required=True)
     factory_models.add_argument('--model')
@@ -133,6 +137,7 @@ def _parser() -> argparse.ArgumentParser:
                                  help='Request body endpoint for OpenRouter batch staging')
             if name == 'model':
                 host_catalog = command.add_mutually_exclusive_group()
+                host_catalog.add_argument('--claude-catalog', type=Path, help='Saved Claude Code Agent SDK ModelInfo array')
                 host_catalog.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
                 host_catalog.add_argument('--qwen-workspace-catalog', type=Path,
                                           help='Saved Qwen daemon GET /workspace/providers response')
@@ -162,6 +167,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
+            command.add_argument('--claude-catalog', type=Path, help='Saved Claude Code Agent SDK ModelInfo array')
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
             command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
             command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
@@ -536,6 +542,18 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             raise WeaverError('Qwen daemon startup uses a workspace model route and optional reasoning selection')
         artifacts = render_qwen_startup(args.qwen_workspace_catalog, args.model, args.reasoning_effort,
                                        auth_type=args.qwen_auth_type)
+    elif args.cmd == 'model' and args.claude_catalog is not None:
+        from .claude_models import render_claude_model
+
+        if spec.id != 'claude-code' or surface not in {'cli', 'vscode'}:
+            raise WeaverError('A Claude Code model catalog requires the Claude Code CLI or VS Code target')
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
+        ):
+            raise WeaverError('Claude Code project model staging uses a saved selector and optional effort')
+        artifacts = render_claude_model(args.claude_catalog, surface, args.model, args.reasoning_effort)
     elif args.cmd == 'model' and args.factory_catalog is not None:
         from .factory_models import render_factory_exec
 
@@ -624,7 +642,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             kilo_catalog=args.kilo_catalog,
             factory_catalog=args.factory_catalog,
-            qoder_catalog=args.qoder_catalog,
+            qoder_catalog=args.qoder_catalog, claude_catalog=args.claude_catalog,
             qwen_auth_type=args.qwen_auth_type,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
@@ -670,6 +688,12 @@ def main(argv: list[str] | None = None) -> int:
             from .copilot_models import inspect_copilot_models
 
             result = inspect_copilot_models(args.input, models=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'claude-models':
+            from .claude_models import inspect_claude_models
+
+            result = inspect_claude_models(args.input, model=args.model, effort=args.reasoning_effort)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         if args.cmd == 'factory-models':
