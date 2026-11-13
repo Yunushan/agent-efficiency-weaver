@@ -107,7 +107,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 5)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 38)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 39)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -171,12 +171,19 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {target["surface_id"]: target for target in item["targets"]}
         self.assertEqual(targets["cli"]["runtime_observations"], [])
         self.assertEqual(targets["desktop"]["runtime_observations"], [])
-        [record] = targets["vscode"]["runtime_observations"]
+        record, remote = targets["vscode"]["runtime_observations"]
         self.assertEqual(record["extension_version"], record["engine_version"])
         self.assertEqual(record["interface"], "bundled-runtime")
         checks = {check["check"] for check in record["checks"]}
         self.assertEqual(checks, {"skill-discovery", "agent-metadata-discovery", "project-http-pending-approval",
                                   "project-stdio-healthcheck", "signed-out-model-list", "signed-out-effort-options"})
+        for field in ("product_version", "extension_version", "engine_version", "interface", "os_variant",
+                      "architecture", "environment"):
+            self.assertEqual(remote[field], record[field])
+        [check] = remote["checks"]
+        self.assertEqual(check["check"], "project-public-docs-tool-discovery")
+        self.assertEqual(check["capability"], "mcp")
+        self.assertEqual(targets["vscode"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

@@ -421,6 +421,26 @@
           "evidence_sha256": "cae819b6990b30f2a8d18fc42d0b01d7a87cc3e58dd29c34ce33af10cc17d580"
         }
       ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "e6bd9a7480aeeb89eeb3d6431ee0013cd7193a78",
+      "checks": [
+        {
+          "check": "project-public-docs-tool-discovery",
+          "evidence_sha256": "1e99332aa586bb4aab538f26a8d0babda941da25fa9ae6a19df918cf8249c80d"
+        }
+      ]
     }
   ]
 }

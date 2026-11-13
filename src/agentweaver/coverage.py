@@ -62,6 +62,9 @@ _OBSERVATION_CHECKS = {
     "project-http-pending-approval": (
         "mcp", "The bundled executable read the generated project HTTP entry and reported it pending approval.",
     ),
+    "project-public-docs-tool-discovery": (
+        "mcp", "After local project approval, the bundled executable connected to OpenAI Docs and listed its tools.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
