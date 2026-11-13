@@ -107,7 +107,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 5)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 39)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 44)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -171,7 +171,7 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {target["surface_id"]: target for target in item["targets"]}
         self.assertEqual(targets["cli"]["runtime_observations"], [])
         self.assertEqual(targets["desktop"]["runtime_observations"], [])
-        record, remote = targets["vscode"]["runtime_observations"]
+        record, remote, loopback = targets["vscode"]["runtime_observations"]
         self.assertEqual(record["extension_version"], record["engine_version"])
         self.assertEqual(record["interface"], "bundled-runtime")
         checks = {check["check"] for check in record["checks"]}
@@ -183,6 +183,13 @@ class RequestedCoverageTests(unittest.TestCase):
         [check] = remote["checks"]
         self.assertEqual(check["check"], "project-public-docs-tool-discovery")
         self.assertEqual(check["capability"], "mcp")
+        self.assertEqual(loopback["environment"], "isolated-loopback")
+        self.assertEqual(loopback["interface"], "bundled-runtime")
+        self.assertEqual(loopback["extension_version"], record["extension_version"])
+        self.assertEqual({check["check"]: check["capability"] for check in loopback["checks"]},
+                         {"agent-load": "agents", "claude-child-model-request": "models",
+                          "claude-child-effort-request": "reasoning", "stdio-tool-call": "mcp",
+                          "claude-child-mcp-tool-filter": "mcp"})
         self.assertEqual(targets["vscode"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
@@ -193,7 +200,8 @@ class RequestedCoverageTests(unittest.TestCase):
             ("os_variant", "linux:22.04"), ("os_id", "unknown"), ("architecture", []),
             ("checked_on", "2026-02-31"), ("source_commit", "main"), ("interface", "desktop-ui"),
             ("interface", "bundled-runtime"), ("extension_version", "0.74.0"),
-            ("environment", "signed-in"), ("checks", []), ("private_path", "NEVER-ECHO"),
+            ("environment", "signed-in"), ("environment", "isolated-loopback"),
+            ("checks", []), ("private_path", "NEVER-ECHO"),
             ("checks", [{"check": "successful-inference", "evidence_sha256": "a" * 64}]),
             ("checks", [{"check": "agent-load", "evidence_sha256": "NEVER-ECHO"}]),
         ):

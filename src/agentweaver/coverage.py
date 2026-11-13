@@ -65,6 +65,15 @@ _OBSERVATION_CHECKS = {
     "project-public-docs-tool-discovery": (
         "mcp", "After local project approval, the bundled executable connected to OpenAI Docs and listed its tools.",
     ),
+    "claude-child-model-request": (
+        "models", "The generated subagent selected its own model in a request to a scripted loopback Messages endpoint.",
+    ),
+    "claude-child-effort-request": (
+        "reasoning", "The generated subagent selected its own output_config.effort in the loopback request.",
+    ),
+    "claude-child-mcp-tool-filter": (
+        "mcp", "The generated subagent tool list excluded the local fixture visible in the parent session.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -226,8 +235,10 @@ def _load_observations(
             "checked_on": checked_on,
             "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
         }
+        environment = identity["environment"]
+        loopback_observation = (product, surface) == ("claude-code", "vscode") and environment == "isolated-loopback"
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
-                or identity["environment"] != "isolated-signed-out"):
+                or (environment != "isolated-signed-out" and not loopback_observation)):
             raise WeaverError("Runtime observation: unsupported interface or environment")
         if "extension_version" in row:
             identity["extension_version"] = _observation_field(

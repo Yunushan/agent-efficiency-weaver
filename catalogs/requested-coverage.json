@@ -441,6 +441,42 @@
           "evidence_sha256": "1e99332aa586bb4aab538f26a8d0babda941da25fa9ae6a19df918cf8249c80d"
         }
       ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "7a254a8bd6901e71cee324c23b78f73c7239e7b4",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "claude-child-model-request",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "claude-child-effort-request",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "06cabb4b6dc1cddd5461f67b4e3b0f8384bd8a5958b2bc1a3f3970b160338603"
+        },
+        {
+          "check": "claude-child-mcp-tool-filter",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        }
+      ]
     }
   ]
 }
