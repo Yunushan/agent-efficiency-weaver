@@ -41,7 +41,10 @@ _OPENROUTER_TASK_ENDPOINTS = {
     "openrouter-transcriptions": "/api/v1/audio/transcriptions",
     "openrouter-decisions": "/api/alpha/decisions",
     "openrouter-extractions": "/api/alpha/extractions",
+    "openrouter-batch": "/api/v1/batches",
 }
+OPENROUTER_BATCH_ENDPOINTS = ("/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/embeddings")
+_OPENROUTER_BATCH_REASONING = {"/v1/chat/completions": "openrouter-chat", "/v1/responses": "openai-responses"}
 _OPENROUTER_ENDPOINTS = {
     "openrouter-chat": "/api/v1/chat/completions",
     "openai-chat": "/api/v1/chat/completions",
@@ -770,7 +773,8 @@ def _wire(protocol: str, cap: dict[str, Any], *, effort: str | None, budget_toke
 def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[str, Any] | None = None, *,
                 effort: str | None = None, budget_tokens: int | None = None,
                 reasoning_enabled: bool | None = None, protocol: str | None = None,
-                mode: str | None = None, context_size: int | None = None) -> dict[str, Any]:
+                mode: str | None = None, context_size: int | None = None,
+                batch_endpoint: str | None = None) -> dict[str, Any]:
     """Validate an explicit ID and requested reasoning without asserting availability."""
     providers = load_model_providers(root)
     provider = providers.get(provider_id)
@@ -784,10 +788,25 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
         _fail("Protocol is not documented for this provider")
     router_task = chosen in _OPENROUTER_TASK_ENDPOINTS
     router_endpoint = _OPENROUTER_ENDPOINTS.get(chosen) if provider_id == "openrouter" else None
+    batch = chosen == "openrouter-batch"
+    batch_model = identifier.removesuffix(":batch") if batch else identifier
+    expected_id = f"{batch_model}:batch" if batch else identifier
+    if batch:
+        _model_id(batch_model)
+        if batch_model.endswith(":batch"):
+            _fail("Expected an OpenRouter model slug with at most one :batch suffix")
+        if batch_endpoint not in OPENROUTER_BATCH_ENDPOINTS:
+            _fail("OpenRouter batch staging requires a documented --batch-endpoint")
+        if any(value is not None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
+            _fail("Batch staging supports an explicit effort only for Chat Completions or Responses")
+        if effort is not None and batch_endpoint not in _OPENROUTER_BATCH_REASONING:
+            _fail("Batch effort requires the Chat Completions or Responses endpoint")
+    elif batch_endpoint is not None:
+        _fail("--batch-endpoint requires the openrouter-batch protocol")
     if router_task:
         if router_endpoint is None or snapshot is None:
             _fail("This OpenRouter route requires a saved OpenRouter model list with endpoint metadata")
-        if any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
+        if not batch and any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
             _fail("This OpenRouter route stages only the model selector")
     nonchat = _LM_STUDIO_NONCHAT.get(chosen)
     if nonchat is not None:
@@ -839,7 +858,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                         nonchat_matches += sum(isinstance(instance, dict) and instance.get("id") == identifier
                                                for instance in instances)
                 continue
-            if entry_id == identifier:
+            if entry_id == expected_id:
                 visible = True
                 architecture = declared_architecture
                 if router_endpoint is not None and "endpoints" in entry:
@@ -876,6 +895,10 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             _fail("The selected model does not advertise the requested OpenRouter endpoint")
         if router_task and endpoints is None:
             _fail("Expected a matching OpenRouter model with explicit endpoint metadata")
+    if batch and architecture is not None and "output_modalities" in architecture:
+        output = "embeddings" if batch_endpoint == "/v1/embeddings" else "text"
+        if output not in architecture["output_modalities"]:
+            _fail("The OpenRouter batch variant does not advertise the requested output modality")
     if chosen == "lmstudio-chat" and lmstudio_options is not None and reasoning_enabled is not None:
         if type(reasoning_enabled) is not bool:
             _fail("Reasoning toggle must be boolean")
@@ -888,7 +911,8 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
                 effort not in {"low", "medium", "high"} or
                 (lmstudio_options is not None and effort not in lmstudio_options)):
             _fail("Unsupported LM Studio native reasoning effort")
-        payload = _wire(chosen, cap, effort=effort, budget_tokens=budget_tokens,
+        reasoning_protocol = _OPENROUTER_BATCH_REASONING.get(batch_endpoint, chosen) if batch_endpoint else chosen
+        payload = _wire(reasoning_protocol, cap, effort=effort, budget_tokens=budget_tokens,
                         reasoning_enabled=reasoning_enabled, mode=mode)
     return {"provider_id": provider_id, "integration_id": provider["integration_id"], "surface": provider["surface"],
             "model_id": identifier, "protocol": chosen, "accepted_explicit_id": True, "visible_in_snapshot": visible,
@@ -897,6 +921,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             "snapshot_provenance": provenance, "catalog_completeness": "unknown", "network_used": False,
             "credentials_read": False, "context_size": context_size, "architecture": architecture,
             "advertised_endpoints": endpoints,
+            "batch_model": batch_model if batch else None, "batch_endpoint": batch_endpoint,
             "language_agent_compatibility": "unknown"}
 
 
@@ -946,7 +971,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                        snapshot: Mapping[str, Any] | None = None, effort: str | None = None,
                        budget_tokens: int | None = None, reasoning_enabled: bool | None = None,
                        protocol: str | None = None, mode: str | None = None,
-                       context_size: int | None = None) -> list[RenderedArtifact]:
+                       context_size: int | None = None, batch_endpoint: str | None = None) -> list[RenderedArtifact]:
     """Stage a reviewed fragment only for documented routes; otherwise give a manual handoff."""
     registered = get_integration(spec.id, root)
     registered.surface(surface)
@@ -955,7 +980,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if protocol in _OPENROUTER_TASK_ENDPOINTS and (registered.id, surface) != ("openrouter", "gateway"):
         _fail("OpenRouter task endpoint selections require the OpenRouter gateway surface")
     checked = check_model(root, provider_id, model_id, snapshot, effort=effort, budget_tokens=budget_tokens,
-                          reasoning_enabled=reasoning_enabled, protocol=protocol, mode=mode, context_size=context_size)
+                          reasoning_enabled=reasoning_enabled, protocol=protocol, mode=mode, context_size=context_size,
+                          batch_endpoint=batch_endpoint)
     provider = load_model_providers(root)[provider_id]
     prefix = f"{registered.id}/model"
     chosen = checked["protocol"]
@@ -976,6 +1002,13 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if chosen in _OPENROUTER_TASK_ENDPOINTS:
         native_note = ("Use the staged selector as the model field in a request to the listed OpenRouter endpoint. "
                        "Add the endpoint's task-specific input and authenticate separately.")
+    if batch_endpoint is not None:
+        native_note = (
+            "Put the staged endpoint and model fields before requests in the batch envelope. "
+            "Add one or more entries with unique custom_id values and endpoint-specific request bodies. "
+            "If present, merge the reasoning fragment into each intended request body. "
+            "Supply authentication separately and review provider compatibility before submission."
+        )
     codex_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                       ("codex", "cli", "lm-studio", "openai-responses"))
     claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
@@ -1078,6 +1111,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         native_note = ("Merge the reviewed Kimi fragment into ~/.kimi-code/config.toml." if native else
                        "Kimi template requires max_context_size before use; supply --context-size or import documented context metadata.")
     selection = {"model": model_id, **checked["reasoning_payload"]}
+    if batch_endpoint is not None:
+        selection = {"endpoint": batch_endpoint, "model": checked["batch_model"]}
+        if checked["reasoning_payload"]:
+            artifacts.append(_json_artifact(f"{prefix}/batch-reasoning.fragment.json",
+                                            checked["reasoning_payload"], "batch-reasoning"))
     artifacts.append(_json_artifact(f"{prefix}/model-selection.json", selection, "model-selection"))
     lines = [f"# Model setup: {registered.name}", "", "Staged offline handoff; no settings were installed or activated.", "",
              f"- Product/surface: `{registered.id}/{surface}`", f"- Provider: `{provider_id}`", f"- Model: `{model_id}`",

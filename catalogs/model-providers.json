@@ -21,7 +21,8 @@
         "openrouter-speech",
         "openrouter-transcriptions",
         "openrouter-decisions",
-        "openrouter-extractions"
+        "openrouter-extractions",
+        "openrouter-batch"
       ],
       "discovery": {
         "endpoint": "/models",
@@ -35,6 +36,7 @@
         "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
         "https://openrouter.ai/docs/api_reference/responses/overview",
         "https://openrouter.ai/docs/api_reference/responses/reasoning",
+        "https://openrouter.ai/docs/batch-quickstart",
         "https://github.com/OpenRouterTeam/terraform-provider-openrouter/blob/main/docs/data-sources/model.md"
       ],
       "known_models": []

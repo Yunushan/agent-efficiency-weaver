@@ -393,6 +393,54 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_openrouter_batch_cli_stages_base_slug_and_body_reasoning_separately(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "models.json"
+            catalog.write_text(json.dumps({"data": [
+                {"id": "fixture/text", "endpoints": ["/api/v1/responses"],
+                 "reasoning": {"supported_efforts": ["low"]}},
+                {"id": "fixture/text:batch", "endpoints": ["/api/v1/batches"],
+                 "architecture": {"output_modalities": ["text"]},
+                 "reasoning": {"supported_efforts": ["high"]}},
+                {"id": "fixture/embed:batch", "endpoints": ["/api/v1/batches"],
+                 "architecture": {"output_modalities": ["embeddings"]}},
+            ]}), encoding="utf-8")
+            args = ("model", "--root", str(ROOT), "--agent", "openrouter", "--provider", "openrouter",
+                    "--catalog", str(catalog), "--protocol", "openrouter-batch", "--dry-run")
+            for model, endpoint, effort in (("fixture/text:batch", "/v1/chat/completions", "high"),
+                                           ("fixture/text", "/v1/responses", "high"),
+                                           ("fixture/text", "/v1/messages", None),
+                                           ("fixture/embed", "/v1/embeddings", None)):
+                with self.subTest(model=model, endpoint=endpoint):
+                    effort_flags = ("--reasoning-effort", effort) if effort is not None else ()
+                    code, output, errors = invoke(*args, "--model", model, "--batch-endpoint", endpoint, *effort_flags)
+                    self.assertEqual(code, 0, errors)
+                    items = {item["kind"]: item["content"] for item in json.loads(output)["artifacts"]}
+                    selector = json.loads(items["model-selection"])
+                    self.assertEqual(list(selector), ["endpoint", "model"])
+                    self.assertEqual(selector, {"endpoint": endpoint, "model": model.removesuffix(":batch")})
+                    self.assertIn("POST https://openrouter.ai/api/v1/batches", items["model-setup"])
+                    self.assertIn("before requests", items["model-setup"])
+                    if effort is None:
+                        self.assertNotIn("batch-reasoning", items)
+                    else:
+                        self.assertEqual(json.loads(items["batch-reasoning"]), {"reasoning": {"effort": effort}})
+            for model, flags in (
+                ("fixture/text", ()),
+                ("fixture/text", ("--batch-endpoint", "/v1/embeddings")),
+                ("fixture/embed", ("--batch-endpoint", "/v1/responses")),
+                ("fixture/text", ("--batch-endpoint", "/v1/messages", "--reasoning-effort", "high")),
+                ("fixture/text", ("--batch-endpoint", "/v1/responses", "--reasoning-effort", "low")),
+                ("fixture/text:batch:batch", ("--batch-endpoint", "/v1/responses")),
+                ("fixture/missing", ("--batch-endpoint", "/v1/responses")),
+            ):
+                with self.subTest(model=model, flags=flags):
+                    code, output, _ = invoke(*args, "--model", model, *flags)
+                    self.assertNotEqual(code, 0)
+                    self.assertEqual(output, "")
+
     def test_openrouter_task_endpoint_staging_requires_saved_route_and_stages_only_model(self) -> None:
         spec = get_integration("openrouter", ROOT)
         options = {"root": ROOT, "provider_id": "openrouter", "model_id": "fixture/model"}

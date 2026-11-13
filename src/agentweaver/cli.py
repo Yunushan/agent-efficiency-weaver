@@ -17,6 +17,7 @@ from .integrations import (
     load_integrations,
     load_operating_systems,
 )
+from .models import OPENROUTER_BATCH_ENDPOINTS
 from .platforms import describe_workflow, detect_host_os
 from .report import as_markdown, read_runs, summarize
 from .resources import resource_root
@@ -103,6 +104,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--reasoning', choices=['on', 'off'])
             command.add_argument('--reasoning-mode')
             command.add_argument('--context-size', type=int)
+            command.add_argument('--batch-endpoint', choices=OPENROUTER_BATCH_ENDPOINTS,
+                                 help='Request body endpoint for OpenRouter batch staging')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -426,7 +429,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         extended = args.cmd == 'model' or args.provider != 'openrouter' or any(
             getattr(args, key) is not None for key in
-            ('catalog', 'protocol', 'reasoning_effort', 'reasoning_budget', 'reasoning', 'reasoning_mode', 'context_size')
+            ('catalog', 'protocol', 'reasoning_effort', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
         )
         if extended:
             from .models import render_model_setup
@@ -434,7 +438,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             artifacts = render_model_setup(spec, surface, root=root, provider_id=args.provider, model_id=args.model,
                                            snapshot=_model_snapshot(args, root), effort=args.reasoning_effort,
                                            budget_tokens=args.reasoning_budget, reasoning_enabled=_reasoning(args),
-                                           protocol=args.protocol, mode=args.reasoning_mode, context_size=args.context_size)
+                                           protocol=args.protocol, mode=args.reasoning_mode, context_size=args.context_size,
+                                           batch_endpoint=args.batch_endpoint)
         else:
             gateway = load_integrations(root)['openrouter']
             metadata = gateway.surface(gateway.default_surface).provider
