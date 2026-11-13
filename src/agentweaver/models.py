@@ -891,6 +891,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                        "language-agent compatibility is unknown.")
     codex_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                       ("codex", "cli", "lm-studio", "openai-responses"))
+    claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
+                       ("claude-code", "cli", "lm-studio", "anthropic-messages"))
     if codex_lmstudio and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
         profile = ['# Staged Codex CLI profile for LM Studio.',
                    f'model = {json.dumps(model_id)}', 'model_provider = "lmstudio"']
@@ -904,6 +906,21 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                        "Preserve existing profiles and review higher-priority settings and process environment overrides. "
                        "The profile selects Codex's built-in lmstudio provider without configuring authentication "
                        "or starting a server.")
+    elif claude_lmstudio and all(value is None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
+        fragment = {"model": model_id, "env": {
+            "ANTHROPIC_BASE_URL": api_base,
+            "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+        }}
+        artifacts.append(_json_artifact(f"{prefix}/lmstudio.settings.json", fragment, "model-config"))
+        native = True
+        native_note = (
+            "Review the staged file and pass it to Claude Code with --settings for a single session "
+            "against an already running, approved LM Studio server. Set ANTHROPIC_AUTH_TOKEN in the "
+            "launch environment to your LM Studio token when server authentication is required. "
+            "For a server without authentication, LM Studio documents the placeholder lmstudio. "
+            "Check inherited environment settings, including ANTHROPIC_MODEL, ANTHROPIC_API_KEY, "
+            "and provider flags, before launching. Managed policy still applies."
+        )
     elif (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
@@ -973,6 +990,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if codex_lmstudio:
         lines.extend(["- https://lmstudio.ai/docs/integrations/codex",
                       "- https://learn.chatgpt.com/docs/config-file/config-advanced#profiles"])
+    if claude_lmstudio:
+        lines.extend(["- https://lmstudio.ai/docs/integrations/claude-code",
+                      "- https://code.claude.com/docs/en/cli-reference",
+                      "- https://code.claude.com/docs/en/settings"])
     if chosen in _LM_STUDIO_NONCHAT:
         model_type, endpoint = _LM_STUDIO_NONCHAT[chosen]
         lines.extend(["", f"Endpoint: `POST {api_base}{endpoint}`.",

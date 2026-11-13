@@ -468,6 +468,24 @@ class ModelRenderingTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             render_model_setup(spec, "cli", effort="low", **kwargs)
 
+    def test_claude_code_lmstudio_stages_session_settings_without_credentials(self) -> None:
+        spec = get_integration("claude-code", ROOT)
+        options = {"root": ROOT, "provider_id": "lm-studio", "model_id": "fixture/local",
+                   "protocol": "anthropic-messages"}
+        artifacts = render_model_setup(spec, "cli", **options)
+        settings = next(item for item in artifacts if item.kind == "model-config")
+        self.assertEqual(settings.relative_path.as_posix(), "claude-code/model/lmstudio.settings.json")
+        self.assertEqual(json.loads(settings.content), {
+            "model": "fixture/local",
+            "env": {"ANTHROPIC_BASE_URL": "http://localhost:1234", "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"},
+        })
+        self.assertIn(b"--settings", artifacts[0].content)
+        self.assertIn(b"ANTHROPIC_AUTH_TOKEN", artifacts[0].content)
+        for overrides in ({"protocol": "openai-responses"}, {"context_size": 8192}):
+            with self.subTest(overrides=overrides):
+                result = render_model_setup(spec, "cli", **(options | overrides))
+                self.assertFalse(any(item.kind == "model-config" for item in result))
+
     def test_lmstudio_protocol_bases_do_not_duplicate_anthropic_version_prefix(self) -> None:
         bases = {"lmstudio-chat": "http://localhost:1234", "openai-chat": "http://localhost:1234/v1",
                  "openai-responses": "http://localhost:1234/v1", "anthropic-messages": "http://localhost:1234"}

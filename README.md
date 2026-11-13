@@ -54,6 +54,8 @@ The LM Studio API surface can also stage selections for embedding and decision m
 
 `model --agent codex --surface cli --provider lm-studio --protocol openai-responses --model ID` stages a named Codex profile for an already running LM Studio server. The operator reviews and installs the profile separately. [LM Studio's Codex integration](https://lmstudio.ai/docs/integrations/codex)
 
+`model --agent claude-code --surface cli --provider lm-studio --protocol anthropic-messages --model ID` stages a credential-free Claude Code settings file for the local LM Studio Messages endpoint. Review the file before passing it to `claude --settings` and supply authentication separately. [LM Studio's Claude Code integration](https://lmstudio.ai/docs/integrations/claude-code)
+
 `computer-models --input snapshot.json` separately inspects a caller-saved Perplexity Computer MCP `models_list` response. Add `--mode NAME` or `--model ID` and optional `--reasoning-effort VALUE` to check an explicit choice against that snapshot. It does not connect, authenticate or start a task; captured account choices may change and do not prove current access or inference.
 
 `kimi-models --input snapshot.json` separately inspects a caller-saved successful Kimi web `GET /api/v1/models` response. Its model identifiers are configured aliases, including aliases with spaces, not necessarily upstream provider model IDs. Optional `--model ALIAS --reasoning-effort VALUE` checks the alias and its supported thinking effort without changing Kimi settings. The snapshot does not establish current provider access or successful inference.
