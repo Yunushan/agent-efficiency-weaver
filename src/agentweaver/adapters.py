@@ -154,6 +154,14 @@ def mcp_document(agent_id: str, selected: Mapping[str, MCPSelection]) -> dict[st
     return _json_document(dialect, selected, agent_id)
 
 
+def hermes_profile_mcp(profile: dict[str, Any], catalog: dict[str, Any], servers: list[str]) -> bytes:
+    selected = select_servers(profile, catalog, servers)
+    document = _json_document('mcp_servers.yaml-url-enabled', selected, 'hermes')
+    for entry in document['mcp_servers'].values():
+        entry['enabled'] = False
+    return json_bytes(document)
+
+
 def _request_document(dialect: str, selected: Mapping[str, MCPSelection]) -> dict[str, Any]:
     if any(not isinstance(selection, str) for selection in selected.values()):
         raise WeaverError('This MCP API request supports remote HTTPS servers only; stdio is unavailable')

@@ -117,6 +117,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--allow-skill', action='append', help='Allow one portable Skill ID in an OpenCode V2 agent')
             command.add_argument('--hermes-profile', action='store_true', help='Stage a Hermes profile distribution')
             command.add_argument('--profile-skill', action='append', help='Bundle a portable Skill in a staged Hermes profile')
+            command.add_argument('--mcp-profile', help='Weaver profile ID that allowlists Hermes MCP servers')
+            command.add_argument('--profile-mcp', action='append', help='Bundle an allowlisted MCP server, disabled')
             command.add_argument('--reasoning-effort')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
@@ -144,13 +146,15 @@ def _paths(args: argparse.Namespace) -> list[str] | None:
         paths.append('catalogs/model-hosts.json')
     if args.cmd in ('coverage', 'agents', 'agent'):
         paths.append('catalogs/custom-agents.json')
-    if args.cmd in ('render', 'bundle'):
-        if not safe_name(args.profile):
+    mcp_profile = getattr(args, 'mcp_profile', None)
+    if args.cmd in ('render', 'bundle') or mcp_profile is not None:
+        profile_id = args.profile if args.cmd in ('render', 'bundle') else mcp_profile
+        if not safe_name(profile_id):
             raise WeaverError('Invalid profile name; use an allowlisted profile ID')
         paths.append('catalogs/mcp-servers.json')
         if args.root is None:
-            paths.append(f'profiles/{args.profile}.json')
-    if args.cmd == 'bundle':
+            paths.append(f'profiles/{profile_id}.json')
+    if args.cmd == 'bundle' or (args.cmd == 'agent' and (args.allow_skill or args.profile_skill)):
         paths.append('.agents/skills')
     return paths
 
@@ -447,6 +451,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
+            mcp_profile=args.mcp_profile, profile_mcp=args.profile_mcp,
         )
     else:
         raise WeaverError('Unsupported command')

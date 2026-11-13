@@ -13,7 +13,7 @@ from unittest import mock
 
 import yaml
 
-from agentweaver.adapters import render_mcp, stdio_inventory
+from agentweaver.adapters import hermes_profile_mcp, render_mcp, stdio_inventory
 from agentweaver.artifacts import write_artifacts
 from agentweaver.config import WeaverError, load_json, render, select_servers, validate_catalog
 from agentweaver.integrations import load_integrations
@@ -114,6 +114,21 @@ class StdioConfigurationTests(unittest.TestCase):
         }}})
         with self.assertRaisesRegex(WeaverError, "OpenCode CLI"):
             render_mcp(self.integrations["kilo"], "cli", self.profile, self.catalog, [], opencode_v2=True)
+
+    def test_hermes_profile_mcp_disables_both_transports_without_changing_fragment_behavior(self):
+        selected = ["context7", "synthetic-stdio"]
+        expected = {
+            "context7": {"url": "https://mcp.context7.com/mcp", "enabled": False},
+            "synthetic-stdio": {"command": COMMAND, "args": ARGS, "enabled": False},
+        }
+        self.assertEqual(yaml.safe_load(hermes_profile_mcp(self.profile, self.catalog, selected)),
+                         {"mcp_servers": expected})
+        standard = yaml.safe_load(self.artifact("hermes", enabled=selected).content)
+        self.assertEqual(standard, {"mcp_servers": {
+            name: dict(entry, enabled=True) for name, entry in expected.items()
+        }})
+        with self.assertRaises(WeaverError):
+            hermes_profile_mcp(dict(self.profile, max_mcp_servers=1), self.catalog, selected)
 
     def test_opencode_v2_cli_handoff_explains_review_and_activation(self):
         code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "opencode", "--profile",

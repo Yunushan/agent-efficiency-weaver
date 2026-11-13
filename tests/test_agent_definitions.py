@@ -16,6 +16,7 @@ from agentweaver.agents import agent_inventory, render_agent_definition
 from agentweaver.artifacts import write_artifacts
 from agentweaver.config import WeaverError
 from agentweaver.integrations import load_integrations
+from agentweaver.resources import asset_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE_PATHS = {
@@ -516,6 +517,46 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             self.render("codex", hermes_profile=True)
         with self.assertRaises(WeaverError):
             self.render("hermes", profile_skills=[skill])
+
+    def test_hermes_profile_cli_stages_disabled_allowlisted_mcp_alongside_role(self):
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            instructions = Path(directory) / "role.md"
+            instructions.write_text("Review the requested files.", encoding="utf-8")
+            package = Path(directory) / "package"
+            for relative in asset_paths():
+                target = package / "_data" / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((ROOT / relative).read_bytes())
+            args = ("agent", "--agent", "hermes", "--name", "local-review",
+                    "--description", "Review code", "--instructions-file", str(instructions), "--dry-run")
+            for root_args in (("--root", str(ROOT)), ()):
+                with self.subTest(root_args=root_args), mock.patch(
+                    "agentweaver.resources.resources.files", return_value=package
+                ):
+                    code, output, errors = invoke(*args, *root_args, "--hermes-profile", "--mcp-profile", "efficient",
+                                                  "--profile-mcp", "context7", "--profile-skill", "security-review")
+                    self.assertEqual(code, 0, errors)
+                    files = {item["path"]: item["content"] for item in json.loads(output)["artifacts"]}
+                    prefix = "hermes/profiles/local-review"
+                    self.assertIn(f"{prefix}/skills/security-review/SKILL.md", files)
+                    self.assertEqual(yaml.safe_load(files[f"{prefix}/config.yaml"]), {"mcp_servers": {
+                        "context7": {"url": "https://mcp.context7.com/mcp", "enabled": False},
+                    }})
+                    self.assertIn("Every staged MCP server is disabled",
+                                  files["hermes/agents/local-review/PROFILE-HANDOFF.md"])
+            for flags in (
+                ("--mcp-profile", "efficient", "--profile-mcp", "context7"),
+                ("--hermes-profile", "--profile-mcp", "context7"),
+                ("--hermes-profile", "--mcp-profile", "efficient"),
+                ("--hermes-profile", "--mcp-profile", "../efficient", "--profile-mcp", "context7"),
+                ("--hermes-profile", "--mcp-profile", "efficient", "--profile-mcp", "github"),
+            ):
+                with self.subTest(flags=flags):
+                    code, output, _ = invoke(*args, "--root", str(ROOT), *flags)
+                    self.assertNotEqual(code, 0)
+                    self.assertEqual(output, "")
 
     def test_unknown_and_unsupported_routes_fail_closed(self):
         for row in agent_inventory(ROOT)["definitions"]:

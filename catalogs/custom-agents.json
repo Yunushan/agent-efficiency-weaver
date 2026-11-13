@@ -593,13 +593,14 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Pass the role through delegate_task goal/context. The opt-in profile distribution stages a separate named agent and optional Skills. It does not register a delegate_task role or sandbox tools.",
+      "permission_behavior": "Pass the role through delegate_task goal/context. The opt-in profile distribution stages a separate named agent with optional Skills and disabled MCP entries. Tool access follows Hermes policy.",
       "reserved_names": [],
       "evidence": {
         "sources": [
           "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
           "https://hermes-agent.nousresearch.com/docs/user-guide/profiles",
-          "https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions"
+          "https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions",
+          "https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp"
         ],
         "checked_on": "2026-10-26",
         "version_constraint": null,
