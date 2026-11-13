@@ -96,6 +96,8 @@ For a Codex custom agent, add `--model MODEL --codex-catalog saved-model-list.js
 
 For an OpenCode V2 custom agent, add `--model PROVIDER/MODEL --opencode-catalog saved-models.json --model-variant VARIANT`. Weaver checks the optional variant against the selected enabled chat model in a saved V2 `GET /api/model` response and stages the V2 selector and permissions. Existing OpenCode agent exports keep their V1 format. [OpenCode compatibility](docs/compatibility.md#custom-agent-definitions)
 
+For a Kilo CLI or VS Code custom agent, use `--model PROVIDER/MODEL --kilo-catalog saved-kilo-models.json --model-variant VARIANT` to validate a named variant from an enabled text model in a saved Kilo `GET /api/model` response. The generated Markdown stores `model` and `variant` in separate fields. Omit the variant to leave Kilo's default selection in effect. [Kilo custom agents](https://kilo.ai/docs/customize/custom-modes)
+
 Repeat `--allow-skill ID` on the V2 agent command for each portable Skill the agent may load. Stage matching files with `bundle --agent opencode --profile efficient --skill ID`. OpenCode V2 discovers the bundle's `.agents/skills` path and resolves the active definition for each ID through its normal precedence rules. [OpenCode Skills](https://opencode.ai/docs/skills/)
 
 `render --agent opencode --profile efficient --opencode-v2 --enable context7` stages the selected server under `mcp.servers` in `opencode/opencode.json` with `disabled: true`. Review and merge the entry before explicitly enabling it in OpenCode. The same format supports local stdio entries from an allowlisted catalog. [OpenCode MCP configuration](https://opencode.ai/docs/mcp-servers/#config)

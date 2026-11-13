@@ -761,10 +761,10 @@
       "path_template": ".kilo/agents/{name}.md",
       "model_field": "model",
       "model_style": "provider/model",
-      "effort_field": null,
+      "effort_field": "variant",
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "reasoning_behavior": "Supply --kilo-catalog and --model-variant to stage a named variant for an explicit model. The variant is model-dependent and may include settings beyond reasoning.",
       "permission_behavior": "mode: subagent; edit/bash/task/webfetch/websearch/todowrite are denied and read/glob/grep allowed. Other ambient tools and merged settings require host review; no complete sandbox claim.",
       "reserved_names": [
         "code",
@@ -777,10 +777,12 @@
       ],
       "evidence": {
         "sources": [
-          "https://kilo.ai/docs/customize/custom-modes"
+          "https://kilo.ai/docs/customize/custom-modes",
+          "https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/sdk/js/src/v2/gen/types.gen.ts#L8356-L8387",
+          "https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/opencode/src/kilocode/tool/task.ts#L285-L364"
         ],
-        "checked_on": "2026-10-26",
-        "version_constraint": null,
+        "checked_on": "2026-11-13",
+        "version_constraint": "Model list and task selection audited against Kilo v7.8.27 source.",
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],
@@ -795,10 +797,10 @@
       "path_template": ".kilo/agents/{name}.md",
       "model_field": "model",
       "model_style": "provider/model",
-      "effort_field": null,
+      "effort_field": "variant",
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "reasoning_behavior": "Supply --kilo-catalog and --model-variant to stage a named variant for an explicit model. The variant is model-dependent and may include settings beyond reasoning.",
       "permission_behavior": "mode: subagent; edit/bash/task/webfetch/websearch/todowrite are denied and read/glob/grep allowed. Other ambient tools and merged settings require host review; no complete sandbox claim.",
       "reserved_names": [
         "code",
@@ -811,10 +813,12 @@
       ],
       "evidence": {
         "sources": [
-          "https://kilo.ai/docs/customize/custom-modes"
+          "https://kilo.ai/docs/customize/custom-modes",
+          "https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/sdk/js/src/v2/gen/types.gen.ts#L8356-L8387",
+          "https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/opencode/src/kilocode/tool/task.ts#L285-L364"
         ],
-        "checked_on": "2026-10-26",
-        "version_constraint": null,
+        "checked_on": "2026-11-13",
+        "version_constraint": "Model list and task selection audited against Kilo v7.8.27 source.",
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],

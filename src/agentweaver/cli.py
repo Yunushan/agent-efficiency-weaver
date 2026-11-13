@@ -125,7 +125,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
             command.add_argument('--copilot-fallback-model', action='append', help='Add a Copilot model in fallback order')
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
-            command.add_argument('--model-variant', help='Named variant in the saved OpenCode V2 model catalog')
+            command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
+            command.add_argument('--model-variant', help='Named variant from the saved OpenCode V2 or Kilo model list')
             command.add_argument('--allow-skill', action='append', help='Select a portable Skill for OpenCode V2, Copilot, or Cline CLI/Desktop')
             command.add_argument('--hermes-profile', action='store_true', help='Stage a Hermes profile distribution')
             command.add_argument('--hermes-profile-route', action='store_true',
@@ -471,6 +472,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             llm_profile=args.llm_profile, codex_catalog=args.codex_catalog,
             copilot_catalog=args.copilot_catalog, copilot_fallbacks=args.copilot_fallback_model,
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
+            kilo_catalog=args.kilo_catalog,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             hermes_profile_route=args.hermes_profile_route,

@@ -82,7 +82,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
-                                 ("cline", "desktop"): "2026-11-13"}
+                                 ("cline", "desktop"): "2026-11-13",
+                                 ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13"}
                     expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
@@ -328,8 +329,60 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 catalog.write_text(json.dumps({"location": {}, "data": rows}), encoding="utf-8")
                 with self.subTest(rows=rows), self.assertRaises(WeaverError):
                     self.render("opencode", model_id="gateway/team/review", opencode_catalog=catalog)
-        with self.assertRaisesRegex(WeaverError, "requires an OpenCode V2 catalog"):
+        with self.assertRaisesRegex(WeaverError, "requires a saved OpenCode V2 or Kilo model catalog"):
             self.render("opencode", model_id="gateway/team/review", model_variant="review-fast")
+
+    def test_kilo_stages_the_catalog_model_and_variant_as_separate_fields(self):
+        from tests.test_cli_exports import invoke
+
+        row = {
+            "providerID": "openrouter", "id": "fixture/reviewer", "enabled": True,
+            "api": {"type": "aisdk", "id": "fixture/upstream"},
+            "capabilities": {"input": ["text"], "output": ["text"], "tools": True},
+            "request": {"headers": {}, "body": {"temperature": 0.3}},
+            "variants": [{"id": "review-high", "headers": {}, "body": {"temperature": 0.1}}],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            catalog = output / "catalog.json"
+            body = {"location": {"directory": str(output)}, "data": [row]}
+            catalog.write_text(json.dumps(body), encoding="utf-8")
+            options = {"model_id": "openrouter/fixture/reviewer", "kilo_catalog": catalog}
+            for surface in ("cli", "ide"):
+                definition, handoff = self.render("kilo", surface, model_variant="review-high", **options)
+                fields, _ = parse_definition(definition.content, definition.relative_path.as_posix())
+                self.assertEqual(fields["variant"], "review-high")
+                self.assertEqual(fields["model"], "openrouter/fixture/reviewer")
+                self.assertEqual(fields["permission"]["bash"], "deny")
+                for artifact in (definition, handoff):
+                    self.assertNotIn(b"fixture/upstream", artifact.content)
+                    self.assertNotIn(b"temperature", artifact.content)
+                    self.assertNotIn(str(output).encode(), artifact.content)
+                self.assertIn(hashlib.sha256(catalog.read_bytes()).hexdigest().encode(), handoff.content)
+                definition, _ = self.render("kilo", surface, **options)
+                self.assertNotIn(b"variant:", definition.content)
+            for override in ({"model_variant": "missing"}, {"model_id": "openrouter/fixture/upstream"},
+                             {"effort": "high"}, {"provider_id": "openrouter"},
+                             {"opencode_catalog": catalog}, {"model_id": None}):
+                with self.subTest(override=override), self.assertRaises(WeaverError):
+                    self.render("kilo", "cli", **(options | override))
+            with self.assertRaisesRegex(WeaverError, "Kilo CLI or VS Code"):
+                self.render("opencode", "cli", **options)
+            instructions = output / "instructions.md"
+            instructions.write_text("Review changes.", encoding="utf-8")
+            code, staged, error = invoke("agent", "--root", str(ROOT), "--agent", "kilo", "--surface", "ide",
+                                         "--name", "reviewer", "--description", "Review changes",
+                                         "--instructions-file", str(instructions), "--kilo-catalog", str(catalog),
+                                         "--model", options["model_id"], "--model-variant", "review-high", "--dry-run")
+            self.assertEqual((code, error), (0, ""))
+            self.assertIn("review-high", json.loads(staged)["artifacts"][0]["content"])
+            for row_update in ({"enabled": False}, {"capabilities": {"output": ["image"]}},
+                               {"request": {"headers": {"X-Example": "NEVER-ECHO"}}},
+                               {"variants": [row["variants"][0], row["variants"][0]]}):
+                with self.subTest(row_update=row_update), self.assertRaises(WeaverError) as caught:
+                    catalog.write_text(json.dumps(body | {"data": [row | row_update]}), encoding="utf-8")
+                    self.render("kilo", "cli", model_variant="review-high", **options)
+                self.assertNotIn("NEVER-ECHO", str(caught.exception))
 
     def test_opencode_v2_skill_allowlist_matches_portable_bundle_ids(self):
         from agentweaver.config import load_json

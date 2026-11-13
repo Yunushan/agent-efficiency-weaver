@@ -97,18 +97,20 @@ def _model_id(value: object) -> str:
     return identifier
 
 
-def _scan(value: object, depth: int = 0) -> None:
+def _scan(value: object, depth: int = 0, *, allow_empty_headers: bool = False) -> None:
     """Reject secrets/non-finite data even in fields intentionally not retained."""
     if depth > 40:
         _fail("Model metadata is nested too deeply")
     if isinstance(value, dict):
         for key, item in value.items():
+            if allow_empty_headers and key == "headers" and isinstance(item, dict) and not item:
+                continue
             if not isinstance(key, str) or key.casefold().replace("-", "_") in _SECRET_KEYS:
                 _fail("Credentials are not accepted in model metadata")
-            _scan(item, depth + 1)
+            _scan(item, depth + 1, allow_empty_headers=allow_empty_headers)
     elif isinstance(value, list):
         for item in value:
-            _scan(item, depth + 1)
+            _scan(item, depth + 1, allow_empty_headers=allow_empty_headers)
     elif isinstance(value, str):
         if _SECRET.search(value):
             _fail("Secret-like value in model metadata")
@@ -127,7 +129,7 @@ def _strings(value: object, label: str, *, allowed: set[str] | None = None) -> l
     return result
 
 
-def _load_bounded_snapshot(path: Path, label: str) -> tuple[object, str]:
+def _load_bounded_snapshot(path: Path, label: str, *, allow_empty_headers: bool = False) -> tuple[object, str]:
     def read() -> bytes:
         try:
             with path.open("rb") as stream:
@@ -146,7 +148,7 @@ def _load_bounded_snapshot(path: Path, label: str) -> tuple[object, str]:
         raise WeaverError(f"Cannot read valid UTF-8 {label}") from None
     if read() != data:
         raise WeaverError(f"{label} changed while reading")
-    _scan(parsed)
+    _scan(parsed, allow_empty_headers=allow_empty_headers)
     return parsed, hashlib.sha256(data).hexdigest()
 
 

@@ -20,7 +20,7 @@ from .config import WeaverError, load_json, safe_https_url, safe_name
 from .copilot_models import validate_copilot_selection
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
-from .opencode_models import validate_opencode_selection
+from .opencode_models import validate_kilo_selection, validate_opencode_selection
 from .skills import selected_portable_skill_ids, stage_hermes_profile_skills
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -59,7 +59,7 @@ _STYLES = {"bare", "provider/model", "tier", "local-profile", "none"}
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
-                  "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort"}
+                  "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort", "kilo-markdown": "variant"}
 
 
 def _text(value: object, label: str, *, multiline: bool = False, maximum: int = 500) -> str:
@@ -176,7 +176,7 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
         allowed_efforts = CODEX_EFFORTS if format_name == "codex-toml" else _EFFORTS
-        catalog_efforts = format_name == "vscode-markdown" and row["effort_field"] is not None
+        catalog_efforts = format_name in {"vscode-markdown", "kilo-markdown"} and row["effort_field"] is not None
         if (set(efforts) - allowed_efforts or (catalog_efforts and efforts)
                 or (not catalog_efforts and bool(efforts) != (row["effort_field"] is not None))):
             raise WeaverError("Invalid custom-agent effort declaration")
@@ -366,7 +366,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             profile_mcp: list[str] | None = None,
                             profile_context_size: int | None = None,
                             hermes_profile_route: bool = False, copilot_catalog: Path | None = None,
-                            copilot_fallbacks: list[str] | None = None) -> list[RenderedArtifact]:
+                            copilot_fallbacks: list[str] | None = None,
+                            kilo_catalog: Path | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -376,8 +377,14 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             _text(value, label, maximum=250)
     if snapshot is not None and not isinstance(snapshot, Mapping):
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
-    if model_variant is not None and opencode_catalog is None:
-        raise WeaverError("A model variant requires an OpenCode V2 catalog")
+    if model_variant is not None and opencode_catalog is None and kilo_catalog is None:
+        raise WeaverError("A model variant requires a saved OpenCode V2 or Kilo model catalog")
+    if kilo_catalog is not None:
+        if spec.id != "kilo" or surface not in {"cli", "ide"} or hermes_profile:
+            raise WeaverError("A Kilo catalog requires a Kilo CLI or VS Code custom-agent target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog,
+                                               opencode_catalog, copilot_catalog, effort)):
+            raise WeaverError("A Kilo catalog conflicts with provider, catalog, profile or effort overrides")
     cline_configured_agent = spec.id == "cline" and surface in {"cli", "desktop"}
     if allowed_skills and opencode_catalog is None and copilot_catalog is None and not cline_configured_agent:
         raise WeaverError("Agent Skill selection requires Cline CLI/Desktop or an OpenCode V2 or Copilot SDK catalog")
@@ -434,9 +441,17 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     codex_digest: str | None = None
     opencode_digest: str | None = None
     copilot_digest: str | None = None
+    kilo_digest: str | None = None
     copilot_models: list[str] | None = None
     skill_ids: tuple[str, ...] = ()
-    if copilot_catalog is not None:
+    if kilo_catalog is not None:
+        if row["format"] != "kilo-markdown" or row["effort_field"] != "variant":
+            raise WeaverError("Kilo variant staging requires the documented Markdown agent format")
+        if model_id is None or model_id == "inherit":
+            raise WeaverError("A Kilo catalog requires an explicit provider/model")
+        model, kilo_digest = validate_kilo_selection(kilo_catalog, model_id, model_variant)
+        checked = None
+    elif copilot_catalog is not None:
         if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, opencode_catalog)):
             raise WeaverError("A Copilot SDK catalog conflicts with other model discovery options")
         if model_id is None or model_id == "inherit":
@@ -588,6 +603,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if skill_ids:
             lines.extend(["", "Copilot Skills to load: " + ", ".join(skill_ids) + ".",
                           "Stage matching files separately with bundle --skill for each ID."])
+    if kilo_digest is not None:
+        lines.extend(["", f"Saved Kilo GET /api/model response SHA-256: {kilo_digest}",
+                      "Kilo resolves the provider, model and named variant in the target project. "
+                      "Review provider access and effective settings there. This snapshot does not "
+                      "verify the installed client or inference."])
+        if model_variant is not None:
+            lines.append(f"Explicit Kilo model variant: {model_variant}")
     if cline_configured_agent and skill_ids:
         lines.extend(["", "Cline Skill IDs: " + ", ".join(skill_ids) + ".",
                       f"Stage matching files with bundle --agent cline --surface {surface} and each --skill ID."])
@@ -610,7 +632,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     if state == "native":
         path = row["path_template"].replace("{name}", identifier)
         native_model = copilot_models if copilot_models and len(copilot_models) > 1 else model
-        content = _native(row, identifier, summary, prompt, native_model, effort,
+        native_effort = model_variant if kilo_digest is not None else effort
+        content = _native(row, identifier, summary, prompt, native_model, native_effort,
                           opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
                           copilot_catalog=copilot_digest is not None,
                           cline_provider=provider_id if cline_configured_agent else None)
