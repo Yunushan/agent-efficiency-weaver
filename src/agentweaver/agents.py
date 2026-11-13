@@ -348,7 +348,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             allowed_skills: list[str] | None = None, hermes_profile: bool = False,
                             profile_skills: list[str] | None = None, mcp_profile: str | None = None,
                             profile_mcp: list[str] | None = None,
-                            profile_context_size: int | None = None) -> list[RenderedArtifact]:
+                            profile_context_size: int | None = None,
+                            hermes_profile_route: bool = False) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -366,6 +367,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Profile Skill staging requires --hermes-profile")
     if profile_context_size is not None and not hermes_profile:
         raise WeaverError("Profile context size requires --hermes-profile")
+    if hermes_profile_route and not hermes_profile:
+        raise WeaverError("Hermes profile routing requires --hermes-profile")
     if mcp_profile is not None or profile_mcp:
         if not hermes_profile:
             raise WeaverError("Profile MCP staging requires --hermes-profile")
@@ -394,7 +397,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             profile = load_json(root / "profiles" / f"{mcp_profile}.json")
             catalog = load_json(root / "catalogs/mcp-servers.json")
             config.update(hermes_profile_mcp(profile, catalog, profile_mcp))
-        return _hermes_profile(root, identifier, summary, prompt, profile_skills or [], config)
+        return _hermes_profile(root, identifier, summary, prompt, profile_skills or [], config,
+                               stage_route=hermes_profile_route)
     row = _load_definitions(root).get((spec.id, surface), _unknown_row(spec.id, surface))
     if identifier in row["reserved_names"]:
         raise WeaverError("Agent name is reserved or would replace a built-in agent; choose a distinct custom name")
@@ -556,8 +560,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
 
 
 def _hermes_profile(root: Path, name: str, description: str, instructions: str,
-                    skills: list[str], config: dict[str, Any]) -> list[RenderedArtifact]:
+                    skills: list[str], config: dict[str, Any], *, stage_route: bool) -> list[RenderedArtifact]:
     prefix = PurePosixPath("hermes", "profiles", name)
+    handoff_dir = PurePosixPath("hermes", "agents", name)
     manifest = f"name: {json.dumps(name)}\ndescription: {json.dumps(description, ensure_ascii=False)}\n"
     handoff = (
         f"# Hermes profile distribution for {name}\n\n"
@@ -589,6 +594,20 @@ def _hermes_profile(root: Path, name: str, description: str, instructions: str,
             "and allowed tools before enabling it explicitly in the installed profile.\n\n"
             "https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp\n"
         )
-    artifacts.append(RenderedArtifact(PurePosixPath("hermes", "agents", name, "PROFILE-HANDOFF.md"),
-                                      handoff.encode("utf-8"), "agent-handoff"))
+    if stage_route:
+        fragment = {"delegation": {
+            "backend": "profile_routes",
+            "backends": {"profile_routes": {"profiles": [{"name": name, "description": description}]}},
+        }}
+        artifacts.append(RenderedArtifact(handoff_dir / "parent-delegation.fragment.yaml", json_bytes(fragment),
+                                          "delegation-fragment"))
+        handoff += (
+            "\nThe parent fragment requires Hermes's advanced-delegation plugin. After the child profile "
+            "has been installed under the listed name, review its credentials and terminal policy and "
+            "merge the profile entry into the intended parent's config.yaml. Preserve existing entries and "
+            "resolve any same-name entry before merging. Selecting profile_routes changes routing for the "
+            "parent's delegate_task calls on new sessions. Review that backend change separately.\n\n"
+            "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation#delegation-strategies-delegationbackend\n"
+        )
+    artifacts.append(RenderedArtifact(handoff_dir / "PROFILE-HANDOFF.md", handoff.encode("utf-8"), "agent-handoff"))
     return artifacts

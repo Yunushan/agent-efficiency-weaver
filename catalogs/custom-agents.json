@@ -593,11 +593,12 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Pass the role through delegate_task goal/context. The opt-in profile distribution stages a separate named agent with optional Skills, disabled MCP entries and explicit main model settings for OpenRouter or LM Studio. OpenRouter can include an evidence-checked model-specific reasoning effort. Tool access follows Hermes policy.",
+      "permission_behavior": "Pass the role through delegate_task goal/context. The opt-in profile distribution stages a named agent with optional Skills, disabled MCP entries and explicit model settings. A separate opt-in parent fragment references the child profile through advanced-delegation. Review the child's credentials and terminal policy before selecting the backend.",
       "reserved_names": [],
       "evidence": {
         "sources": [
           "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
+          "https://hermes-agent.nousresearch.com/docs/developer-guide/delegation-provider-plugin",
           "https://hermes-agent.nousresearch.com/docs/user-guide/profiles",
           "https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions",
           "https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp",

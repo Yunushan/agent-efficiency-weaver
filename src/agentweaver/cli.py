@@ -116,6 +116,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--model-variant', help='Named variant in the saved OpenCode V2 model catalog')
             command.add_argument('--allow-skill', action='append', help='Allow one portable Skill ID in an OpenCode V2 agent')
             command.add_argument('--hermes-profile', action='store_true', help='Stage a Hermes profile distribution')
+            command.add_argument('--hermes-profile-route', action='store_true',
+                                 help='Stage a separate Hermes parent delegation fragment for this profile')
             command.add_argument('--profile-skill', action='append', help='Bundle a portable Skill in a staged Hermes profile')
             command.add_argument('--mcp-profile', help='Weaver profile ID that allowlists Hermes MCP servers')
             command.add_argument('--profile-mcp', action='append', help='Bundle an allowlisted MCP server, disabled')
@@ -452,6 +454,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             opencode_catalog=args.opencode_catalog, model_variant=args.model_variant,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
+            hermes_profile_route=args.hermes_profile_route,
             mcp_profile=args.mcp_profile, profile_mcp=args.profile_mcp,
             profile_context_size=args.profile_context_size,
         )

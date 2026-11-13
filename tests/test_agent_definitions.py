@@ -614,6 +614,37 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             self.render("hermes", snapshot=snapshot, **options)
 
+    def test_hermes_profile_route_cli_stages_parent_fragment_outside_child_distribution(self):
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            instructions = Path(directory) / "role.md"
+            instructions.write_text("Review the requested changes.", encoding="utf-8")
+            args = ("agent", "--root", str(ROOT), "--agent", "hermes", "--name", "local-review",
+                    "--description", "Review code: \"small changes\"", "--instructions-file",
+                    str(instructions), "--dry-run")
+            code, output, errors = invoke(*args, "--hermes-profile", "--hermes-profile-route",
+                                          "--mcp-profile", "efficient", "--profile-mcp", "context7")
+            self.assertEqual(code, 0, errors)
+            files = {item["path"]: item["content"] for item in json.loads(output)["artifacts"]}
+            child = "hermes/profiles/local-review"
+            parent = "hermes/agents/local-review"
+            self.assertEqual(yaml.safe_load(files[f"{child}/config.yaml"]), {
+                "mcp_servers": {"context7": {"url": "https://mcp.context7.com/mcp", "enabled": False}},
+            })
+            self.assertEqual(yaml.safe_load(files[f"{parent}/parent-delegation.fragment.yaml"]), {
+                "delegation": {"backend": "profile_routes", "backends": {"profile_routes": {
+                    "profiles": [{"name": "local-review", "description": 'Review code: "small changes"'}],
+                }}},
+            })
+            handoff = files[f"{parent}/PROFILE-HANDOFF.md"]
+            self.assertIn("advanced-delegation plugin", handoff)
+            self.assertIn("review its credentials and terminal policy", handoff)
+            code, output, errors = invoke(*args, "--hermes-profile-route")
+            self.assertNotEqual(code, 0)
+            self.assertEqual(output, "")
+            self.assertIn("requires --hermes-profile", errors)
+
     def test_unknown_and_unsupported_routes_fail_closed(self):
         for row in agent_inventory(ROOT)["definitions"]:
             if row["state"] in {"unknown", "unsupported"}:
