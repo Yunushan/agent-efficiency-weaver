@@ -2650,6 +2650,7 @@
           "documented_location": null,
           "instruction_mode": "rules",
           "instruction_paths": [
+            "AGENTS.md",
             ".qoder/rules/"
           ],
           "skills_path": ".qoder/skills",
@@ -2678,9 +2679,9 @@
             "instructions": {
               "state": "available",
               "sources": [
-                "https://docs.qoder.com/user-guide/rules"
+                "https://docs.qoder.com/cli/how-memory-works"
               ],
-              "checked_on": "2026-10-22",
+              "checked_on": "2026-11-14",
               "version_constraint": null,
               "fixture_tests": [
                 "tests/test_skills.py"
@@ -2715,10 +2716,11 @@
               "sources": [
                 "https://docs.qoder.com/cli/installation",
                 "https://docs.qoder.com/release-notes/qoder-cli",
-                "https://docs.qoder.com/mobile/app/remote-control"
+                "https://docs.qoder.com/mobile/app/remote-control",
+                "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/channels/1.1.89/manifest.json"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": "Docs checked 2026-10-26; newest CLI release 1.1.78 (2026-10-23). macOS/Linux arm64 or amd64; Windows amd64 only (ARM64 unsupported), Windows Terminal recommended. Minimum OS versions and Linux libc/distro minima unestablished. Node >=20 only for legacy npm. Mobile remote clients only.",
+              "checked_on": "2026-11-14",
+              "version_constraint": "CLI 1.1.89 native release manifest lists Windows amd64 and arm64 standard builds from Windows build 17763, plus an amd64 legacy build. Installation guide still excludes Windows arm64; arm64 runtime remains unverified. macOS/Linux arm64 or amd64. Minimum macOS and Linux versions and libc/distro minima unestablished. Node >=20 only for legacy npm. Mobile remote clients only.",
               "fixture_tests": [],
               "runtime_checks": []
             }

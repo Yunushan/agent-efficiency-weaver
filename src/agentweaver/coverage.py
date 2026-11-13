@@ -38,6 +38,10 @@ _OBSERVATION_CHECKS = {
     "public-docs-https-tool-call": (
         "mcp", "The signed-out client discovered the public OpenAI Docs tools and called the documentation list directly.",
     ),
+    "public-docs-https-subagent-tool-call": (
+        "mcp", "A generated subagent inherited the project's public OpenAI Docs server and called its documentation list "
+        "over HTTPS without an approval override. The signed-out probe used the host TLS root and scripted model responses.",
+    ),
     "context7-https-subagent-tool-call": (
         "mcp", "A generated subagent inherited the project's Context7 server and resolved a public library over HTTPS. "
         "The signed-out probe supplied the host TLS root to the isolated process and scripted model responses locally.",
@@ -185,6 +189,12 @@ _OBSERVATION_CHECKS = {
     "kimi-web-subagent-pool-effort": (
         "reasoning", "A spawned custom subagent used an alternate pool model and the shared high effort.",
     ),
+    "qoder-cli-stdio-healthcheck": (
+        "mcp", "The signed-out CLI connected, initialized, and pinged the generated project stdio fixture.",
+    ),
+    "qoder-cli-context7-https-healthcheck": (
+        "mcp", "The signed-out CLI connected to the generated Context7 entry over HTTPS using the host TLS root.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -219,6 +229,7 @@ _OBSERVATION_INTERFACES = {
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
     ("kimi-code", "cli", "local-web-api"),
+    ("qoder", "cli", "config-inventory"),
 }
 
 

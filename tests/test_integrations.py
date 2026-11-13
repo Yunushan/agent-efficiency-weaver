@@ -345,9 +345,10 @@ class IntegrationRegistryTests(unittest.TestCase):
             ),
             ("qoder", "cli"): (
                 ("https://docs.qoder.com/cli/installation", "https://docs.qoder.com/release-notes/qoder-cli",
-                 "https://docs.qoder.com/mobile/app/remote-control"),
-                ("1.1.78", "macOS/Linux arm64 or amd64", "Windows amd64 only (ARM64 unsupported)",
-                 "Minimum OS versions", "minima unestablished", "Node >=20 only for legacy npm",
+                 "https://docs.qoder.com/mobile/app/remote-control",
+                 "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/channels/1.1.89/manifest.json"),
+                ("1.1.89", "macOS/Linux arm64 or amd64", "Windows amd64 and arm64", "17763",
+                 "arm64 runtime remains unverified", "minima unestablished", "Node >=20 only for legacy npm",
                  "Mobile remote clients only"),
             ),
         }
@@ -357,7 +358,7 @@ class IntegrationRegistryTests(unittest.TestCase):
                 evidence = surface.capabilities["os"]
                 self.assertEqual(evidence.state, "available")
                 self.assertEqual(evidence.sources, sources)
-                self.assertEqual(evidence.checked_on, "2026-10-26")
+                self.assertEqual(evidence.checked_on, "2026-11-14" if product_id == "qoder" else "2026-10-26")
                 for constraint in constraints:
                     self.assertIn(constraint, evidence.version_constraint)
                 for os_id in ("windows", "macos", "linux"):

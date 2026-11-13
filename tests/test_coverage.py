@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 13)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 115)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 14)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 121)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -148,13 +148,21 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertEqual(context7.get("extension_version"), remote.get("extension_version"))
             self.assertEqual(context7["checks"][0]["capability"], "mcp")
             self.assertIn("host TLS root", context7["checks"][0]["outcome"])
+            docs_subagent, = [record for record in targets[surface]["runtime_observations"]
+                              if record["checks"][0]["check"] == "public-docs-https-subagent-tool-call"]
+            for field in ("product_version", "engine_version", "interface", "environment", "os_variant",
+                          "architecture"):
+                self.assertEqual(docs_subagent[field], remote[field])
+            self.assertEqual(docs_subagent.get("extension_version"), remote.get("extension_version"))
+            self.assertEqual(docs_subagent["checks"][0]["capability"], "mcp")
+            self.assertNotEqual(docs_subagent["checks"][0]["evidence_sha256"], remote["checks"][0]["evidence_sha256"])
             self.assertEqual(targets[surface]["capabilities"]["mcp"]["runtime_status"], "pending")
         profile, = [record for record in targets["cli"]["runtime_observations"]
                     if record["interface"] == "exec-loopback"]
         self.assertEqual(profile["product_version"], "0.167.0-alpha.4.1")
         self.assertEqual({check["check"]: check["capability"] for check in profile["checks"]},
                          {"named-profile-model-request": "models", "named-profile-effort-precedence": "reasoning"})
-        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 3)
+        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
 
     def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
         report = coverage_report(ROOT)
@@ -354,6 +362,23 @@ class RequestedCoverageTests(unittest.TestCase):
             "kimi-web-subagent-pool-effort": "reasoning",
         })
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_qoder_signed_out_inventory_limits_runtime_claims(self):
+        report = coverage_report(ROOT)
+        qoder = next(item for item in report["requested_items"] if item["id"] == "qoder")
+        targets = {target["surface_id"]: target for target in qoder["targets"]}
+        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        record, = targets["cli"]["runtime_observations"]
+        self.assertEqual(record["product_version"], "1.1.89")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["interface"], "config-inventory")
+        self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+            "skill-discovery": "skills",
+            "qoder-cli-stdio-healthcheck": "mcp",
+            "qoder-cli-context7-https-healthcheck": "mcp",
+        })
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

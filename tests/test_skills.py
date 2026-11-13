@@ -58,6 +58,7 @@ NATIVE_TARGETS = {
     ("qwen-code", "cli"): "QWEN.md",
     ("qwen-code", "desktop"): "QWEN.md",
     ("qwen-code", "vscode"): "QWEN.md",
+    ("qoder", "cli"): "AGENTS.md",
     ("qoder", "ide"): "AGENTS.md",
     ("zed", "ide"): ".rules",
 }
@@ -76,7 +77,6 @@ MANUAL_TARGETS = {
     ("perplexity", "agent-api"),
     ("perplexity", "app"),
     ("perplexity", "orchestrator"),
-    ("qoder", "cli"),
 }
 
 
