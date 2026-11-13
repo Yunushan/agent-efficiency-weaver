@@ -508,6 +508,24 @@ class ModelRenderingTests(unittest.TestCase):
         artifacts = render_model_setup(spec, "cli", **(options | {"protocol": "openai-responses"}))
         self.assertFalse(any(item.kind == "model-config" for item in artifacts))
 
+    def test_hermes_openrouter_stages_model_scoped_effort_for_chat_only(self) -> None:
+        spec = get_integration("hermes", ROOT)
+        snapshot = {"provider_id": "openrouter", "models": [
+            {"id": "fixture/reasoner", "context_length": 32768, "reasoning": {"efforts": ["high"]}},
+        ]}
+        options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner", snapshot=snapshot, effort="high")
+        model = next(item for item in render_model_setup(spec, "cli", **options) if item.kind == "model-config")
+        self.assertEqual(model.relative_path.as_posix(), "hermes/model/openrouter.model.fragment.yaml")
+        self.assertEqual(yaml.safe_load(model.content), {
+            "model": {"provider": "openrouter", "default": "fixture/reasoner",
+                      "base_url": "", "api_mode": "chat_completions"},
+            "agent": {"reasoning_overrides": {"openrouter/fixture/reasoner": "high"}},
+        })
+        for extra in ({"protocol": "openai-responses"}, {"context_size": 8192}):
+            with self.subTest(extra=extra):
+                artifacts = render_model_setup(spec, "cli", **(options | extra))
+                self.assertFalse(any(item.kind == "model-config" for item in artifacts))
+
     def test_lmstudio_protocol_bases_do_not_duplicate_anthropic_version_prefix(self) -> None:
         bases = {"lmstudio-chat": "http://localhost:1234", "openai-chat": "http://localhost:1234/v1",
                  "openai-responses": "http://localhost:1234/v1", "anthropic-messages": "http://localhost:1234"}

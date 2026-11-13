@@ -558,6 +558,62 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.assertNotEqual(code, 0)
                     self.assertEqual(output, "")
 
+    def test_hermes_profile_cli_combines_model_reasoning_skills_and_disabled_mcp(self):
+        from tests.test_cli_exports import invoke
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            instructions = root / "role.md"
+            instructions.write_text("Review small changes.", encoding="utf-8")
+            catalog = root / "models.json"
+            catalog.write_text(json.dumps({"data": [
+                {"id": "fixture/reasoner", "reasoning": {"supported_efforts": ["low", "high"]}},
+            ]}), encoding="utf-8")
+            args = ("agent", "--root", str(ROOT), "--agent", "hermes", "--hermes-profile",
+                    "--name", "reviewer", "--description", "Review code", "--instructions-file",
+                    str(instructions), "--dry-run")
+            code, output, errors = invoke(
+                *args, "--provider", "openrouter", "--model", "fixture/reasoner", "--catalog", str(catalog),
+                "--reasoning-effort", "high", "--profile-skill", "security-review",
+                "--mcp-profile", "efficient", "--profile-mcp", "context7",
+            )
+            self.assertEqual(code, 0, errors)
+            files = {item["path"]: item["content"] for item in json.loads(output)["artifacts"]}
+            base = "hermes/profiles/reviewer"
+            self.assertIn(f"{base}/skills/security-review/SKILL.md", files)
+            self.assertEqual(yaml.safe_load(files[f"{base}/config.yaml"]), {
+                "model": {"provider": "openrouter", "default": "fixture/reasoner",
+                          "base_url": "", "api_mode": "chat_completions"},
+                "agent": {"reasoning_overrides": {"openrouter/fixture/reasoner": "high"}},
+                "mcp_servers": {"context7": {"url": "https://mcp.context7.com/mcp", "enabled": False}},
+            })
+            for flags in (("--reasoning-effort", "high"),
+                          ("--catalog", str(catalog), "--reasoning-effort", "max"),
+                          ("--profile-context-size", "8192")):
+                with self.subTest(flags=flags):
+                    code, output, _ = invoke(*args, "--provider", "openrouter", "--model", "fixture/reasoner", *flags)
+                    self.assertNotEqual(code, 0)
+                    self.assertEqual(output, "")
+
+    def test_hermes_profile_lmstudio_uses_only_explicit_context_and_requires_chat_model(self):
+        options = dict(hermes_profile=True, provider_id="lm-studio", model_id="fixture/local")
+        snapshot = {"provider_id": "lm-studio", "models": [
+            {"id": "fixture/local", "context_length": 32768, "lm_studio": {"type": "llm"}},
+        ]}
+        for context in (None, 8192):
+            with self.subTest(context=context):
+                artifacts = self.render("hermes", snapshot=snapshot, profile_context_size=context, **options)
+                config = next(item for item in artifacts if item.kind == "profile-config")
+                model = yaml.safe_load(config.content)["model"]
+                self.assertEqual(model["provider"], "lmstudio")
+                self.assertEqual(model["base_url"], "http://localhost:1234/v1")
+                self.assertEqual(model.get("context_length"), context)
+        with self.assertRaises(WeaverError):
+            self.render("hermes", profile_context_size=0, **options)
+        snapshot["models"][0]["lm_studio"]["type"] = "embedding"
+        with self.assertRaises(WeaverError):
+            self.render("hermes", snapshot=snapshot, **options)
+
     def test_unknown_and_unsupported_routes_fail_closed(self):
         for row in agent_inventory(ROOT)["definitions"]:
             if row["state"] in {"unknown", "unsupported"}:

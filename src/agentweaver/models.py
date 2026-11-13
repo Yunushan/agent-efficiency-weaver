@@ -860,6 +860,44 @@ def _json_artifact(path: str, value: object, kind: str) -> RenderedArtifact:
     return RenderedArtifact(PurePosixPath(path), (json.dumps(value, indent=2, ensure_ascii=True) + "\n").encode(), kind)
 
 
+def _hermes_model_config(checked: Mapping[str, Any], api_base: str, effort: str | None,
+                         context_size: int | None) -> dict[str, Any] | None:
+    architecture = checked["architecture"]
+    if architecture is not None and "text" not in architecture.get("output_modalities", ("text",)):
+        return None
+    provider, protocol, model = checked["provider_id"], checked["protocol"], checked["model_id"]
+    if (provider, protocol) == ("lm-studio", "openai-chat") and effort is None:
+        config: dict[str, Any] = {
+            "provider": "lmstudio", "default": model, "base_url": api_base, "api_mode": "chat_completions",
+        }
+        if context_size is not None:
+            config["context_length"] = context_size
+        return {"model": config}
+    if (provider, protocol) == ("openrouter", "openrouter-chat") and context_size is None:
+        result: dict[str, Any] = {"model": {"provider": "openrouter", "default": model, "base_url": "",
+                                          "api_mode": "chat_completions"}}
+        if effort is not None:
+            result["agent"] = {"reasoning_overrides": {f"openrouter/{model}": effort}}
+        return result
+    return None
+
+
+def hermes_profile_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[str, Any] | None,
+                         effort: str | None, context_size: int | None) -> dict[str, Any]:
+    protocol = {"lm-studio": "openai-chat", "openrouter": "openrouter-chat"}.get(provider_id)
+    if protocol is None:
+        _fail("Hermes profile model staging supports the OpenRouter and LM Studio providers")
+    checked = check_model(root, provider_id, model_id, snapshot, effort=effort, protocol=protocol,
+                          context_size=context_size)
+    api_base = load_model_providers(root)[provider_id]["base_url"]
+    if provider_id == "lm-studio":
+        api_base += "/v1"
+    config = _hermes_model_config(checked, api_base, effort, context_size)
+    if config is None:
+        _fail("Hermes profile requires a text model and documented model settings for the selected provider")
+    return config
+
+
 def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provider_id: str, model_id: str,
                        snapshot: Mapping[str, Any] | None = None, effort: str | None = None,
                        budget_tokens: int | None = None, reasoning_enabled: bool | None = None,
@@ -893,8 +931,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       ("codex", "cli", "lm-studio", "openai-responses"))
     claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                        ("claude-code", "cli", "lm-studio", "anthropic-messages"))
-    hermes_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
-                       ("hermes", "cli", "lm-studio", "openai-chat"))
+    hermes_config = None
+    if (registered.id, surface) == ("hermes", "cli") and all(
+        value is None for value in (budget_tokens, reasoning_enabled, mode)
+    ):
+        hermes_config = _hermes_model_config(checked, api_base, effort, context_size)
     if codex_lmstudio and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
         profile = ['# Staged Codex CLI profile for LM Studio.',
                    f'model = {json.dumps(model_id)}', 'model_provider = "lmstudio"']
@@ -923,21 +964,20 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "Check inherited environment settings, including ANTHROPIC_MODEL, ANTHROPIC_API_KEY, "
             "and provider flags, before launching. Managed policy still applies."
         )
-    elif hermes_lmstudio and all(value is None for value in (effort, budget_tokens, reasoning_enabled, mode)):
-        lines = ["model:", '  provider: "lmstudio"', f"  default: {json.dumps(model_id)}",
-                 f"  base_url: {json.dumps(api_base)}", '  api_mode: "chat_completions"']
-        if context_size is not None:
-            lines.append(f"  context_length: {context_size}")
-        artifacts.append(RenderedArtifact(PurePosixPath(f"{prefix}/lmstudio.model.fragment.yaml"),
-                                          ("\n".join(lines) + "\n").encode(), "model-config"))
+    elif hermes_config is not None:
+        identifier = hermes_config["model"]["provider"]
+        artifacts.append(_json_artifact(f"{prefix}/{identifier}.model.fragment.yaml", hermes_config, "model-config"))
         native = True
-        native_note = (
-            "Review and merge the model fields into your chosen Hermes profile's config.yaml. "
-            "Review existing model authentication, LM_BASE_URL, auxiliary routes and fallbacks before use. "
-            "Supply LM_API_KEY separately if your already running LM Studio server requires a token. "
-            "Hermes may load a model when used. A loopback URL must resolve to the same host or network namespace "
-            "as the server. A saved model maximum does not set the loaded context."
-        )
+        native_note = "Review and merge the staged settings into your chosen Hermes profile's config.yaml. "
+        if provider_id == "openrouter":
+            native_note += "Authenticate through Hermes and review provider routing, fallbacks and effort limits."
+        else:
+            native_note += (
+                "Review existing model authentication, LM_BASE_URL, auxiliary routes and fallbacks before use. "
+                "Supply LM_API_KEY separately if your already running LM Studio server requires a token. "
+                "Hermes may load a model when used. A loopback URL must resolve to the same host or network namespace "
+                "as the server. A saved model maximum does not set the loaded context."
+            )
     elif (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
@@ -1011,10 +1051,11 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.extend(["- https://lmstudio.ai/docs/integrations/claude-code",
                       "- https://code.claude.com/docs/en/cli-reference",
                       "- https://code.claude.com/docs/en/settings"])
-    if hermes_lmstudio:
-        lines.extend(["- https://hermes-agent.nousresearch.com/docs/integrations/providers#lm-studio--desktop-app-with-local-models",
-                      "- https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
-                      "- https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example"])
+    if (registered.id, surface) == ("hermes", "cli") and provider_id in {"lm-studio", "openrouter"}:
+        lines.extend(["- https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
+                      "- https://hermes-agent.nousresearch.com/docs/user-guide/configuration#reasoning-effort"])
+        if provider_id == "lm-studio":
+            lines.append("- https://hermes-agent.nousresearch.com/docs/integrations/providers#lm-studio--desktop-app-with-local-models")
     if chosen in _LM_STUDIO_NONCHAT:
         model_type, endpoint = _LM_STUDIO_NONCHAT[chosen]
         lines.extend(["", f"Endpoint: `POST {api_base}{endpoint}`.",

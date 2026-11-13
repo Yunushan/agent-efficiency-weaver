@@ -119,6 +119,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--profile-skill', action='append', help='Bundle a portable Skill in a staged Hermes profile')
             command.add_argument('--mcp-profile', help='Weaver profile ID that allowlists Hermes MCP servers')
             command.add_argument('--profile-mcp', action='append', help='Bundle an allowlisted MCP server, disabled')
+            command.add_argument('--profile-context-size', type=int, help='Explicit context length for a Hermes LM Studio profile')
             command.add_argument('--reasoning-effort')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
@@ -452,6 +453,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             mcp_profile=args.mcp_profile, profile_mcp=args.profile_mcp,
+            profile_context_size=args.profile_context_size,
         )
     else:
         raise WeaverError('Unsupported command')

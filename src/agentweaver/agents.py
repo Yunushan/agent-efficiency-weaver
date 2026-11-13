@@ -13,12 +13,12 @@ from datetime import date
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .adapters import hermes_profile_mcp
+from .adapters import hermes_profile_mcp, json_bytes
 from .artifacts import RenderedArtifact
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url, safe_name
 from .integrations import IntegrationSpec, load_integrations
-from .models import check_model
+from .models import check_model, hermes_profile_model
 from .opencode_models import validate_opencode_selection
 from .skills import selected_portable_skill_ids, stage_hermes_profile_skills
 
@@ -347,7 +347,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             model_variant: str | None = None,
                             allowed_skills: list[str] | None = None, hermes_profile: bool = False,
                             profile_skills: list[str] | None = None, mcp_profile: str | None = None,
-                            profile_mcp: list[str] | None = None) -> list[RenderedArtifact]:
+                            profile_mcp: list[str] | None = None,
+                            profile_context_size: int | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -363,6 +364,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Skill permissions require the OpenCode V2 agent route")
     if profile_skills and not hermes_profile:
         raise WeaverError("Profile Skill staging requires --hermes-profile")
+    if profile_context_size is not None and not hermes_profile:
+        raise WeaverError("Profile context size requires --hermes-profile")
     if mcp_profile is not None or profile_mcp:
         if not hermes_profile:
             raise WeaverError("Profile MCP staging requires --hermes-profile")
@@ -380,15 +383,18 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("Hermes profile staging requires the Hermes CLI surface")
         if identifier == "default":
             raise WeaverError("Hermes reserves the default profile name")
-        if any(value is not None for value in (model_id, effort, provider_id, snapshot, llm_profile,
-                                               codex_catalog, opencode_catalog, model_variant)):
-            raise WeaverError("Stage Hermes profile model settings separately with the model command")
-        mcp_config = None
+        if any(value is not None for value in (llm_profile, codex_catalog, opencode_catalog, model_variant)):
+            raise WeaverError("Client-specific model flags are unavailable for Hermes profiles")
+        config: dict[str, Any] = {}
+        if any(value is not None for value in (model_id, effort, provider_id, snapshot, profile_context_size)):
+            if model_id is None or provider_id is None:
+                raise WeaverError("Hermes profile model staging requires both --provider and --model")
+            config.update(hermes_profile_model(root, provider_id, model_id, snapshot, effort, profile_context_size))
         if mcp_profile is not None and profile_mcp:
             profile = load_json(root / "profiles" / f"{mcp_profile}.json")
             catalog = load_json(root / "catalogs/mcp-servers.json")
-            mcp_config = hermes_profile_mcp(profile, catalog, profile_mcp)
-        return _hermes_profile(root, identifier, summary, prompt, profile_skills or [], mcp_config)
+            config.update(hermes_profile_mcp(profile, catalog, profile_mcp))
+        return _hermes_profile(root, identifier, summary, prompt, profile_skills or [], config)
     row = _load_definitions(root).get((spec.id, surface), _unknown_row(spec.id, surface))
     if identifier in row["reserved_names"]:
         raise WeaverError("Agent name is reserved or would replace a built-in agent; choose a distinct custom name")
@@ -550,14 +556,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
 
 
 def _hermes_profile(root: Path, name: str, description: str, instructions: str,
-                    skills: list[str], mcp_config: bytes | None) -> list[RenderedArtifact]:
+                    skills: list[str], config: dict[str, Any]) -> list[RenderedArtifact]:
     prefix = PurePosixPath("hermes", "profiles", name)
     manifest = f"name: {json.dumps(name)}\ndescription: {json.dumps(description, ensure_ascii=False)}\n"
     handoff = (
         f"# Hermes profile distribution for {name}\n\n"
         "Review the staged manifest, SOUL.md, selected Skill files and any config.yaml before using "
         "the local-directory workflow documented by Hermes. Choose a new profile name.\n\n"
-        "Stage model settings separately and review them before merging them into config.yaml. "
         "A separate Hermes profile isolates state but does not sandbox its tools. "
         "Installed-client loading and inference remain unverified.\n\n"
         "https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions\n"
@@ -568,12 +573,20 @@ def _hermes_profile(root: Path, name: str, description: str, instructions: str,
     ]
     if skills:
         artifacts.extend(stage_hermes_profile_skills(root, skills, prefix))
-    if mcp_config is not None:
-        artifacts.append(RenderedArtifact(prefix / "config.yaml", mcp_config, "mcp-fragment"))
+    if config:
+        kind = "profile-config" if "model" in config else "mcp-fragment"
+        artifacts.append(RenderedArtifact(prefix / "config.yaml", json_bytes(config), kind))
+        handoff += "\nHermes preserves local config.yaml on profile updates by default.\n"
+    if "model" in config:
+        handoff += (
+            "\nReview provider authentication, auxiliary routes and fallbacks before starting Hermes. "
+            "Review model-specific reasoning support for the selected provider.\n\n"
+            "https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models\n"
+        )
+    if "mcp_servers" in config:
         handoff += (
             "\nEvery staged MCP server is disabled. Review its endpoint or executable, credentials "
-            "and allowed tools before enabling it explicitly in the installed profile. Hermes "
-            "preserves local config.yaml on profile updates by default.\n\n"
+            "and allowed tools before enabling it explicitly in the installed profile.\n\n"
             "https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp\n"
         )
     artifacts.append(RenderedArtifact(PurePosixPath("hermes", "agents", name, "PROFILE-HANDOFF.md"),

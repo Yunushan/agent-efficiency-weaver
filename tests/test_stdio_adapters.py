@@ -121,7 +121,7 @@ class StdioConfigurationTests(unittest.TestCase):
             "context7": {"url": "https://mcp.context7.com/mcp", "enabled": False},
             "synthetic-stdio": {"command": COMMAND, "args": ARGS, "enabled": False},
         }
-        self.assertEqual(yaml.safe_load(hermes_profile_mcp(self.profile, self.catalog, selected)),
+        self.assertEqual(hermes_profile_mcp(self.profile, self.catalog, selected),
                          {"mcp_servers": expected})
         standard = yaml.safe_load(self.artifact("hermes", enabled=selected).content)
         self.assertEqual(standard, {"mcp_servers": {
