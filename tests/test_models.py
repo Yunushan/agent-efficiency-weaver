@@ -439,6 +439,35 @@ class ModelRenderingTests(unittest.TestCase):
                 selected = json.loads(next(item.content for item in artifacts if item.kind == "model-selection"))
                 self.assertEqual(selected["model"], "publisher/local-model")
 
+    def test_codex_lmstudio_stages_named_responses_profile_with_explicit_effort(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lm-studio.json"
+            path.write_text(json.dumps({"models": [
+                {"key": "fixture/reasoner", "type": "llm", "max_context_length": 32768,
+                 "capabilities": {"reasoning": {"allowed_options": ["high"], "default": "high"}}},
+            ]}), encoding="utf-8")
+            snapshot = read_model_snapshot(path, "lm-studio", ROOT)
+        spec = get_integration("codex", ROOT)
+        kwargs = dict(root=ROOT, provider_id="lm-studio", model_id="fixture/reasoner",
+                      snapshot=snapshot, protocol="openai-responses")
+        for effort in (None, "high"):
+            with self.subTest(effort=effort):
+                artifacts = render_model_setup(spec, "cli", effort=effort, **kwargs)
+                profile = next(item for item in artifacts if item.kind == "model-config")
+                self.assertEqual(profile.relative_path.as_posix(), "codex/model/weaver-lmstudio.config.toml")
+                expected = {"model": "fixture/reasoner", "model_provider": "lmstudio"}
+                if effort:
+                    expected["model_reasoning_effort"] = effort
+                self.assertEqual(tomllib.loads(profile.content.decode()), expected)
+                self.assertIn(b"codex --profile weaver-lmstudio", artifacts[0].content)
+        for surface, overrides in (("desktop", {}), ("ide", {}), ("cli", {"protocol": "openai-chat"}),
+                                   ("cli", {"context_size": 8192})):
+            with self.subTest(surface=surface, overrides=overrides):
+                artifacts = render_model_setup(spec, surface, **(kwargs | overrides))
+                self.assertFalse(any(item.kind == "model-config" for item in artifacts))
+        with self.assertRaises(WeaverError):
+            render_model_setup(spec, "cli", effort="low", **kwargs)
+
     def test_lmstudio_protocol_bases_do_not_duplicate_anthropic_version_prefix(self) -> None:
         bases = {"lmstudio-chat": "http://localhost:1234", "openai-chat": "http://localhost:1234/v1",
                  "openai-responses": "http://localhost:1234/v1", "anthropic-messages": "http://localhost:1234"}

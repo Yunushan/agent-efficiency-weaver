@@ -889,7 +889,22 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if not text_candidate:
         native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
                        "language-agent compatibility is unknown.")
-    if (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
+    codex_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
+                      ("codex", "cli", "lm-studio", "openai-responses"))
+    if codex_lmstudio and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
+        profile = ['# Staged Codex CLI profile for LM Studio.',
+                   f'model = {json.dumps(model_id)}', 'model_provider = "lmstudio"']
+        if effort is not None:
+            profile.append(f'model_reasoning_effort = {json.dumps(effort)}')
+        artifacts.append(RenderedArtifact(PurePosixPath(f"{prefix}/weaver-lmstudio.config.toml"),
+                                          ("\n".join(profile) + "\n").encode(), "model-config"))
+        native = True
+        native_note = ("Review the profile and place it as a new named file in your Codex home. "
+                       "Use codex --profile weaver-lmstudio with an already running, approved local LM Studio server. "
+                       "Preserve existing profiles and review higher-priority settings and process environment overrides. "
+                       "The profile selects Codex's built-in lmstudio provider without configuring authentication "
+                       "or starting a server.")
+    elif (text_candidate and registered.id == "qwen-code" and surface == "cli" and chosen in {"openai-chat", "openai-responses"}
             and mode is None and effort not in {"none", "minimal"}
             and not (chosen == "openai-chat" and effort == "max") and provider["secret_env"] is not None):
         model: dict[str, Any] = {"id": model_id, "baseUrl": api_base, "envKey": provider["secret_env"],
@@ -955,6 +970,9 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
              "Model selection does not install custom agents, Skills, MCP servers, or enable autonomous operation.", "",
              f"Documentation checked on: {provider['checked_on']}", "", "Sources:", ""]
     lines.extend(f"- {source}" for source in provider["sources"])
+    if codex_lmstudio:
+        lines.extend(["- https://lmstudio.ai/docs/integrations/codex",
+                      "- https://learn.chatgpt.com/docs/config-file/config-advanced#profiles"])
     if chosen in _LM_STUDIO_NONCHAT:
         model_type, endpoint = _LM_STUDIO_NONCHAT[chosen]
         lines.extend(["", f"Endpoint: `POST {api_base}{endpoint}`.",
