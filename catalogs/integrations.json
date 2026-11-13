@@ -464,6 +464,102 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "vscode",
+          "mcp_dialect": "mcpServers.type-http",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "CLAUDE.md",
+            ".claude/CLAUDE.md"
+          ],
+          "skills_path": ".claude/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/mcp",
+                "https://code.claude.com/docs/en/vs-code"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/memory",
+                "https://code.claude.com/docs/en/vs-code",
+                "https://code.claude.com/docs/en/settings"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/skills",
+                "https://code.claude.com/docs/en/vs-code",
+                "https://code.claude.com/docs/en/settings"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://openrouter.ai/docs/cookbook/coding-agents/claude-code-integration",
+                "https://code.claude.com/docs/en/llm-gateway",
+                "https://openrouter.ai/docs/quickstart",
+                "https://code.claude.com/docs/en/vs-code"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://code.claude.com/docs/en/vs-code",
+                "https://code.visualstudio.com/docs/supporting/requirements"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "VS Code 1.94.0 or later in a trusted workspace on a supported desktop OS.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

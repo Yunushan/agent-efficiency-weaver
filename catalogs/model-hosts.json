@@ -466,6 +466,51 @@
       "availability": "unknown"
     },
     {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose the model in VS Code or review the shared Claude Code settings.",
+        "fields": [
+          "model",
+          "effortLevel",
+          "modelSettings"
+        ],
+        "commands": [
+          "/model"
+        ],
+        "ui_steps": [
+          "Open the Claude Code command menu and switch models"
+        ],
+        "sources": [
+          "https://code.claude.com/docs/en/vs-code",
+          "https://code.claude.com/docs/en/settings",
+          "https://code.claude.com/docs/en/model-config"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "effortLevel",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://code.claude.com/docs/en/settings",
+          "https://code.claude.com/docs/en/model-config"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "cline",
       "surface_id": "ide",
       "selection": {

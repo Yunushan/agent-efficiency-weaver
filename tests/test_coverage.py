@@ -48,6 +48,7 @@ class RequestedCoverageTests(unittest.TestCase):
         item = next(item for item in load_requested_scope(ROOT) if item.id == "vscode-agents")
         self.assertEqual({(target.product_id, target.surface_id) for target in item.targets}, {
             ("copilot", "vscode"), ("cline", "ide"), ("kilo", "ide"), ("codex", "ide"),
+            ("claude-code", "vscode"),
         })
         with self.assertRaisesRegex(WeaverError, "multiple products"):
             resolve_product_alias(ROOT, "VSCodeagents")
@@ -105,8 +106,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 3)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 22)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 4)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 28)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
@@ -152,6 +153,17 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual([check["check"] for check in model_load["checks"]],
                          ["agent-model-effort-config-load", "agent-model-array-rejected"])
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_claude_observations_belong_to_the_bundled_executable(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        self.assertEqual(targets["cli"]["runtime_observations"], [])
+        [record] = targets["vscode"]["runtime_observations"]
+        self.assertEqual(record["extension_version"], record["engine_version"])
+        self.assertEqual(record["interface"], "bundled-runtime")
+        checks = {check["check"] for check in record["checks"]}
+        self.assertEqual(checks, {"skill-discovery", "agent-metadata-discovery", "project-http-pending-approval",
+                                  "project-stdio-healthcheck", "signed-out-model-list", "signed-out-effort-options"})
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

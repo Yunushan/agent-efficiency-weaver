@@ -273,6 +273,45 @@
       }
     },
     {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "state": "native",
+      "format": "claude-markdown",
+      "path_template": ".claude/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": "effort",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "model_behavior": "model: inherit follows the parent. Host environment, invocation and organization policy can override or substitute a selected model.",
+      "reasoning_behavior": "effort supports a model-dependent subset; host CLAUDE_CODE_EFFORT_LEVEL takes precedence. No effort is chosen by default.",
+      "permission_behavior": "Only Read/Glob/Grep tools are selected. Approval behavior follows the parent and host policy; permissionMode is not emitted.",
+      "reserved_names": [
+        "explore",
+        "plan",
+        "general-purpose",
+        "claude",
+        "statusline-setup"
+      ],
+      "evidence": {
+        "sources": [
+          "https://code.claude.com/docs/en/sub-agents",
+          "https://code.claude.com/docs/en/vs-code"
+        ],
+        "checked_on": "2026-11-13",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "cline",
       "surface_id": "ide",
       "state": "unsupported",

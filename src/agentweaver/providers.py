@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, NoReturn
 
@@ -177,6 +177,14 @@ def _route(agent_id: str, surface: str) -> _Route:
         return _COPILOT_CLI_ROUTE
     if (agent_id, surface) == ("copilot", "desktop"):
         return _COPILOT_APP_ROUTE
+    if (agent_id, surface) == ("claude-code", "vscode"):
+        cli_route = _ROUTES[agent_id]
+        return replace(
+            cli_route, allowed_surfaces=("vscode",),
+            steps=(*cli_route.steps, "Start a new Claude Code extension session with the configured process environment."),
+            restrictions=(*cli_route.restrictions, "Review the Claude Code extension's third-party provider settings."),
+            sources=(*cli_route.sources, "https://code.claude.com/docs/en/vs-code#use-third-party-providers"),
+        )
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -333,7 +341,9 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
 
 
 def _checked_on(agent_id: str, surface: str) -> str:
-    if (agent_id, surface) in {("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop")}:
+    if (agent_id, surface) in {
+        ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"), ("claude-code", "vscode"),
+    }:
         return "2026-11-13"
     return "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON
 

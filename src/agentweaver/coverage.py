@@ -53,6 +53,21 @@ _OBSERVATION_CHECKS = {
     "named-profile-effort-precedence": (
         "reasoning", "The scripted endpoint observed the profile effort and the higher-priority command-line override.",
     ),
+    "agent-metadata-discovery": (
+        "agents", "The bundled executable listed the generated project agent with its authored model selector.",
+    ),
+    "project-http-pending-approval": (
+        "mcp", "The bundled executable read the generated project HTTP entry and reported it pending approval.",
+    ),
+    "project-stdio-healthcheck": (
+        "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
+    ),
+    "signed-out-model-list": (
+        "models", "The bundled executable listed signed-out model aliases and their resolved IDs.",
+    ),
+    "signed-out-effort-options": (
+        "reasoning", "The bundled executable advertised effort levels for the signed-out model aliases.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -63,6 +78,7 @@ _OBSERVATION_INTERFACES = {
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
+    ("claude-code", "vscode", "bundled-runtime"),
 }
 
 

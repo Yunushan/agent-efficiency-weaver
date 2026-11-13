@@ -23,7 +23,7 @@
     {
       "id": "vscode-agents", "label": "VS Code agents (named extension surfaces)",
       "aliases": ["VSCodeagents", "VS Code agents", "vscode-agents"],
-      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "cline", "surface_id": "ide"}, {"product_id": "kilo", "surface_id": "ide"}, {"product_id": "codex", "surface_id": "ide"}]
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "cline", "surface_id": "ide"}, {"product_id": "kilo", "surface_id": "ide"}, {"product_id": "codex", "surface_id": "ide"}, {"product_id": "claude-code", "surface_id": "vscode"}]
     },
     {
       "id": "cline", "label": "Cline", "aliases": ["cline"],
@@ -59,7 +59,7 @@
     },
     {
       "id": "claude-code", "label": "Claude Code", "aliases": ["claude-code", "ClaudeCode", "Claude Code"],
-      "targets": [{"product_id": "claude-code", "surface_id": "cli"}]
+      "targets": [{"product_id": "claude-code", "surface_id": "cli"}, {"product_id": "claude-code", "surface_id": "vscode"}]
     },
     {
       "id": "kiro", "label": "Kiro", "aliases": ["kiro"],
@@ -277,6 +277,46 @@
         {
           "check": "named-profile-effort-precedence",
           "evidence_sha256": "53377713ce6cf69de447d12c13d04eca298e61f05b2f132063f2745c24bc4433"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-13",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "source_commit": "682cfd0ff2c9a332cf1a13c8ebbd34395897676f",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-metadata-discovery",
+          "evidence_sha256": "b04faa49ba1a2da58b24f93dfcdafff9c5320bb44fbbf070710751e3791ee3e2"
+        },
+        {
+          "check": "project-http-pending-approval",
+          "evidence_sha256": "fce4dbd6f3476e6ba72f643e541aa12c70b4a13f129021b9cbcca3fd3bece200"
+        },
+        {
+          "check": "project-stdio-healthcheck",
+          "evidence_sha256": "b2b3a2e37a2cafad5f0acf7356ee064c77bb9b9f9311cd3c3f5899ff5b541485"
+        },
+        {
+          "check": "signed-out-model-list",
+          "evidence_sha256": "cae819b6990b30f2a8d18fc42d0b01d7a87cc3e58dd29c34ce33af10cc17d580"
+        },
+        {
+          "check": "signed-out-effort-options",
+          "evidence_sha256": "cae819b6990b30f2a8d18fc42d0b01d7a87cc3e58dd29c34ce33af10cc17d580"
         }
       ]
     }
