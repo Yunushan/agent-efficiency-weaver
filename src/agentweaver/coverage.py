@@ -124,6 +124,24 @@ _OBSERVATION_CHECKS = {
     "kilo-extension-variant-selection": (
         "reasoning", "The sidebar exposed the local model's named variant and displayed it after selection.",
     ),
+    "cline-agent-file-inventory": (
+        "agents", "Cline listed the generated project agent file in its configuration inventory.",
+    ),
+    "cline-disabled-mcp-registration": (
+        "mcp", "Cline listed the manually staged stdio entry as disabled and made no fixture requests.",
+    ),
+    "cline-session-model-request": (
+        "models", "The generated CLI arguments selected the OpenRouter model ID sent to a scripted loopback endpoint.",
+    ),
+    "cline-session-effort-request": (
+        "reasoning", "The generated CLI arguments sent the selected thinking level to the scripted endpoint.",
+    ),
+    "cline-child-skill-use": (
+        "skills", "The configured subagent called its allowed Skill and received the generated Skill instructions.",
+    ),
+    "cline-child-mcp-filter": (
+        "mcp", "The configured subagent received the selected built-in tools. The parent alone could see its MCP fixture.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -152,6 +170,8 @@ _OBSERVATION_INTERFACES = {
     ("kilo", "cli", "serve-http"),
     ("kilo", "cli", "exec-loopback"),
     ("kilo", "ide", "vscode-extension-host"),
+    ("cline", "cli", "config-inventory"),
+    ("cline", "cli", "exec-loopback"),
 }
 
 
@@ -297,6 +317,7 @@ def _load_observations(
             ("opencode", "cli"): {"isolated-release-loopback"},
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},
+            ("cline", "cli"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES

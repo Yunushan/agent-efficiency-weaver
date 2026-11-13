@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 9)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 78)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 10)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 88)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -266,6 +266,29 @@ class RequestedCoverageTests(unittest.TestCase):
             "skill-discovery": "skills", "kilo-extension-subagent-discovery": "agents",
             "kilo-stdio-discovery": "mcp", "kilo-extension-model-selection": "models",
             "kilo-extension-variant-selection": "reasoning",
+        })
+        self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_cline_runtime_records_distinguish_inventory_and_loopback_execution(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "cline")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        self.assertEqual(targets["desktop"]["runtime_observations"], [])
+        inventory, execution = targets["cli"]["runtime_observations"]
+        for record in (inventory, execution):
+            self.assertEqual(record["product_version"], "3.0.74")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(inventory["interface"], "config-inventory")
+        self.assertEqual(execution["interface"], "exec-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in inventory["checks"]}, {
+            "skill-discovery": "skills", "cline-agent-file-inventory": "agents",
+            "cline-disabled-mcp-registration": "mcp",
+        })
+        self.assertEqual({check["check"]: check["capability"] for check in execution["checks"]}, {
+            "cline-session-model-request": "models", "cline-session-effort-request": "reasoning",
+            "stdio-tool-call": "mcp", "agent-load": "agents", "agent-model-effort-selection": "reasoning",
+            "cline-child-skill-use": "skills", "cline-child-mcp-filter": "mcp",
         })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 

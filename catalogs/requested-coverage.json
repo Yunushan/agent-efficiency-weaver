@@ -764,6 +764,76 @@
           "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
         }
       ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "cli",
+      "product_version": "3.0.74",
+      "engine_version": "3.0.74",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "1c25fdf009d1e5bd72177d4164e0564a7c6e0913",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        },
+        {
+          "check": "cline-agent-file-inventory",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        },
+        {
+          "check": "cline-disabled-mcp-registration",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        }
+      ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "cli",
+      "product_version": "3.0.74",
+      "engine_version": "3.0.74",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "1c25fdf009d1e5bd72177d4164e0564a7c6e0913",
+      "checks": [
+        {
+          "check": "cline-session-model-request",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-session-effort-request",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-child-skill-use",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-child-mcp-filter",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        }
+      ]
     }
   ]
 }
