@@ -125,14 +125,18 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--batch-endpoint', choices=OPENROUTER_BATCH_ENDPOINTS,
                                  help='Request body endpoint for OpenRouter batch staging')
             if name == 'model':
-                command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
+                host_catalog = command.add_mutually_exclusive_group()
+                host_catalog.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
+                host_catalog.add_argument('--qwen-workspace-catalog', type=Path,
+                                          help='Saved Qwen daemon GET /workspace/providers response')
+                command.add_argument('--qwen-auth-type', help='Filter the saved Qwen workspace catalog by authentication type')
                 command.add_argument('--zed-subagent', action='store_true',
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
                 command.add_argument('--kiro-model-defaults', action='store_true',
                                      help='Stage Kiro CLI V3 per-model reasoning settings')
                 command.add_argument('--qoder-settings', action='store_true',
                                      help='Stage a Qoder CLI model settings fragment for manual merge')
-                command.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
+                host_catalog.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
         elif name == 'agent':
             command.add_argument('--name', required=True)
             command.add_argument('--description', required=True)
@@ -435,6 +439,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         print('Configuration, registries, requested coverage and portable skill validation passed')
         return 0
     spec, surface, target_os, host_os = _selection(args, root)
+    if args.cmd == 'model' and args.qwen_auth_type is not None and args.qwen_workspace_catalog is None:
+        raise WeaverError('Qwen model authentication filtering requires --qwen-workspace-catalog')
     if args.cmd == 'doctor':
         diagnosis = describe_workflow(spec, target_os, host_os, surface_id=surface)
         if args.format == 'json':
@@ -458,6 +464,19 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             if errors:
                 raise WeaverError('; '.join(errors))
             artifacts = render_instruction_bundle(spec, surface, profile, args.skill, root)
+    elif args.cmd == 'model' and args.qwen_workspace_catalog is not None:
+        from .qwen_models import render_qwen_startup
+
+        if spec.id != 'qwen-code' or surface not in {'cli', 'vscode'}:
+            raise WeaverError('A Qwen workspace catalog requires a Qwen Code CLI or VS Code target')
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint')
+        ):
+            raise WeaverError('Qwen daemon startup uses a workspace model route and optional reasoning selection')
+        artifacts = render_qwen_startup(args.qwen_workspace_catalog, args.model, args.reasoning_effort,
+                                       auth_type=args.qwen_auth_type)
     elif args.cmd == 'model' and args.factory_catalog is not None:
         from .factory_models import render_factory_exec
 

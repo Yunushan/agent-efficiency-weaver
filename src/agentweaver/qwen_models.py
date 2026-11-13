@@ -1,10 +1,13 @@
 """Read Qwen Code daemon workspace model and reasoning metadata offline."""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .artifacts import RenderedArtifact
 from .config import WeaverError
-from .models import _load_bounded_snapshot, _model_id, _text
+from .models import _json_artifact, _load_bounded_snapshot, _model_id, _text
+
+_STARTUP_EFFORTS = {"none", "default", "low", "medium", "high", "xhigh", "max"}
 
 
 def _objects(value: object, label: str) -> list[dict[str, Any]]:
@@ -112,3 +115,34 @@ def inspect_qwen_models(path: Path, *, auth_type: str | None = None, model: str 
         "catalog_completeness": "unknown",
         "inference_verified": False,
     }
+
+
+def render_qwen_startup(path: Path, model: str, effort: str | None, *,
+                        auth_type: str | None = None) -> list[RenderedArtifact]:
+    """Stage an exact model and optional reasoning choice for a new daemon thread."""
+    if effort is not None and effort not in _STARTUP_EFFORTS:
+        raise WeaverError("Unsupported Qwen daemon startup reasoning value")
+    report = inspect_qwen_models(path, auth_type=auth_type, model=model, effort=effort)
+    selection = report["selection"]
+    route = selection["route_id"]
+    if len(route) > 256:
+        raise WeaverError("Qwen daemon startup model route exceeds 256 characters")
+    startup = {"modelServiceId": route}
+    if effort is not None:
+        startup["reasoningEffort"] = effort
+    body = {"sessionScope": "thread", "startupConfig": startup}
+    note = (
+        "# Qwen Code daemon session startup\n\n"
+        f"Saved workspace providers snapshot SHA-256: {report['snapshot_sha256']}\n\n"
+        "Review the staged body for POST /session. Use the daemon that supplied the snapshot and "
+        "confirm it advertises session_startup_config. Add the registered workspace cwd if it differs "
+        "from the daemon's primary workspace. Supply authentication separately.\n\n"
+        "Before sending a prompt, check modelApplied and startupConfigApplied in the creation response. "
+        "Verify the canonical model route and any requested reasoning selection and effective state. "
+        "Treat missing confirmation as an unresolved outcome. Weaver only stages the request body.\n\n"
+        "- https://qwenlm.github.io/qwen-code-docs/en/developers/qwen-serve-protocol/\n"
+    )
+    return [
+        _json_artifact("qwen-code/model/session-startup.json", body, "session-startup"),
+        RenderedArtifact(PurePosixPath("qwen-code/model/model-setup.md"), note.encode(), "model-setup"),
+    ]

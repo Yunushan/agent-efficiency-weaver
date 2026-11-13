@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_cli_exports import invoke
+from test_cli_exports import ROOT, invoke
 
 from agentweaver.config import WeaverError
 from agentweaver.qwen_models import inspect_qwen_models
@@ -71,3 +71,26 @@ class QwenWorkspaceModelTests(unittest.TestCase):
         self.assertFalse(inspect_qwen_models(self.path)["initialized"])
         with self.assertRaises(WeaverError):
             inspect_qwen_models(self.path, model="fixture/model")
+
+    def test_starts_with_the_exact_snapshot_route_and_omits_unrequested_effort(self):
+        self.row["modelId"] = "qwen-route:v1:fixtureA"
+        self.response["providers"][0]["models"].append(self.row | {"modelId": "qwen-route:v1:fixtureB"})
+        self.save()
+        base = ("--root", str(ROOT), "--agent", "qwen-code", "--surface", "vscode",
+                "--qwen-workspace-catalog", str(self.path), "--qwen-auth-type", "openai", "--dry-run")
+        for effort in (None, "none", "default", "high"):
+            with self.subTest(effort=effort):
+                extra = () if effort is None else ("--reasoning-effort", effort)
+                code, out, err = invoke("model", *base, "--model", "qwen-route:v1:fixtureB", *extra)
+                self.assertEqual(code, 0, err)
+                self.assertNotIn("/private/fixture", out)
+                item = next(entry for entry in json.loads(out)["artifacts"] if entry["kind"] == "session-startup")
+                config = {"modelServiceId": "qwen-route:v1:fixtureB"}
+                if effort is not None:
+                    config["reasoningEffort"] = effort
+                self.assertEqual(json.loads(item["content"]), {"sessionScope": "thread", "startupConfig": config})
+        self.assertEqual(invoke("model", *base, "--model", "fixture/model")[0], 2)
+        for extra in (("--reasoning-effort", "low"), ("--provider", "openai"), ("--context-size", "100000")):
+            self.assertEqual(invoke("model", *base, "--model", "qwen-route:v1:fixtureB", *extra)[0], 2)
+        self.assertEqual(invoke("model", *base, "--model", "qwen-route:v1:fixtureB", "--agent", "codex",
+                                "--surface", "cli")[0], 2)
