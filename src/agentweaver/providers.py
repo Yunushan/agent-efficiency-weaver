@@ -185,6 +185,8 @@ def _route(agent_id: str, surface: str) -> _Route:
             restrictions=(*cli_route.restrictions, "Review the Claude Code extension's third-party provider settings."),
             sources=(*cli_route.sources, "https://code.claude.com/docs/en/vs-code#use-third-party-providers"),
         )
+    if (agent_id, surface) == ("claude-code", "desktop"):
+        return _CLAUDE_DESKTOP_ROUTE
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -342,7 +344,8 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
 
 def _checked_on(agent_id: str, surface: str) -> str:
     if (agent_id, surface) in {
-        ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"), ("claude-code", "vscode"),
+        ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"),
+        ("claude-code", "vscode"), ("claude-code", "desktop"),
     }:
         return "2026-11-13"
     return "2026-10-26" if agent_id in _REFRESHED_ROUTE_IDS else CHECKED_ON
@@ -397,6 +400,20 @@ def render_provider_setup(
 
 
 _OPENROUTER = "https://openrouter.ai/docs/quickstart"
+_CLAUDE_DESKTOP_ROUTE = _Route(
+    ("desktop",), "", "Confirm the exact Claude model ID offered by the gateway's model list and Desktop picker.",
+    ("Use the administrator-configured gateway if present. For local setup, use Help > Troubleshooting > "
+     "Enable Developer Mode, then Developer > Configure Third-Party Inference.",
+     "Select an LLM gateway. Enter https://openrouter.ai/api as the gateway base and choose static bearer authentication.",
+     "Add the required key through the Desktop form, then review the model and effort in a local Code tab session."),
+    (), "Supply the OpenRouter API key in the private Desktop gateway form. Review applicable administrator settings.",
+    "https://openrouter.ai/api/v1/messages", "The gateway base URL is https://openrouter.ai/api; Desktop appends API paths.",
+    ("This is a documentation-based handoff. Confirm gateway model discovery and approved routing in the app.",
+     "OpenRouter guarantees Claude Code compatibility only with the Anthropic first-party provider."),
+    ("https://code.claude.com/docs/en/llm-gateway-connect#desktop-app",
+     "https://claude.com/docs/third-party/claude-desktop/gateway",
+     "https://openrouter.ai/docs/cookbook/coding-agents/claude-code-integration"),
+)
 _COPILOT_APP_ROUTE = _Route(
     ("desktop",), "", "Resolve the selected upstream model ID in the app's model picker.",
     ("Open Settings > Model providers > Add provider.",

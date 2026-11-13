@@ -32,6 +32,7 @@ NATIVE_TARGETS = {
     ("antigravity", "ide"): "AGENTS.md",
     ("claude-code", "cli"): "CLAUDE.md",
     ("claude-code", "vscode"): "CLAUDE.md",
+    ("claude-code", "desktop"): "CLAUDE.md",
     ("cline", "ide"): "AGENTS.md",
     ("cline", "cli"): "AGENTS.md",
     ("cline", "desktop"): "AGENTS.md",

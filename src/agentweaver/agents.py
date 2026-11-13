@@ -421,8 +421,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                 raise WeaverError("Provider validation requires the matching built-in Qwen authentication type")
             qwen_protocol = qwen_route[1]
     if claude_catalog is not None:
-        if spec.id != "claude-code" or surface not in {"cli", "vscode"} or hermes_profile:
-            raise WeaverError("A Claude Code model catalog requires the Claude Code CLI or VS Code custom-agent target")
+        if spec.id != "claude-code" or surface not in {"cli", "desktop", "vscode"} or hermes_profile:
+            raise WeaverError("A Claude Code model catalog requires a local Claude Code custom-agent target")
         if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, opencode_catalog,
                                                copilot_catalog, kilo_catalog, factory_catalog, qoder_catalog)):
             raise WeaverError("A Claude Code model catalog conflicts with other model discovery options")

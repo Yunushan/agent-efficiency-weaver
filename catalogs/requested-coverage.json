@@ -59,7 +59,7 @@
     },
     {
       "id": "claude-code", "label": "Claude Code", "aliases": ["claude-code", "ClaudeCode", "Claude Code"],
-      "targets": [{"product_id": "claude-code", "surface_id": "cli"}, {"product_id": "claude-code", "surface_id": "vscode"}]
+      "targets": [{"product_id": "claude-code", "surface_id": "cli"}, {"product_id": "claude-code", "surface_id": "vscode"}, {"product_id": "claude-code", "surface_id": "desktop"}]
     },
     {
       "id": "kiro", "label": "Kiro", "aliases": ["kiro"],

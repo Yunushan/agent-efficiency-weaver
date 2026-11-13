@@ -64,7 +64,7 @@ class ClaudeModelTests(unittest.TestCase):
     def test_stages_project_settings_and_cli_max_at_the_right_scope(self):
         common = ("--root", str(ROOT), "--agent", "claude-code", "--dry-run",
                   "--claude-catalog", str(self.snapshot), "--model", "default")
-        for surface in ("cli", "vscode"):
+        for surface in ("cli", "desktop", "vscode"):
             for extra, expected in (((), {"model": "default"}),
                                     (("--reasoning-effort", "high"), {"model": "default", "effortLevel": "high"})):
                 with self.subTest(surface=surface, extra=extra):
@@ -80,6 +80,7 @@ class ClaudeModelTests(unittest.TestCase):
         self.assertEqual(artifact["kind"], "session-arguments")
         self.assertEqual(json.loads(artifact["content"]), ["--model", "default", "--effort", "max"])
         self.assertEqual(invoke(*args, "--surface", "vscode")[0], 2)
+        self.assertEqual(invoke(*args, "--surface", "desktop")[0], 2)
         self.assertEqual(invoke(*args, "--provider", "anthropic")[0], 2)
         self.assertEqual(invoke(*args, "--agent", "codex")[0], 2)
 
@@ -89,7 +90,7 @@ class ClaudeModelTests(unittest.TestCase):
         common = ("agent", "--root", str(ROOT), "--agent", "claude-code", "--dry-run",
                   "--claude-catalog", str(self.snapshot), "--name", "reviewer", "--description", "Review changes.",
                   "--instructions-file", str(prompt))
-        for surface in ("cli", "vscode"):
+        for surface in ("cli", "desktop", "vscode"):
             code, out, err = invoke(*common, "--surface", surface, "--model", "default", "--reasoning-effort", "max")
             self.assertEqual(code, 0, err)
             definition, handoff, _ = json.loads(out)["artifacts"]
@@ -101,3 +102,20 @@ class ClaudeModelTests(unittest.TestCase):
         code, out, err = invoke(*common, "--model", "sonnet[1m]")
         self.assertEqual(code, 0, err)
         self.assertIn('model: "sonnet[1m]"', json.loads(out)["artifacts"][0]["content"])
+
+    def test_desktop_project_mcp_and_provider_handoff_use_code_tab_routes(self):
+        common = ("--root", str(ROOT), "--agent", "claude-code", "--surface", "desktop", "--dry-run")
+        code, out, err = invoke("render", *common, "--profile", "efficient", "--enable", "context7")
+        self.assertEqual(code, 0, err)
+        fragment, handoff = json.loads(out)["artifacts"]
+        self.assertEqual(fragment["path"], "claude-code/.mcp.json")
+        self.assertIn("context7", json.loads(fragment["content"])["mcpServers"])
+        self.assertIn("local Code tab", handoff["content"])
+        self.assertIn("claude_desktop_config.json", handoff["content"])
+        code, out, err = invoke("provider", *common, "--provider", "openrouter", "--model", "anthropic/fixture")
+        self.assertEqual(code, 0, err)
+        artifacts = json.loads(out)["artifacts"]
+        self.assertTrue(all(row["kind"] != "provider-config" for row in artifacts))
+        self.assertIn("Configure Third-Party Inference", artifacts[0]["content"])
+        self.assertIn("https://openrouter.ai/api/v1/messages", artifacts[0]["content"])
+        self.assertNotIn("ANTHROPIC_BASE_URL", artifacts[0]["content"])

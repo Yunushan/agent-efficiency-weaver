@@ -23,7 +23,7 @@ AGENT_SURFACES: dict[str, tuple[str, ...]] = {
     "aider": ("cli",),
     "amp": ("cli",),
     "antigravity": ("ide", "app-ui"),
-    "claude-code": ("cli", "vscode"),
+    "claude-code": ("cli", "vscode", "desktop"),
     "cline": ("ide", "cli", "desktop"),
     "codex": ("cli",),
     "copilot": ("vscode", "cli", "desktop"),

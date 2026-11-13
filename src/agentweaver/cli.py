@@ -285,6 +285,12 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.append('Abacus user-level same-name MCP entries override project entries.')
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
+        if (spec.id, surface) == ('claude-code', 'desktop'):
+            lines.extend([
+                'Use the staged .mcp.json in a local Code tab session and review project MCP approvals in the app.',
+                'Review same-name servers in claude_desktop_config.json and user-scope stdio servers in ~/.claude.json. '
+                'Desktop can prefer those definitions over the project entry.',
+            ])
         if spec.id == 'copilot':
             if copilot_portable or surface in {'cli', 'desktop'}:
                 destination = 'Select the Copilot harness in VS Code. ' if surface == 'vscode' else ''
@@ -545,8 +551,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     elif args.cmd == 'model' and args.claude_catalog is not None:
         from .claude_models import render_claude_model
 
-        if spec.id != 'claude-code' or surface not in {'cli', 'vscode'}:
-            raise WeaverError('A Claude Code model catalog requires the Claude Code CLI or VS Code target')
+        if spec.id != 'claude-code' or surface not in {'cli', 'desktop', 'vscode'}:
+            raise WeaverError('A Claude Code model catalog requires a local Claude Code target')
         if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
             getattr(args, option) is not None for option in
             ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',

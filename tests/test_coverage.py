@@ -158,6 +158,7 @@ class RequestedCoverageTests(unittest.TestCase):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
         self.assertEqual(targets["cli"]["runtime_observations"], [])
+        self.assertEqual(targets["desktop"]["runtime_observations"], [])
         [record] = targets["vscode"]["runtime_observations"]
         self.assertEqual(record["extension_version"], record["engine_version"])
         self.assertEqual(record["interface"], "bundled-runtime")

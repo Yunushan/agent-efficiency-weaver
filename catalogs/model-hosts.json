@@ -467,6 +467,59 @@
     },
     {
       "product_id": "claude-code",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a model for a local Code tab session or review the shared project model setting.",
+        "fields": [
+          "model",
+          "effortLevel"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open the model picker below the prompt"
+        ],
+        "sources": [
+          "https://code.claude.com/docs/en/desktop",
+          "https://code.claude.com/docs/en/settings"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Model picker > Effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "effortLevel",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "xhigh"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://code.claude.com/docs/en/desktop",
+          "https://code.claude.com/docs/en/settings",
+          "https://code.claude.com/docs/en/model-config"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "claude-code",
       "surface_id": "vscode",
       "selection": {
         "state": "manual",
