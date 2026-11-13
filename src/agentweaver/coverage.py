@@ -94,6 +94,12 @@ _OBSERVATION_CHECKS = {
     "opencode-v2-variant-effort-request": (
         "reasoning", "The CLI applied a named variant's reasoning effort in a request to a scripted loopback endpoint.",
     ),
+    "opencode-v2-child-skill-use": (
+        "skills", "The delegated subagent loaded its allowed Skill and received the Skill instructions.",
+    ),
+    "opencode-v2-child-mcp-filter": (
+        "mcp", "The generated subagent's tool list excluded the stdio fixture visible to the parent session.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),

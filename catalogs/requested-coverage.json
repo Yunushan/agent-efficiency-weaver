@@ -627,6 +627,37 @@
           "evidence_sha256": "f7f5e9cd2305ac0b089739e907ad3f05c13f71261b955c10d077b0897615d196"
         }
       ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "46fcb02a21948ba581efa93a82f660a7afda717f",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        },
+        {
+          "check": "opencode-v2-child-skill-use",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "opencode-v2-child-mcp-filter",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        }
+      ]
     }
   ]
 }
