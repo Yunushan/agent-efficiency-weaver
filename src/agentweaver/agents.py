@@ -378,9 +378,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if model_variant is not None and opencode_catalog is None:
         raise WeaverError("A model variant requires an OpenCode V2 catalog")
-    cline_cli = (spec.id, surface) == ("cline", "cli")
-    if allowed_skills and opencode_catalog is None and copilot_catalog is None and not cline_cli:
-        raise WeaverError("Agent Skill selection requires Cline CLI or an OpenCode V2 or Copilot SDK catalog")
+    cline_configured_agent = spec.id == "cline" and surface in {"cli", "desktop"}
+    if allowed_skills and opencode_catalog is None and copilot_catalog is None and not cline_configured_agent:
+        raise WeaverError("Agent Skill selection requires Cline CLI/Desktop or an OpenCode V2 or Copilot SDK catalog")
     if copilot_fallbacks and copilot_catalog is None:
         raise WeaverError("Copilot fallback models require --copilot-catalog")
     if copilot_catalog is not None and (spec.id, surface) != ("copilot", "vscode"):
@@ -482,10 +482,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     else:
         if effort is not None and row["format"] == "vscode-markdown":
             raise WeaverError("Copilot custom-agent effort requires --copilot-catalog")
-        if cline_cli and model_id not in {None, "inherit"} and provider_id not in {"openrouter", "anthropic"}:
+        if cline_configured_agent and model_id not in {None, "inherit"} and provider_id not in {"openrouter", "anthropic"}:
             raise WeaverError("Explicit Cline agent models require a documented Cline provider: openrouter or anthropic")
         model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot)
-        if cline_cli and allowed_skills:
+        if cline_configured_agent and allowed_skills:
             skill_ids = selected_portable_skill_ids(root, allowed_skills)
     permission_behavior = (row["permission_behavior"] if opencode_digest is None else
                            "V2 ordered rules deny all actions first, allow read/glob/grep, and deny reads of "
@@ -558,7 +558,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "replaces that Profile connector. An empty request tools list does not revoke ambient "
                       "Profile access. A Profile is not an authorization boundary; tool approvals and connected "
                       "account permissions still apply. No connectors, tools, approvals or services are enabled here."])
-    if checked is not None and cline_cli:
+    if checked is not None and cline_configured_agent:
         lines.extend(["", f"Explicit Cline provider: {checked['provider_id']}",
                       "The provider override applies to this configured agent. Review the host's configured "
                       "provider authentication and model access before use."])
@@ -588,9 +588,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if skill_ids:
             lines.extend(["", "Copilot Skills to load: " + ", ".join(skill_ids) + ".",
                           "Stage matching files separately with bundle --skill for each ID."])
-    if cline_cli and skill_ids:
+    if cline_configured_agent and skill_ids:
         lines.extend(["", "Cline Skill IDs: " + ", ".join(skill_ids) + ".",
-                      "Stage matching files with bundle --agent cline --surface cli and each --skill ID."])
+                      f"Stage matching files with bundle --agent cline --surface {surface} and each --skill ID."])
+    if cline_configured_agent:
+        lines.extend(["", "Review each delegated task before approving it. Cline does not prompt again for "
+                      "the child's individual tool calls. The configured agent uses built-in tools and "
+                      "the explicitly selected Skills."])
     if llm_profile is not None:
         lines.append(f"Explicit local LLM profile reference: {model}")
     elif model is not None:
@@ -608,7 +612,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         native_model = copilot_models if copilot_models and len(copilot_models) > 1 else model
         content = _native(row, identifier, summary, prompt, native_model, effort,
                           opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
-                          copilot_catalog=copilot_digest is not None, cline_provider=provider_id if cline_cli else None)
+                          copilot_catalog=copilot_digest is not None,
+                          cline_provider=provider_id if cline_configured_agent else None)
         artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
         lines.extend(["", f"Native project path: {path}"])
     else:

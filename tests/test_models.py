@@ -393,6 +393,20 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_cline_desktop_reasoning_handoff_uses_picker_labels(self) -> None:
+        spec = get_integration("cline", ROOT)
+        options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
+                       snapshot={"provider_id": "openrouter", "models": [
+                           {"id": "fixture/reasoner", "reasoning": {"efforts": ["xhigh", "max", "minimal"]}},
+                       ]})
+        for effort, label in (("xhigh", b"Thinking level: Extra"), ("max", b"Thinking level: Max"),
+                              ("minimal", b"no matching label")):
+            with self.subTest(effort=effort):
+                artifacts = render_model_setup(spec, "desktop", effort=effort, **options)
+                self.assertIn(label, artifacts[0].content)
+                self.assertIn(b"Configuration state: `manual`", artifacts[0].content)
+                self.assertFalse(any(item.kind in {"model-config", "session-arguments"} for item in artifacts))
+
     def test_cline_cli_stages_model_and_thinking_with_explicit_approval(self) -> None:
         spec = get_integration("cline", ROOT)
         opts = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",

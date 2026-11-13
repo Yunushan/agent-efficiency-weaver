@@ -17,6 +17,18 @@ ROOT_ARGS = ('--root', str(ROOT))
 
 
 class CapabilityCliTests(unittest.TestCase):
+    def test_cline_desktop_stages_workspace_skills_and_disabled_mcp_for_desktop_ui(self):
+        base = (*ROOT_ARGS, '--agent', 'cline', '--surface', 'desktop', '--profile', 'efficient', '--dry-run')
+        code, output, error = invoke('render', *base, '--enable', 'context7')
+        self.assertEqual(code, 0, error)
+        items = {entry['kind']: entry for entry in json.loads(output)['artifacts']}
+        self.assertTrue(json.loads(items['mcp-fragment']['content'])['mcpServers']['context7']['disabled'])
+        self.assertIn('Customize > Installed > MCP servers > MCP settings path', items['handoff']['content'])
+        code, output, error = invoke('bundle', *base, '--skill', 'security-review')
+        self.assertEqual(code, 0, error)
+        self.assertIn('cline/.cline/skills/security-review/SKILL.md',
+                      [item['path'] for item in json.loads(output)['artifacts']])
+
     def test_cline_cli_stages_disabled_mcp_and_project_skills(self):
         base = (*ROOT_ARGS, '--agent', 'cline', '--surface', 'cli', '--profile', 'efficient', '--dry-run')
         code, output, error = invoke('render', *base, '--enable', 'context7')

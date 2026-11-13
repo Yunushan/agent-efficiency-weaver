@@ -172,7 +172,7 @@ class StdioConfigurationTests(unittest.TestCase):
                                 {"type": "local", "command": [COMMAND, *ARGS], "enabled": True} if product in LOCAL_ARRAY else
                                 {"type": "stdio", "name": "synthetic-stdio", "enabled": True, "cmd": COMMAND, "args": ARGS} if product == "goose" else
                                 {**base, "enabled": True} if product == "hermes" else base)
-                    if (product, surface.id) == ("cline", "cli"):
+                    if product == "cline" and surface.id in {"cli", "desktop"}:
                         expected["disabled"] = True
                     self.assertEqual(entry, expected)
                     for remote_field in ("url", "serverUrl", "httpUrl", "uri"):

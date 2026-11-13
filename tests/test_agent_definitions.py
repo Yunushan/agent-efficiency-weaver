@@ -25,6 +25,7 @@ NATIVE_PATHS = {
     ("codex", "ide"): ".codex/agents/reviewer.toml",
     ("claude-code", "cli"): ".claude/agents/reviewer.md",
     ("cline", "cli"): ".cline/agents/reviewer.yaml",
+    ("cline", "desktop"): ".cline/agents/reviewer.yaml",
     ("copilot", "vscode"): ".github/agents/reviewer.agent.md",
     ("factory", "cli"): ".factory/droids/reviewer.md",
     ("opencode", "cli"): ".opencode/agents/reviewer.md",
@@ -80,7 +81,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertFalse(row["evidence"]["runtime_checks"])
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
-                    refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13"}
+                    refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
+                                 ("cline", "desktop"): "2026-11-13"}
                     expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
@@ -250,6 +252,17 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.render("cline", "cli", **options)
         with self.assertRaises(WeaverError):
             self.render("cline", "ide")
+
+    def test_cline_desktop_configured_agent_references_exact_skills_and_model(self):
+        artifacts = self.render("cline", "desktop", model_id="fixture/reasoner", provider_id="anthropic",
+                                allowed_skills=["security-review"])
+        fields, _ = parse_definition(artifacts[0].content, ".cline/agents/reviewer.yaml")
+        self.assertEqual(fields["providerId"], "anthropic")
+        self.assertEqual(fields["modelId"], "fixture/reasoner")
+        self.assertEqual(fields["skills"], ["security-review"])
+        self.assertEqual(fields["tools"], ["read_files", "search_codebase"])
+        self.assertIn(b"--surface desktop", artifacts[1].content)
+        self.assertIn(b"does not prompt again", artifacts[1].content)
 
     def test_codex_catalog_validates_client_effort_without_provider_inference(self):
         with tempfile.TemporaryDirectory() as directory:

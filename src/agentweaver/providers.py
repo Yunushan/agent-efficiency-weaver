@@ -171,6 +171,8 @@ def _metadata(provider_metadata: Mapping[str, Any] | None) -> _Metadata:
 def _route(agent_id: str, surface: str) -> _Route:
     if (agent_id, surface) == ("cline", "cli"):
         return _CLINE_CLI_ROUTE
+    if (agent_id, surface) == ("cline", "desktop"):
+        return _CLINE_DESKTOP_ROUTE
     if agent_id in _GAP_AGENTS:
         _fail(f"No documented OpenRouter provider route for {agent_id}; documented gap")
     route = _ROUTES.get(agent_id)
@@ -370,6 +372,17 @@ _CLINE_CLI_ROUTE = _Route(
     "Use the OpenRouter provider configured through Cline.",
     ("Review delegation settings and permissions before approving a subagent.",),
     ("https://docs.cline.bot/cli/cli-reference", "https://docs.cline.bot/provider-config/openrouter", _OPENROUTER),
+)
+_CLINE_DESKTOP_ROUTE = _Route(
+    ("desktop",), "", "Choose the raw OpenRouter model ID from the configured provider's model picker.",
+    ("Open Cline Desktop and configure OpenRouter in its provider settings.",
+     "Choose {model} from OpenRouter in the chat model picker.",
+     "Set Thinking level for the session when the selected model supports reasoning."),
+    (), "Enter the key using Cline Desktop's provider settings.", None,
+    "Use the OpenRouter provider configured through Cline Desktop.",
+    ("The chat model picker resolves the models available in the configured account.",
+     "Review delegation settings and permissions before approving a subagent."),
+    ("https://docs.cline.bot/usage/cline-desktop", "https://docs.cline.bot/provider-config/openrouter", _OPENROUTER),
 )
 _EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
 _REFRESHED_ROUTE_IDS = _EXPANDED_ROUTE_IDS | {"openhands"}

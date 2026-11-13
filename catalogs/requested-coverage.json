@@ -27,7 +27,7 @@
     },
     {
       "id": "cline", "label": "Cline", "aliases": ["cline"],
-      "targets": [{"product_id": "cline", "surface_id": "ide"}, {"product_id": "cline", "surface_id": "cli"}]
+      "targets": [{"product_id": "cline", "surface_id": "ide"}, {"product_id": "cline", "surface_id": "cli"}, {"product_id": "cline", "surface_id": "desktop"}]
     },
     {
       "id": "factory", "label": "Factory Droid", "aliases": ["factory", "FactoryDroid", "Factory Droid", "droid"],

@@ -658,6 +658,100 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "desktop",
+          "mcp_dialect": "mcpServers.type-streamableHttp",
+          "config_fields": [
+            "mcpServers",
+            "type",
+            "url",
+            "disabled"
+          ],
+          "config_scope": "user",
+          "native_path_hint": null,
+          "documented_location": "Customize > Installed > MCP servers > MCP settings path (user scope)",
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".clinerules/",
+            ".cline/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".cline/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "unknown",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/usage/cline-desktop",
+                "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/apps/examples/desktop-app/webview/components/views/settings/mcp-view.tsx",
+                "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/sdk/packages/core/src/extensions/mcp/config-loader.ts"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/customization/cline-rules"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/usage/cline-desktop",
+                "https://docs.cline.bot/customization/skills",
+                "https://docs.cline.bot/getting-started/config"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.cline.bot/usage/cline-desktop",
+                "https://docs.cline.bot/provider-config/openrouter"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://docs.cline.bot/usage/cline-desktop"
+              ],
+              "checked_on": "2026-11-13",
+              "version_constraint": "Cline Desktop is documented for macOS and Windows beta. Version minima, architecture and installed runtime are unverified.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

@@ -1002,6 +1002,20 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if chosen in _OPENROUTER_TASK_ENDPOINTS:
         native_note = ("Use the staged selector as the model field in a request to the listed OpenRouter endpoint. "
                        "Add the endpoint's task-specific input and authenticate separately.")
+    if (text_candidate and (registered.id, surface, provider_id, chosen) ==
+            ("cline", "desktop", "openrouter", "openrouter-chat")):
+        native_note = (
+            "Configure OpenRouter in Cline Desktop and select the staged model in the chat model picker. "
+            "Use the session's Thinking level picker when the model supports reasoning."
+        )
+        thinking_labels = {"none": "None", "low": "Low", "medium": "Medium", "high": "High",
+                           "xhigh": "Extra", "max": "Max"}
+        if effort is not None and effort in thinking_labels:
+            native_note += f" Requested Thinking level: {thinking_labels[effort]}."
+        elif effort is not None:
+            native_note += " The requested effort has no matching label in the audited Desktop picker."
+        if any(value is not None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
+            native_note += " Review the documented provider controls for the other requested settings."
     if batch_endpoint is not None:
         native_note = (
             "Put the staged endpoint and model fields before requests in the batch envelope. "
@@ -1170,6 +1184,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
     if (registered.id, surface) == ("cline", "cli"):
         lines.append("- https://docs.cline.bot/cli/cli-reference")
+    if (registered.id, surface) == ("cline", "desktop"):
+        lines.append("- https://docs.cline.bot/usage/cline-desktop")
     if registered.id == "kimi-code":
         lines.append("- https://moonshotai.github.io/kimi-code/en/configuration/providers.html")
     if chosen == "anthropic-messages" and provider_id in {"lm-studio", "perplexity-orchestrator"}:

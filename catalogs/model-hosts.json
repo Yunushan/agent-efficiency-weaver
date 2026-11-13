@@ -552,6 +552,50 @@
       "availability": "unknown"
     },
     {
+      "product_id": "cline",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a provider and model for the selected Cline Desktop session.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the chat model picker",
+          "Select the configured provider and model"
+        ],
+        "sources": [
+          "https://docs.cline.bot/usage/cline-desktop"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Thinking level",
+            "values": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://github.com/cline/cline/blob/72b3d7140553a733242126e51a7c2e87efe75c64/apps/examples/desktop-app/webview/components/views/chat/chat-input-bar.tsx"
+        ]
+      },
+      "checked_on": "2026-11-13",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "codex",
       "surface_id": "cli",
       "selection": {
