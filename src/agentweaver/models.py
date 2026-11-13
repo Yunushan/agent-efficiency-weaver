@@ -30,10 +30,29 @@ _LM_STUDIO_NONCHAT = {
     "openai-decisions": ("decision", "/decisions"),
     "jev-systemone": ("decision", "/systemone"),
 }
+_OPENROUTER_TASK_ENDPOINTS = {
+    "openrouter-completions": "/api/v1/completions",
+    "openrouter-messages": "/api/v1/messages",
+    "openrouter-embeddings": "/api/v1/embeddings",
+    "openrouter-rerank": "/api/v1/rerank",
+    "openrouter-images": "/api/v1/images",
+    "openrouter-videos": "/api/v1/videos",
+    "openrouter-speech": "/api/v1/audio/speech",
+    "openrouter-transcriptions": "/api/v1/audio/transcriptions",
+    "openrouter-decisions": "/api/alpha/decisions",
+    "openrouter-extractions": "/api/alpha/extractions",
+}
+_OPENROUTER_ENDPOINTS = {
+    "openrouter-chat": "/api/v1/chat/completions",
+    "openai-chat": "/api/v1/chat/completions",
+    "openai-responses": "/api/v1/responses",
+    **_OPENROUTER_TASK_ENDPOINTS,
+}
+_OPENROUTER_API_PATH = re.compile(r"/api/(?:v[1-9][0-9]*|alpha)/[a-z0-9-]+(?:/[a-z0-9-]+)*\Z")
 _PROTOCOLS = {
     "openai-chat", "openai-responses", "anthropic-messages", "google-generate-content",
     "lmstudio-chat", "perplexity-agent", "openrouter-chat",
-} | _LM_STUDIO_NONCHAT.keys()
+} | _LM_STUDIO_NONCHAT.keys() | _OPENROUTER_TASK_ENDPOINTS.keys()
 _SECRET_KEYS = {"api_key", "apikey", "authorization", "credentials", "credential", "secret", "access_token",
                 "refresh_token", "password", "headers", "apiKey", "token"}
 _SECRET = re.compile(r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})",
@@ -474,6 +493,13 @@ def _model_architecture(value: object) -> dict[str, Any]:
     return result
 
 
+def _openrouter_endpoints(value: object) -> list[str]:
+    paths = _strings(value, "OpenRouter model endpoint paths")
+    if any(not _OPENROUTER_API_PATH.fullmatch(path) for path in paths):
+        _fail("Invalid OpenRouter model endpoint path")
+    return paths
+
+
 def _lmstudio_metadata(entry: dict[str, Any]) -> dict[str, Any]:
     """Keep model identity, installed variants, and instance state separate."""
     model_type = entry.get("type")
@@ -578,6 +604,8 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
             if format_name == "lmstudio":
                 item["lm_studio"] = _lmstudio_metadata(entry)
             if format_name == "openrouter":
+                if "endpoints" in entry:
+                    item["endpoints"] = _openrouter_endpoints(entry["endpoints"])
                 if "architecture" in entry:
                     item["architecture"] = _model_architecture(entry["architecture"])
                 if "reasoning" in entry:
@@ -754,6 +782,13 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     chosen = protocol or provider["protocols"][0]
     if chosen not in provider["protocols"]:
         _fail("Protocol is not documented for this provider")
+    router_task = chosen in _OPENROUTER_TASK_ENDPOINTS
+    router_endpoint = _OPENROUTER_ENDPOINTS.get(chosen) if provider_id == "openrouter" else None
+    if router_task:
+        if router_endpoint is None or snapshot is None:
+            _fail("This OpenRouter route requires a saved OpenRouter model list with endpoint metadata")
+        if any(value is not None for value in (effort, budget_tokens, reasoning_enabled, mode, context_size)):
+            _fail("This OpenRouter route stages only the model selector")
     nonchat = _LM_STUDIO_NONCHAT.get(chosen)
     if nonchat is not None:
         if provider_id != "lm-studio" or snapshot is None:
@@ -772,6 +807,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
     visible: bool | None = None
     provenance: dict[str, Any] | None = None
     architecture: dict[str, Any] | None = None
+    endpoints: list[str] | None = None
     lmstudio_options: list[str] | None = None
     if snapshot is not None:
         if not isinstance(snapshot, Mapping) or snapshot.get("provider_id") != provider_id:
@@ -806,6 +842,8 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             if entry_id == identifier:
                 visible = True
                 architecture = declared_architecture
+                if router_endpoint is not None and "endpoints" in entry:
+                    endpoints = _openrouter_endpoints(entry["endpoints"])
                 if provider_id == "lm-studio" and "lm_studio" in entry:
                     metadata = entry["lm_studio"]
                     if not isinstance(metadata, dict):
@@ -833,6 +871,11 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             if nonchat_matches != 1:
                 _fail("Expected one matching LM Studio embedding key or loaded decision instance ID")
             visible = True
+    if router_endpoint is not None:
+        if endpoints is not None and router_endpoint not in endpoints:
+            _fail("The selected model does not advertise the requested OpenRouter endpoint")
+        if router_task and endpoints is None:
+            _fail("Expected a matching OpenRouter model with explicit endpoint metadata")
     if chosen == "lmstudio-chat" and lmstudio_options is not None and reasoning_enabled is not None:
         if type(reasoning_enabled) is not bool:
             _fail("Reasoning toggle must be boolean")
@@ -853,6 +896,7 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
             "reasoning_capability": cap, "reasoning_evidence": evidence, "reasoning_payload": payload,
             "snapshot_provenance": provenance, "catalog_completeness": "unknown", "network_used": False,
             "credentials_read": False, "context_size": context_size, "architecture": architecture,
+            "advertised_endpoints": endpoints,
             "language_agent_compatibility": "unknown"}
 
 
@@ -908,6 +952,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     registered.surface(surface)
     if protocol in _LM_STUDIO_NONCHAT and (registered.id, surface) != ("lm-studio", "api"):
         _fail("Non-chat LM Studio selections require the LM Studio API surface")
+    if protocol in _OPENROUTER_TASK_ENDPOINTS and (registered.id, surface) != ("openrouter", "gateway"):
+        _fail("OpenRouter task endpoint selections require the OpenRouter gateway surface")
     checked = check_model(root, provider_id, model_id, snapshot, effort=effort, budget_tokens=budget_tokens,
                           reasoning_enabled=reasoning_enabled, protocol=protocol, mode=mode, context_size=context_size)
     provider = load_model_providers(root)[provider_id]
@@ -927,6 +973,9 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if not text_candidate:
         native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
                        "language-agent compatibility is unknown.")
+    if chosen in _OPENROUTER_TASK_ENDPOINTS:
+        native_note = ("Use the staged selector as the model field in a request to the listed OpenRouter endpoint. "
+                       "Add the endpoint's task-specific input and authenticate separately.")
     codex_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
                       ("codex", "cli", "lm-studio", "openai-responses"))
     claude_lmstudio = (text_candidate and (registered.id, surface, provider_id, chosen) ==
@@ -1062,6 +1111,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
                       f"Add task-specific input using the documented {model_type} request schema. "
                       "The selection fragment contains only the model field. Confirm the model is available "
                       "on the target server before sending a request."])
+    if chosen in _OPENROUTER_TASK_ENDPOINTS:
+        endpoint = _OPENROUTER_TASK_ENDPOINTS[chosen]
+        lines.extend(["", f"Endpoint: `POST {api_base.removesuffix('/api/v1')}{endpoint}`.",
+                      "The saved listing advertises this route for the selected model."])
     if registered.id == "qwen-code":
         lines.append("- https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/")
     if registered.id == "kimi-code":

@@ -188,6 +188,21 @@ class SnapshotTests(unittest.TestCase):
         budget = check_model(ROOT, "openrouter", "vendor/model", snapshot, budget_tokens=2048)
         self.assertEqual(budget["reasoning_payload"], {"reasoning": {"max_tokens": 2048}})
 
+    def test_openrouter_endpoint_evidence_is_preserved_and_respected(self) -> None:
+        paths = ["/api/v1/chat/completions", "/api/v1/batches", "/api/v2/future-endpoint"]
+        snapshot = self.read("openrouter", {"data": [{"id": "fixture/model", "endpoints": paths}]})
+        self.assertEqual(snapshot["models"][0]["endpoints"], paths)
+        checked = check_model(ROOT, "openrouter", "fixture/model", snapshot)
+        self.assertEqual(checked["advertised_endpoints"], paths)
+        with self.assertRaisesRegex(WeaverError, "does not advertise"):
+            check_model(ROOT, "openrouter", "fixture/model", snapshot, protocol="openai-responses")
+        legacy = self.read("openrouter", {"data": [{"id": "fixture/model"}]})
+        self.assertIsNone(check_model(ROOT, "openrouter", "fixture/model", legacy)["advertised_endpoints"])
+        for invalid in (None, "routes", ["/api/v1/chat/completions?key=fixture"], ["https://example.com/api/v1/images"],
+                        ["/api/v1/../images"], ["/api/v1/images", "/api/v1/images"]):
+            with self.subTest(invalid=invalid), self.assertRaises(WeaverError):
+                self.read("openrouter", {"data": [{"id": "fixture/model", "endpoints": invalid}]})
+
     def test_openrouter_null_efforts_differs_from_absent_efforts(self) -> None:
         available = self.read("openrouter", {"data": [{"id": "v/a", "reasoning": {"supported_efforts": None}}]})
         self.assertIn("max", available["models"][0]["reasoning"]["efforts"])
@@ -378,6 +393,35 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_openrouter_task_endpoint_staging_requires_saved_route_and_stages_only_model(self) -> None:
+        spec = get_integration("openrouter", ROOT)
+        options = {"root": ROOT, "provider_id": "openrouter", "model_id": "fixture/model"}
+        routes = {
+            "completions": "/api/v1/completions", "messages": "/api/v1/messages",
+            "embeddings": "/api/v1/embeddings", "rerank": "/api/v1/rerank",
+            "images": "/api/v1/images", "videos": "/api/v1/videos", "speech": "/api/v1/audio/speech",
+            "transcriptions": "/api/v1/audio/transcriptions", "decisions": "/api/alpha/decisions",
+            "extractions": "/api/alpha/extractions",
+        }
+        for suffix, endpoint in routes.items():
+            with self.subTest(suffix=suffix):
+                snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/model", "endpoints": [endpoint]}]}
+                protocol = f"openrouter-{suffix}"
+                artifacts = render_model_setup(spec, "gateway", protocol=protocol, snapshot=snapshot, **options)
+                selection = next(item for item in artifacts if item.kind == "model-selection")
+                self.assertEqual(json.loads(selection.content), {"model": "fixture/model"})
+                self.assertIn(f"POST https://openrouter.ai{endpoint}", artifacts[0].content.decode())
+        protocol = "openrouter-embeddings"
+        snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/model", "endpoints": [routes["embeddings"]]}]}
+        for extra in ({}, {"snapshot": {"provider_id": "openrouter", "models": []}},
+                      {"snapshot": {"provider_id": "openrouter", "models": [{"id": "fixture/model"}]}},
+                      {"snapshot": {"provider_id": "openrouter", "models": [{"id": "fixture/model", "endpoints": []}]}},
+                      {"snapshot": snapshot, "effort": "low"}, {"snapshot": snapshot, "context_size": 4096}):
+            with self.subTest(extra=extra), self.assertRaises(WeaverError):
+                render_model_setup(spec, "gateway", protocol=protocol, **options, **extra)
+        with self.assertRaisesRegex(WeaverError, "OpenRouter gateway"):
+            render_model_setup(get_integration("hermes", ROOT), "cli", protocol=protocol, snapshot=snapshot, **options)
+
     def test_known_nontext_output_uses_manual_task_handoff_for_coding_hosts(self) -> None:
         snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/nontext-model", "architecture": {
             "input_modalities": ["text"], "output_modalities": ["embeddings"]}, "context_length": 0}]}

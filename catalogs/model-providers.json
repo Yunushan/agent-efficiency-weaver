@@ -11,7 +11,17 @@
       "protocols": [
         "openrouter-chat",
         "openai-chat",
-        "openai-responses"
+        "openai-responses",
+        "openrouter-completions",
+        "openrouter-messages",
+        "openrouter-embeddings",
+        "openrouter-rerank",
+        "openrouter-images",
+        "openrouter-videos",
+        "openrouter-speech",
+        "openrouter-transcriptions",
+        "openrouter-decisions",
+        "openrouter-extractions"
       ],
       "discovery": {
         "endpoint": "/models",
