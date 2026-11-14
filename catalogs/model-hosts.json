@@ -1868,7 +1868,8 @@
         "mechanism": "Create a named LLM profile on the active backend. Use the exact provider model ID and a backend-reachable base URL. Saving can contact the provider for validation.",
         "fields": [
           "model",
-          "base_url"
+          "base_url",
+          "api_mode"
         ],
         "commands": [],
         "ui_steps": [

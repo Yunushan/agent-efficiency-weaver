@@ -1147,6 +1147,10 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "Supply credentials separately. Saving can contact the provider. Select the saved profile "
             "for the next OpenHands conversation."
         )
+        native_note += (
+            " In the All tab, set `api_mode` to `chat` on backends that expose this field so a "
+            "model that defaults to Responses uses the selected Chat Completions route."
+        )
         if effort is not None:
             native_note += (
                 f" In the All tab, set `reasoning_effort` to `{effort}` only if the installed backend "

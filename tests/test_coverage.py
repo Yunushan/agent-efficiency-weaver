@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 24)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 195)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 25)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 201)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -179,7 +179,6 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {row["surface_id"]: row for row in openhands["targets"]}
         self.assertEqual(set(targets), {"cli", "canvas"})
         self.assertEqual(resolve_product_alias(ROOT, "OpenHands Agent Canvas"), "openhands")
-        self.assertFalse(targets["canvas"]["runtime_observations"])
         self.assertEqual(targets["canvas"]["capabilities"]["mcp"]["state"], "available")
         target = targets["cli"]
         record, = target["runtime_observations"]
@@ -197,6 +196,27 @@ class RequestedCoverageTests(unittest.TestCase):
             "openhands-named-profile-model-request": "models",
             "openhands-named-profile-effort-request": "reasoning",
         })
+
+    def test_canvas_runtime_observations_are_scoped_to_the_pinned_local_backend(self):
+        report = coverage_report(ROOT)
+        openhands = next(item for item in report["requested_items"] if item["id"] == "openhands")
+        canvas = next(row for row in openhands["targets"] if row["surface_id"] == "canvas")
+        record, = canvas["runtime_observations"]
+        self.assertEqual(record["product_version"], "1.40.0")
+        self.assertEqual(record["engine_version"], "1.62.0")
+        self.assertEqual(record["interface"], "local-agent-server-asgi")
+        self.assertEqual(record["environment"], "isolated-release-loopback")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
+            "canvas-disabled-mcp-settings": "mcp",
+            "canvas-stdio-test-tool-call": "mcp",
+            "canvas-backend-project-skill-load": "skills",
+            "canvas-agent-profile-materialization": "agents",
+            "canvas-llm-profile-preflight-model": "models",
+            "canvas-llm-profile-preflight-effort": "reasoning",
+        })
+        self.assertEqual(canvas["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_zed_observation_covers_editor_mcp_startup(self):
         report = coverage_report(ROOT)

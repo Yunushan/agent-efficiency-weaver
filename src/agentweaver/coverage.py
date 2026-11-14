@@ -369,6 +369,30 @@ _OBSERVATION_CHECKS = {
         "reasoning", "The scripted loopback Responses endpoint observed different configured reasoning "
         "efforts from the parent and the generated reviewer.",
     ),
+    "canvas-disabled-mcp-settings": (
+        "mcp", "The pinned local Agent Server persisted the generated stdio and HTTPS bodies disabled, "
+        "rejected a duplicate ID, and excluded the disabled entries from enabled servers.",
+    ),
+    "canvas-stdio-test-tool-call": (
+        "mcp", "The pinned local Agent Server explicitly enabled the disposable stdio entry, then "
+        "its MCP test endpoint discovered and called the fixture before the entry was disabled again.",
+    ),
+    "canvas-backend-project-skill-load": (
+        "skills", "The pinned local backend SDK loaded the staged repository instructions and Skill "
+        "from a disposable Git project. The empty project exposed neither artifact.",
+    ),
+    "canvas-agent-profile-materialization": (
+        "agents", "The local Agent Server stored the staged role through its manual profile path and "
+        "resolved its named LLM profile and selected MCP scope in launch diagnostics.",
+    ),
+    "canvas-llm-profile-preflight-model": (
+        "models", "A scripted loopback endpoint received the selected model ID during the local "
+        "Agent Server LLM profile preflight.",
+    ),
+    "canvas-llm-profile-preflight-effort": (
+        "reasoning", "The local Agent Server exposed reasoning settings in its schema and sent the "
+        "configured low effort in the preflight Chat Completions request once chat mode was explicit.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -396,6 +420,7 @@ _OBSERVATION_INTERFACES = {
     ("hermes", "cli", "config-inventory"),
     ("zed", "ide", "editor-startup"),
     ("openhands", "cli", "headless-loopback"),
+    ("openhands", "canvas", "local-agent-server-asgi"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
@@ -554,6 +579,7 @@ def _load_observations(
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},
             ("openhands", "cli"): {"isolated-release-loopback"},
+            ("openhands", "canvas"): {"isolated-release-loopback"},
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("cline", "ide"): {"isolated-release-loopback"},

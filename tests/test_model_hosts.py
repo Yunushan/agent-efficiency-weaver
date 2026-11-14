@@ -132,6 +132,7 @@ class ModelHostTests(unittest.TestCase):
         guide = next(item.content for item in artifacts if item.relative_path.suffix == ".md")
         self.assertIn(b"openai/local-model", guide)
         self.assertIn(b"http://localhost:1234/v1", guide)
+        self.assertIn(b"set `api_mode` to `chat`", guide)
         self.assertIn(b"Saving can contact the provider", guide)
         snapshot = {"provider_id": "openrouter", "models": [{"id": "vendor/model",
                      "reasoning": {"state": "declared", "efforts": ["high"]}}]}
