@@ -1,7 +1,7 @@
 {
   "kilo": {"path": "kilo/.kilo/kilo.json", "empty": {"mcp": {}}, "enabled": {"mcp": {"context7": {"type": "remote", "url": "https://mcp.context7.com/mcp"}}}},
   "opencode": {"path": "opencode/opencode.json", "empty": {"mcp": {}}, "enabled": {"mcp": {"context7": {"type": "remote", "url": "https://mcp.context7.com/mcp"}}}},
-  "cline": {"path": "cline/fragments/cline_mcp_settings.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "streamableHttp", "url": "https://mcp.context7.com/mcp", "disabled": false}}}},
+  "cline": {"path": "cline/fragments/cline_mcp_settings.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "streamableHttp", "url": "https://mcp.context7.com/mcp", "disabled": true}}}},
   "copilot": {"path": "copilot/.vscode/mcp.json", "empty": {"servers": {}}, "enabled": {"servers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}},
   "cursor": {"path": "cursor/.cursor/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
   "openhands": {"path": "openhands/fragments/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},

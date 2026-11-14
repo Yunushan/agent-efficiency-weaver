@@ -1445,6 +1445,42 @@
           "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
         }
       ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "4.1.26",
+      "extension_version": "4.1.26",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "vscode-extension-host",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "ab57b76b7909dd97161b64487c9a7d8c83be2d0b",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-stdio-activation",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-delegation-unavailable",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-local-model-selection",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-reasoning-effort-request",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        }
+      ]
     }
   ]
 }

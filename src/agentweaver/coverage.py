@@ -211,6 +211,19 @@ _OBSERVATION_CHECKS = {
     "cline-desktop-max-effort-fallback": (
         "reasoning", "Desktop 0.0.49 sent medium effort when its chat backend received max for the tested model.",
     ),
+    "cline-ide-stdio-activation": (
+        "mcp", "The IDE loaded the generated disabled entry and connected and discovered its tool only after "
+        "enabling the server in the isolated extension profile.",
+    ),
+    "cline-ide-delegation-unavailable": (
+        "agents", "The isolated IDE exposed subagents as disabled and offered no delegation tool in the test request.",
+    ),
+    "cline-ide-local-model-selection": (
+        "models", "The extension listed two loopback provider fixture models and sent the selected ID in a chat request.",
+    ),
+    "cline-ide-reasoning-effort-request": (
+        "reasoning", "The extension applied high effort in a scripted LM Studio Chat Completions request.",
+    ),
     "factory-droid-discovery": (
         "agents", "Droid advertised the generated custom droid. The unsigned session stopped at daemon authentication.",
     ),
@@ -303,6 +316,7 @@ _OBSERVATION_INTERFACES = {
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
+    ("cline", "ide", "vscode-extension-host"),
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
     ("kimi-code", "cli", "local-web-api"),
@@ -457,6 +471,7 @@ def _load_observations(
             ("kilo", "ide"): {"isolated-release-loopback"},
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
+            ("cline", "ide"): {"isolated-release-loopback"},
             ("factory", "cli"): {"isolated-release-loopback"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
             ("lm-studio", "api"): {"isolated-release-loopback"},

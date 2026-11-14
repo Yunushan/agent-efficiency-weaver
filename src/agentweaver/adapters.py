@@ -13,7 +13,7 @@ _JSON_DIALECTS: dict[str, tuple[str, tuple[tuple[str, Any], ...]]] = {
     'mcp.type-remote': ('mcp', (('type', 'remote'), ('url', _URL))),
     'mcpServers.url': ('mcpServers', (('url', _URL),)),
     'mcpServers.httpUrl': ('mcpServers', (('httpUrl', _URL),)),
-    'mcpServers.type-streamableHttp': ('mcpServers', (('type', 'streamableHttp'), ('url', _URL), ('disabled', False))),
+    'mcpServers.type-streamableHttp': ('mcpServers', (('type', 'streamableHttp'), ('url', _URL))),
     'mcpServers.type-http': ('mcpServers', (('type', 'http'), ('url', _URL))),
     'mcpServers.copilot-portable': ('mcpServers', (('type', 'http'), ('url', _URL), ('tools', ['*']))),
     'mcpServers.type-sse': ('mcpServers', (('type', 'sse'), ('url', _URL))),
@@ -240,7 +240,7 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         if not isinstance(dialect, str):
             raise WeaverError('MCP dialect is not documented')
         document = _json_document(dialect, selected, spec.id)
-        if (spec.id, surface) in {('cline', 'cli'), ('cline', 'desktop'), ('kiro', 'cli')}:
+        if spec.id == 'cline' or (spec.id, surface) == ('kiro', 'cli'):
             for entry in document['mcpServers'].values():
                 entry['disabled'] = True
         content = json_bytes(document)

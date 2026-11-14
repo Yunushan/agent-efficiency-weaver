@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 18)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 169)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 19)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 174)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -172,6 +172,24 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_cline_ide_observations_keep_the_extension_host_scope(self):
+        report = coverage_report(ROOT)
+        cline = next(item for item in report["requested_items"] if item["id"] == "cline")
+        targets = {target["surface_id"]: target for target in cline["targets"]}
+        ide, = targets["ide"]["runtime_observations"]
+        self.assertEqual(ide["interface"], "vscode-extension-host")
+        self.assertEqual(ide["product_version"], "1.146.0")
+        self.assertEqual(ide["extension_version"], "4.1.26")
+        self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(ide["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in ide["checks"]}, {
+            "skill-discovery": "skills",
+            "cline-ide-stdio-activation": "mcp",
+            "cline-ide-delegation-unavailable": "agents",
+            "cline-ide-local-model-selection": "models",
+            "cline-ide-reasoning-effort-request": "reasoning",
+        })
 
     def test_lmstudio_observations_apply_to_the_headless_api(self):
         report = coverage_report(ROOT)
@@ -400,7 +418,6 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_cline_runtime_records_distinguish_inventory_and_loopback_execution(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "cline")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        self.assertEqual(targets["ide"]["runtime_observations"], [])
         inventory, execution = targets["cli"]["runtime_observations"]
         for record in (inventory, execution):
             self.assertEqual(record["product_version"], "3.0.74")

@@ -65,6 +65,8 @@ The LM Studio API surface can also stage selections for embedding and decision m
 
 Cline CLI has its own `--agent cline --surface cli` route. It stages named agents, portable Skills, disabled MCP server entries for manual merge, and OpenRouter session arguments with model-specific thinking. [Cline config paths](https://docs.cline.bot/getting-started/config) · [Cline CLI flags](https://docs.cline.bot/cli/cli-reference)
 
+Use `--surface ide` for the Cline VS Code extension. The project Skill goes under `.cline/skills`. Review and merge the disabled MCP entries into Cline's user settings, then enable each intended server in the extension. [Cline Skills](https://docs.cline.bot/customization/skills)
+
 Use `--surface desktop` for Cline Desktop. Weaver stages configured agents and portable Skills under `.cline/`, writes disabled MCP entries for manual merge through the app's settings path, and describes how to select the model and thinking level in chat. [Cline Desktop documentation](https://docs.cline.bot/usage/cline-desktop)
 
 `agent --agent copilot --surface vscode --model MODEL --copilot-catalog FILE` stages a custom agent using exact IDs from a saved Copilot SDK `listModels()` array. Add `--copilot-fallback-model ID` for each fallback, `--reasoning-effort EFFORT` when every selected model advertises it, and `--allow-skill ID` for each portable Skill to load. Use `bundle` and `render` to stage Skills and MCP configuration for the same workspace. [VS Code custom agent file reference](https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference)
