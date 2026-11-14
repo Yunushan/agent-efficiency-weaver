@@ -69,7 +69,7 @@ _ROW_KEYS = {"product_id", "surface_id", "state", "format", "path_template", "mo
              "effort_field", "efforts", "model_behavior", "reasoning_behavior", "permission_behavior",
              "reserved_names", "evidence"}
 _EVIDENCE_KEYS = {"sources", "checked_on", "version_constraint", "fixture_tests", "runtime_checks"}
-_STYLES = {"bare", "provider/model", "tier", "local-profile", "none"}
+_STYLES = {"bare", "provider/model", "tier", "local-profile", "display-name-link", "none"}
 _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
@@ -190,6 +190,10 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise WeaverError("Invalid custom-agent model style")
         if (format_name == "openhands-markdown") != (row["model_style"] == "local-profile"):
             raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
+        if row["model_style"] == "display-name-link" and (product, surface, format_name) != (
+            "qoder", "ide", "qoder-markdown"
+        ):
+            raise WeaverError("Display name/model links require the documented Qoder IDE agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
         allowed_efforts = CODEX_EFFORTS if format_name == "codex-toml" else _EFFORTS
         catalog_efforts = (
@@ -446,8 +450,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                                                copilot_catalog, kilo_catalog, factory_catalog, qoder_catalog)):
             raise WeaverError("A Claude Code model catalog conflicts with other model discovery options")
     if qoder_catalog is not None:
-        if (spec.id, surface) != ("qoder", "cli") or hermes_profile:
-            raise WeaverError("A Qoder SDK catalog requires a Qoder CLI custom-agent target")
+        if spec.id != "qoder" or surface not in {"cli", "ide"} or hermes_profile:
+            raise WeaverError("A Qoder SDK catalog requires a Qoder CLI or IDE custom-agent target")
         if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog,
                                                opencode_catalog, copilot_catalog, kilo_catalog, factory_catalog)):
             raise WeaverError("A Qoder SDK catalog conflicts with other model discovery options")
@@ -565,6 +569,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         model, checked = _model_selection(row, root, model_id, None, None, None)
         qoder_report = inspect_qoder_models(qoder_catalog, model=model_id, effort=effort)
         qoder_digest = qoder_report["snapshot_sha256"]
+        if row["model_style"] == "display-name-link":
+            label = _text(qoder_report["selection"]["display_name"], "Qoder IDE model display name")
+            if label != label.strip() or any(char in label for char in "[]\\"):
+                raise WeaverError("Qoder IDE model display name cannot be staged as a model link")
+            model = f"[{label}]({model})"
     elif factory_catalog is not None:
         if row["format"] != "factory-markdown" or model_id in {None, "inherit"}:
             raise WeaverError("A Factory Droid SDK catalog requires an explicit custom-droid model")
@@ -626,6 +635,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A local LLM profile reference conflicts with model, provider, effort or catalog overrides")
         model, checked = _llm_profile(llm_profile), None
     else:
+        if row["model_style"] == "display-name-link" and model_id not in {None, "inherit"}:
+            raise WeaverError("Qoder IDE custom-agent model selection requires --qoder-catalog")
         if effort is not None and row["format"] == "cursor-markdown":
             raise WeaverError("Cursor custom-agent effort requires --cursor-catalog")
         if effort is not None and row["format"] in {"vscode-markdown", "copilot-cli-markdown"}:

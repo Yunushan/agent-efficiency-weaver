@@ -1487,22 +1487,24 @@
       "state": "native",
       "format": "qoder-markdown",
       "path_template": ".qoder/agents/{name}.md",
-      "model_field": null,
-      "model_style": "none",
+      "model_field": "model",
+      "model_style": "display-name-link",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "Model follows the conversation. The IDE display-name/model-id notation is not projected into an unverified model selector; explicit model overrides are rejected.",
+      "model_behavior": "The default follows the conversation. Use a saved Qoder SDK catalog with an enabled model and its display name to stage the documented display-name/model-ID link.",
       "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
       "permission_behavior": "Only Read/Grep/Glob are selected with mcpServers: []; parent and organization permissions still apply.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://docs.qoder.com/extensions/subagent"
+          "https://docs.qoder.com/extensions/subagent",
+          "https://docs.qoder.com/cli/sdk/references-typescript"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
-          "tests/test_agent_definitions.py"
+          "tests/test_agent_definitions.py",
+          "tests/test_qoder_models.py"
         ],
         "runtime_checks": []
       }

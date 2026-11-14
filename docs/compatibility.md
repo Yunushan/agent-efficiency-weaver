@@ -521,6 +521,8 @@ For Claude Code CLI, VS Code, and local Desktop Code tab sessions, use `model --
 
 For Codex CLI, desktop or IDE custom-agent staging, `agent --model MODEL --codex-catalog PATH` validates against the same snapshot format. It requires exactly one picker-visible entry with the requested `model` across the supplied pages. An explicit `--reasoning-effort` must be recognized by Weaver and appear in that entry's `supportedReasoningEfforts`. Omitting effort leaves the setting unset. The handoff records the snapshot hash and the agent inherits the parent's provider. Provider API validation uses the separate `--provider` and optional `--catalog` arguments. A saved snapshot leaves installed-client compatibility and inference unverified.
 
+For Qoder IDE custom agents, add `--model MODEL --qoder-catalog PATH` to `agent --agent qoder --surface ide`. Weaver reads the exact enabled model ID and its display name from the saved Qoder SDK list and writes the IDE's `[Display Name](modelId)` selector. Check the choice in the IDE's model picker because the saved SDK list describes its own capture environment. Omitting the selector follows the conversation's model. Set reasoning from the IDE model controls for models that offer it. [Qoder IDE agent fields](https://docs.qoder.com/extensions/subagent) · [Qoder SDK model metadata](https://docs.qoder.com/cli/sdk/references-typescript)
+
 `agents inventory --format json` describes each product/surface's custom-agent definition route independently of MCP, project instructions, portable Skills, and model selection. Use `--agent PRODUCT` to inspect a concrete product. Native definition, manual handoff, unknown, and unsupported outcomes remain distinct; a product's general agent capability does not imply that it loads arbitrary agent files.
 
 `agent --agent PRODUCT --name NAME --description TEXT --instructions-file instructions.md` stages a definition only through an implemented documented route. Supply `--surface` when needed and optional `--model`, `--provider`, `--catalog`, or `--reasoning-effort` only where that definition format supports them. Each successful export includes `<product>/agents/<name>/HANDOFF.md`; native definition artifacts have kind `agent-definition`, and manual handoffs have kind `agent-handoff`. Unknown and unsupported routes fail closed. The handoff explains the model, reasoning, and permission limitations for the selected definition. Generated definitions do not grant permissions, install an agent, launch a subagent, or enable a production service.
@@ -578,7 +580,7 @@ Custom-agent states come from `catalogs/custom-agents.json` and the registry-der
 | `perplexity` | `orchestrator` | `unknown` | none | no exported model selector; no exported effort field |
 | `pi` | `cli` | `unknown` | none | no exported model selector; no exported effort field |
 | `qoder` | `cli` | `native` | `.qoder/agents/{name}.md` | model `model` (bare); effort `effort` |
-| `qoder` | `ide` | `native` | `.qoder/agents/{name}.md` | no exported model selector; no exported effort field |
+| `qoder` | `ide` | `native` | `.qoder/agents/{name}.md` | model `model` (`[Display Name](modelId)`); no exported effort field |
 | `qwen-code` | `cli` | `native` | `.qwen/agents/{name}.md` | model `model` (bare); no exported effort field |
 | `qwen-code` | `desktop` | `native` | `.qwen/agents/{name}.md` | model `model` (bare); no exported effort field |
 | `qwen-code` | `vscode` | `native` | `.qwen/agents/{name}.md` | model `model` (bare); no exported effort field |

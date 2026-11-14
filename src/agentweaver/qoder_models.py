@@ -75,6 +75,7 @@ def _model_entry(row: dict[str, Any]) -> dict[str, Any]:
         supports_disabled = False
     return {
         "id": _model_id(row.get("value")),
+        "display_name": _text(row["displayName"], "Qoder model display name") if "displayName" in row else None,
         "enabled": _flag(row, "isEnabled"),
         "thinking_enabled_advertised": "enabled" in thinking if "thinking_config" in row else None,
         "thinking_disabled_advertised": supports_disabled,

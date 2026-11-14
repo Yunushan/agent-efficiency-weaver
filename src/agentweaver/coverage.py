@@ -287,6 +287,10 @@ _OBSERVATION_CHECKS = {
     "qoder-cli-context7-https-healthcheck": (
         "mcp", "The signed-out CLI connected to the generated Context7 entry over HTTPS using the host TLS root.",
     ),
+    "qoder-cli-acp-authentication": (
+        "models", "The signed-out CLI completed the ACP handshake and required authentication before creating "
+        "a session. The probe sent no model prompt.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -473,6 +477,7 @@ _OBSERVATION_INTERFACES = {
     ("factory", "cli", "exec-jsonrpc"),
     ("kimi-code", "cli", "local-web-api"),
     ("qoder", "cli", "config-inventory"),
+    ("qoder", "cli", "acp-stdio"),
     ("copilot", "cli", "prompt-mode"),
     ("lm-studio", "api", "loopback-http"),
 }

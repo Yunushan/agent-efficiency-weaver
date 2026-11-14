@@ -21,7 +21,8 @@ class QoderModelsTests(unittest.TestCase):
         self.prompt = Path(scratch.name) / "prompt.md"
         self.prompt.write_text("Review the patch.", encoding="utf-8")
         self.listing = [
-            {"value": "fixture-nested", "isEnabled": True, "description": "omit this text",
+            {"value": "fixture-nested", "isEnabled": True, "displayName": "Fixture Model Pro (Beta)",
+             "description": "omit this text",
              "thinking_config": {"enabled": {"is_default": True, "efforts": {
                  "high": {"is_default": True}, "future-effort": {},
              }}, "disabled": {}},
@@ -43,6 +44,8 @@ class QoderModelsTests(unittest.TestCase):
         self.assertNotIn("omit this text", out)
         data = json.loads(out)
         nested, flat, disabled, unknown = data["models"]
+        self.assertEqual(nested["display_name"], "Fixture Model Pro (Beta)")
+        self.assertIsNone(flat["display_name"])
         self.assertEqual(nested["efforts"], [
             {"effort": "high", "is_default": True}, {"effort": "future-effort", "is_default": None},
         ])
@@ -92,5 +95,25 @@ class QoderModelsTests(unittest.TestCase):
         metadata = next(yaml.safe_load_all(artifacts["agent-definition"].split("---\n", 2)[1]))
         self.assertEqual((metadata["model"], metadata["effort"]), ("fixture-nested", "high"))
         self.assertEqual(invoke("agent", *agent, "--reasoning-effort", "low")[0], 2)
-        self.assertEqual(invoke("agent", *agent, "--surface", "ide")[0], 2)
         self.assertEqual(invoke("agent", *agent, "--provider", "openrouter")[0], 2)
+
+    def test_ide_subagent_uses_documented_display_name_and_model_link(self):
+        args = ("agent", "--root", str(ROOT), "--agent", "qoder", "--surface", "ide", "--dry-run",
+                "--name", "reviewer", "--description", "Review code", "--instructions-file", str(self.prompt))
+        selector = ("--model", "fixture-nested", "--qoder-catalog", str(self.path))
+        status, out, err = invoke(*args, *selector)
+        self.assertEqual(status, 0, err)
+        definition = json.loads(out)["artifacts"][0]["content"]
+        data = yaml.safe_load(definition.split("---\n", 2)[1])
+        self.assertEqual(data["model"], "[Fixture Model Pro (Beta)](fixture-nested)")
+        self.assertEqual(data["mcpServers"], [])
+        self.assertNotIn("effort", data)
+        self.assertIn(hashlib.sha256(self.path.read_bytes()).hexdigest(), out)
+        self.assertEqual(invoke(*args, *selector, "--reasoning-effort", "high")[0], 2)
+        self.assertEqual(invoke(*args, "--model", "fixture-nested")[0], 2)
+        for bad in (None, "", "Name] (other)", "Fixture\\Model", "Name\nnew: field"):
+            with self.subTest(display_name=bad):
+                self.save([self.listing[0] | {"displayName": bad}])
+                self.assertEqual(invoke(*args, *selector)[0], 2)
+        self.save([self.listing[0] | {"isEnabled": False}])
+        self.assertEqual(invoke(*args, *selector)[0], 2)
