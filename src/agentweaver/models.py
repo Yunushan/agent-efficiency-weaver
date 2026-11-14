@@ -963,13 +963,21 @@ def check_model(root: Path, provider_id: str, model_id: str, snapshot: Mapping[s
         output = "embeddings" if batch_endpoint == "/v1/embeddings" else "text"
         if output not in architecture["output_modalities"]:
             _fail("The OpenRouter batch variant does not advertise the requested output modality")
-    if chosen == "lmstudio-chat" and lmstudio_options is not None and reasoning_enabled is not None:
+    lmstudio_switch = chosen in {"lmstudio-chat", "anthropic-messages"} or (
+        reasoning_enabled is False and chosen in {"openai-responses", "openai-chat"}
+    )
+    if lmstudio_switch and lmstudio_options is not None and reasoning_enabled is not None:
         if type(reasoning_enabled) is not bool:
             _fail("Reasoning toggle must be boolean")
         requested = "on" if reasoning_enabled else "off"
         if requested not in lmstudio_options or any(value is not None for value in (effort, budget_tokens, mode)):
             _fail("LM Studio reasoning switch is unsupported or conflicts with another reasoning control")
-        payload = {"reasoning": requested}
+        payload = {
+            "lmstudio-chat": {"reasoning": requested},
+            "anthropic-messages": {"thinking": {"type": "adaptive" if reasoning_enabled else "disabled"}},
+            "openai-responses": {"reasoning": {"effort": "none"}},
+            "openai-chat": {"reasoning_effort": "none"},
+        }[chosen]
     else:
         if chosen == "lmstudio-chat" and effort is not None and (
                 effort not in {"low", "medium", "high"} or
@@ -1228,11 +1236,13 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
         value is None for value in (budget_tokens, reasoning_enabled, mode)
     ):
         hermes_config = _hermes_model_config(checked, api_base, effort, context_size)
-    if codex_lmstudio and all(value is None for value in (budget_tokens, reasoning_enabled, mode, context_size)):
+    codex_effort = checked["reasoning_payload"].get("reasoning", {}).get("effort") if codex_lmstudio else None
+    if (codex_lmstudio and all(value is None for value in (budget_tokens, mode, context_size))
+            and (reasoning_enabled is None or (reasoning_enabled is False and codex_effort == "none"))):
         profile = ['# Staged Codex CLI profile for LM Studio.',
                    f'model = {json.dumps(model_id)}', 'model_provider = "lmstudio"']
-        if effort is not None:
-            profile.append(f'model_reasoning_effort = {json.dumps(effort)}')
+        if codex_effort is not None:
+            profile.append(f'model_reasoning_effort = {json.dumps(codex_effort)}')
         artifacts.append(RenderedArtifact(PurePosixPath(f"{prefix}/weaver-lmstudio.config.toml"),
                                           ("\n".join(profile) + "\n").encode(), "model-config"))
         native = True

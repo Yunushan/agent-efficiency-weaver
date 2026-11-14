@@ -298,6 +298,35 @@ class SnapshotTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             check_model(ROOT, "lm-studio", "vendor/local-model", snapshot, effort="low")
 
+    def test_lmstudio_compatible_reasoning_switches_require_native_model_options(self) -> None:
+        model = {"key": "fixture/local", "type": "llm",
+                 "capabilities": {"reasoning": {"allowed_options": ["off", "on"], "default": "on"}}}
+        snapshot = self.read("lm-studio", {"models": [model]})
+        for protocol, payload in (
+            ("openai-responses", {"reasoning": {"effort": "none"}}),
+            ("openai-chat", {"reasoning_effort": "none"}),
+            ("anthropic-messages", {"thinking": {"type": "disabled"}}),
+        ):
+            with self.subTest(protocol=protocol):
+                kwargs = {"protocol": protocol, "reasoning_enabled": False}
+                checked = check_model(ROOT, "lm-studio", "fixture/local", snapshot, **kwargs)
+                self.assertEqual(checked["reasoning_payload"], payload)
+                for extras in ({"effort": "low"}, {"budget_tokens": 128}, {"mode": "adaptive"}):
+                    with self.assertRaises(WeaverError):
+                        check_model(ROOT, "lm-studio", "fixture/local", snapshot, **kwargs, **extras)
+                with self.assertRaises(WeaverError):
+                    check_model(ROOT, "lm-studio", "fixture/local", **kwargs)
+                with self.assertRaises(WeaverError):
+                    check_model(ROOT, "lm-studio", "fixture/local", snapshot, protocol=protocol, effort="high")
+        checked = check_model(ROOT, "lm-studio", "fixture/local", snapshot,
+                              protocol="anthropic-messages", reasoning_enabled=True)
+        self.assertEqual(checked["reasoning_payload"], {"thinking": {"type": "adaptive"}})
+        artifacts = render_model_setup(get_integration("codex", ROOT), "cli", root=ROOT,
+                                       provider_id="lm-studio", model_id="fixture/local", snapshot=snapshot,
+                                       protocol="openai-responses", reasoning_enabled=False)
+        profile = next(item for item in artifacts if item.kind == "model-config")
+        self.assertEqual(tomllib.loads(profile.content.decode())["model_reasoning_effort"], "none")
+
     def test_lmstudio_retains_variants_instances_and_one_way_reasoning(self) -> None:
         model = {"key": "fixture/local", "type": "llm", "max_context_length": 32768,
                  "variants": ["fixture/local@q4", "fixture/local@q8"],

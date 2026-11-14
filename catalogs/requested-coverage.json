@@ -460,6 +460,25 @@
       ]
     },
     {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "73d6c1306b4849b43c1ab67b9f4832070e6907c2",
+      "checks": [
+        {
+          "check": "codex-lmstudio-reasoning-off",
+          "evidence_sha256": "c4e88ebdcb52922f56eec46dd094f616f0db7b4c5881ec77aee0051e413e2fb7"
+        }
+      ]
+    },
+    {
       "product_id": "claude-code",
       "surface_id": "vscode",
       "product_version": "1.146.0",
@@ -1500,6 +1519,29 @@
         {
           "check": "lmstudio-local-decision-requests",
           "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
+        }
+      ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "source_commit": "73d6c1306b4849b43c1ab67b9f4832070e6907c2",
+      "checks": [
+        {
+          "check": "lmstudio-compatible-reasoning-switch",
+          "evidence_sha256": "77dd386ecc444dfe16cc148329909ab2ce01b803137b6c191d5b59f856214779"
+        },
+        {
+          "check": "lmstudio-messages-thinking-switch",
+          "evidence_sha256": "b0e072f4a10421811d87f37a00abe8ce199b8a942a5684a2cbb70dbf00491f36"
         }
       ]
     },

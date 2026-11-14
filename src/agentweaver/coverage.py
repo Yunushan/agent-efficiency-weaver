@@ -109,6 +109,10 @@ _OBSERVATION_CHECKS = {
         "models", "The signed-out CLI used the generated named profile and completed a Responses turn with "
         "a locally loaded LM Studio model. The temporary endpoint only forwarded requests to the local server.",
     ),
+    "codex-lmstudio-reasoning-off": (
+        "reasoning", "The generated profile sent effort none and completed a locally generated Responses turn "
+        "without a reasoning item.",
+    ),
     "claude-lmstudio-local-generation": (
         "models", "The CLI used a temporary copy of the generated settings with a loopback port override and "
         "completed a Messages turn with a locally loaded LM Studio model.",
@@ -315,6 +319,14 @@ _OBSERVATION_CHECKS = {
     "lmstudio-local-reasoning-switch": (
         "reasoning", "The generated on and off selectors changed the reasoning content returned by native chat. "
         "Both Weaver and the server rejected high for this model.",
+    ),
+    "lmstudio-compatible-reasoning-switch": (
+        "reasoning", "For Qwen3 0.6B, the compatible Responses and Chat endpoints disabled thinking at effort none. "
+        "The server logged fallback to on for unsupported low and high efforts; native chat rejected high.",
+    ),
+    "lmstudio-messages-thinking-switch": (
+        "reasoning", "The Messages endpoint produced a thinking block with adaptive and a plain text response with disabled "
+        "for the locally loaded Qwen3 0.6B model.",
     ),
     "lmstudio-local-embedding-request": (
         "models", "The generated embedding selector returned a vector from the local OpenAI-compatible endpoint.",
