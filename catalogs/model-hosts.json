@@ -1671,11 +1671,13 @@
         "state": "manual",
         "controls": [
           {"kind": "effort", "field": "--effort", "values": null, "model_dependent": true},
-          {"kind": "effort", "field": "chat.modelDefaults", "values": null, "model_dependent": true}
+          {"kind": "effort", "field": "chat.modelDefaults", "values": null, "model_dependent": true},
+          {"kind": "mode", "field": "chat.modelDefaults.<model>.thinking.type", "values": null, "model_dependent": true},
+          {"kind": "mode", "field": "chat.modelDefaults.<model>.thinking.display", "values": ["summarized", "omitted"], "model_dependent": true}
         ],
         "sources": ["https://kiro.dev/docs/models/effort/"]
       },
-      "checked_on": "2026-11-13",
+      "checked_on": "2026-11-14",
       "fixture_tests": ["tests/test_model_hosts.py"],
       "runtime_checks": [],
       "availability": "unknown"

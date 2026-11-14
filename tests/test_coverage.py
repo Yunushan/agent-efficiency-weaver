@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 29)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 246)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 247)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -399,8 +399,8 @@ class RequestedCoverageTests(unittest.TestCase):
         kiro = next(item for item in report["requested_items"] if item["id"] == "kiro")
         targets = {target["surface_id"]: target for target in kiro["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
-        acp, inventory = targets["cli"]["runtime_observations"]
-        for record in (acp, inventory):
+        acp, inventory, thinking = targets["cli"]["runtime_observations"]
+        for record in (acp, inventory, thinking):
             self.assertEqual(record["product_version"], "3.3.0")
             self.assertEqual(record["engine_version"], "3.3.0")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -416,6 +416,10 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({check["check"]: check["capability"] for check in inventory["checks"]}, {
             "kiro-v3-model-login-required": "models",
             "kiro-v3-workspace-effort-readback": "reasoning",
+        })
+        self.assertEqual(thinking["interface"], "config-inventory")
+        self.assertEqual({check["check"]: check["capability"] for check in thinking["checks"]}, {
+            "kiro-v3-workspace-thinking-readback": "reasoning",
         })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 

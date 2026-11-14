@@ -165,6 +165,8 @@ def _parser() -> argparse.ArgumentParser:
                                      help='Stage the OpenRouter model as Zed Agent’s subagent default')
                 command.add_argument('--kiro-model-defaults', action='store_true',
                                      help='Stage Kiro CLI V3 per-model reasoning settings')
+                command.add_argument('--kiro-thinking-display', choices=['summarized', 'omitted'],
+                                     help='Stage Kiro CLI adaptive thinking visibility')
                 command.add_argument('--qoder-settings', action='store_true',
                                      help='Stage a Qoder CLI model settings fragment for manual merge')
                 host_catalog.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
@@ -534,6 +536,9 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         print('Configuration, registries, requested coverage and portable skill validation passed')
         return 0
     spec, surface, target_os, host_os = _selection(args, root)
+    if (args.cmd == 'model' and args.kiro_thinking_display is not None
+            and ((spec.id, surface) != ('kiro', 'cli') or not args.kiro_model_defaults)):
+        raise WeaverError('--kiro-thinking-display requires Kiro CLI --kiro-model-defaults')
     if args.cmd == 'model' and args.qwen_auth_type is not None and args.qwen_workspace_catalog is None:
         raise WeaverError('Qwen model authentication filtering requires --qwen-workspace-catalog')
     if (args.cmd == 'model' and args.kimi_catalog is None
@@ -642,9 +647,10 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         if args.zed_subagent or args.qoder_settings or any(getattr(args, option) is not None for option in
                                    ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning',
-                                    'reasoning_mode', 'context_size', 'batch_endpoint', 'qoder_catalog')):
-            raise WeaverError('Kiro CLI model staging uses Kiro model IDs and an optional reasoning effort')
-        artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults)
+                                    'context_size', 'batch_endpoint', 'qoder_catalog')):
+            raise WeaverError('Kiro CLI model staging uses Kiro model IDs, effort, and persistent thinking settings')
+        artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults,
+                                         thinking_mode=args.reasoning_mode, thinking_display=args.kiro_thinking_display)
     elif args.cmd == 'model' and (spec.id, surface) == ('cursor', 'cli'):
         from .models import render_cursor_cli_model
 

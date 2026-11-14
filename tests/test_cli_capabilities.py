@@ -120,6 +120,38 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(invoke('model', *base, '--model', 'gpt-5.6-terra', '--reasoning-effort', 'none',
                                 '--kiro-model-defaults')[0], 0)
 
+    def test_kiro_cli_stages_documented_thinking_modes_and_visibility(self):
+        base = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run', '--kiro-model-defaults')
+        for model, flags, expected in (
+            ('claude-sonnet-4.6', ('--reasoning-mode', 'disabled'), {'thinking': {'type': 'disabled'}}),
+            ('claude-sonnet-4.6', ('--reasoning-mode', 'disabled', '--reasoning-effort', 'high'),
+             {'thinking': {'type': 'disabled'}, 'output_config': {'effort': 'high'}}),
+            ('claude-sonnet-5.5', ('--reasoning-mode', 'between_tools', '--reasoning-effort', 'high'),
+             {'thinking': {'type': 'between_tools'}, 'output_config': {'effort': 'high'}}),
+            ('claude-sonnet-5.5', ('--reasoning-mode', 'adaptive', '--kiro-thinking-display', 'omitted',
+                                   '--reasoning-effort', 'max'),
+             {'thinking': {'type': 'adaptive', 'display': 'omitted'}, 'output_config': {'effort': 'max'}}),
+        ):
+            with self.subTest(model=model, flags=flags):
+                code, output, error = invoke('model', *base, '--model', model, *flags)
+                self.assertEqual(code, 0, error)
+                config = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'model-config')
+                self.assertEqual(json.loads(config['content']), {'chat.modelDefaults': {model: expected}})
+        for model, flags in (
+            ('claude-sonnet-5.5', ('--reasoning-mode', 'disabled')),
+            ('claude-sonnet-5.5', ('--reasoning-mode', 'between_tools', '--reasoning-effort', 'max')),
+            ('claude-sonnet-5.5', ('--reasoning-mode', 'between_tools', '--kiro-thinking-display', 'omitted')),
+            ('claude-sonnet-4.6', ('--kiro-thinking-display', 'summarized')),
+            ('gpt-5.6-terra', ('--reasoning-mode', 'adaptive')),
+            ('unknown-model', ('--reasoning-mode', 'adaptive')),
+        ):
+            with self.subTest(model=model, flags=flags):
+                self.assertEqual(invoke('model', *base, '--model', model, *flags)[0], 2)
+        self.assertEqual(invoke('model', *ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run',
+                                '--model', 'claude-sonnet-4.6', '--reasoning-mode', 'disabled')[0], 2)
+        self.assertEqual(invoke('model', *ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run',
+                                '--model', 'auto', '--kiro-thinking-display', 'omitted')[0], 2)
+
     def test_qoder_cli_stages_exact_model_ids_and_optional_session_or_settings_controls(self):
         base = (*ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run')
         params = (*base, '--model', 'fixture/Model-v2', '--context-size', '400000', '--reasoning-effort', 'high')

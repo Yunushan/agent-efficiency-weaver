@@ -1668,6 +1668,25 @@
       ]
     },
     {
+      "product_id": "kiro",
+      "surface_id": "cli",
+      "product_version": "3.3.0",
+      "engine_version": "3.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "50a5101bcf91e7c134613179ca3453b237c8188d",
+      "checks": [
+        {
+          "check": "kiro-v3-workspace-thinking-readback",
+          "evidence_sha256": "bf01a70b2c84bac9568e51d14284a00a17897d42d98973de78d5a4f60db93c45"
+        }
+      ]
+    },
+    {
       "product_id": "hermes",
       "surface_id": "cli",
       "product_version": "0.23.1",

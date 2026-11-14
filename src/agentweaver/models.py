@@ -1080,39 +1080,61 @@ def render_antigravity_cli_model(model: str, effort: str | None) -> list[Rendere
     ]
 
 
-def render_kiro_cli_model(model: str, effort: str | None, *, persistent: bool = False) -> list[RenderedArtifact]:
+def render_kiro_cli_model(
+    model: str, effort: str | None, *, persistent: bool = False,
+    thinking_mode: str | None = None, thinking_display: str | None = None,
+) -> list[RenderedArtifact]:
     """Stage Kiro service model settings using the documented V3 controls."""
     identifier = _model_id(model)
     if "/" in identifier or identifier.startswith(("~", "-")):
         _fail("Kiro requires a Kiro model service ID")
     claude_efforts = {"low", "medium", "high", "max"}
     extended_claude = {"claude-opus-5", "claude-opus-4.8", "claude-opus-4.7", "claude-sonnet-5"}
+    standard_claude = {"claude-opus-4.6", "claude-sonnet-4.6"}
+    sonnet_between_tools = identifier == "claude-sonnet-5.5"
     gpt_models = {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"}
-    if identifier in gpt_models or identifier in extended_claude:
+    if identifier in gpt_models or identifier in extended_claude or (sonnet_between_tools and thinking_mode == "adaptive"):
         allowed = claude_efforts | {"xhigh"}
-    elif identifier == "claude-sonnet-5.5":
-        # Use the intersection of the effort table and the model's specific note.
+    elif sonnet_between_tools:
+        # Without an explicit adaptive mode the model may use between-tools thinking.
         allowed = {"low", "medium", "high"}
-    elif identifier in {"claude-opus-4.6", "claude-sonnet-4.6"}:
+    elif identifier in standard_claude:
         allowed = claude_efforts
     else:
         allowed = set()
-    if persistent:
-        if identifier in gpt_models:
-            allowed.add("none")
-        if effort is None:
-            _fail("Kiro per-model defaults require an explicit reasoning effort")
+    if persistent and identifier in gpt_models:
+        allowed.add("none")
     if effort is not None and effort not in allowed:
         _fail("Requested effort is unsupported or unknown for this Kiro CLI model")
+    if not persistent and (thinking_mode is not None or thinking_display is not None):
+        _fail("Kiro thinking settings require --kiro-model-defaults")
+    if thinking_display is not None and (thinking_mode != "adaptive" or thinking_display not in {"summarized", "omitted"}):
+        _fail("Kiro thinking display requires adaptive thinking and summarized or omitted visibility")
+    if thinking_mode is not None:
+        modes = {"adaptive", "between_tools"} if sonnet_between_tools else (
+            {"adaptive", "disabled"} if identifier in extended_claude | standard_claude else set()
+        )
+        if thinking_mode not in modes:
+            _fail("Requested thinking mode is unsupported or unknown for this Kiro CLI model")
 
     if persistent:
-        field = "reasoning" if identifier in gpt_models else "output_config"
-        fragment = {"chat.modelDefaults": {identifier: {field: {"effort": effort}}}}
+        settings: dict[str, dict[str, str]] = {}
+        if effort is not None:
+            field = "reasoning" if identifier in gpt_models else "output_config"
+            settings[field] = {"effort": effort}
+        if thinking_mode is not None:
+            settings["thinking"] = {"type": thinking_mode}
+            if thinking_display is not None:
+                settings["thinking"]["display"] = thinking_display
+        if not settings:
+            _fail("Kiro per-model defaults require an explicit reasoning effort or thinking mode")
+        fragment = {"chat.modelDefaults": {identifier: settings}}
         output = _json_artifact("kiro/model/cli.fragment.json", fragment, "model-config")
         instructions = (
             "Review and merge only the selected model entry under chat.modelDefaults in "
             ".kiro/settings/cli.json for this workspace or ~/.kiro/settings/cli.json for this user. "
-            "Preserve other model settings and entries. The selected model's effort can be overridden by the session."
+            "Preserve other model settings and entries. Remove a stale thinking.display when switching away from "
+            "adaptive, and review any saved effort when disabling thinking. The session can override model defaults."
         )
     else:
         arguments = ["chat", "--v3", "--model", identifier]

@@ -464,6 +464,10 @@ _OBSERVATION_CHECKS = {
         "reasoning", "The CLI read back the exact staged Claude Sonnet 4.6 max effort default. The "
         "empty workspace had no default. The check covered settings readback.",
     ),
+    "kiro-v3-workspace-thinking-readback": (
+        "reasoning", "The CLI read back disabled, between-tools, and adaptive thinking settings, including both "
+        "adaptive visibility settings. An empty workspace had no model defaults. No model request was made.",
+    ),
     "hermes-profile-role-loading": (
         "agents", "The local distribution planner accepted the generated manifest and the prompt "
         "loader read the generated SOUL.md from a disposable profile.",
