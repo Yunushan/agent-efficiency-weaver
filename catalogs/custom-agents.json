@@ -1530,7 +1530,7 @@
       ],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
       "reasoning_behavior": "effort is a model-dependent field; explicit effort needs model evidence. No effort is selected by default.",
-      "permission_behavior": "Only Read/Grep/Glob are selected with mcpServers: []; permissionMode is omitted and inherits parent policy. A permissive parent cannot be tightened through permissionMode.",
+      "permission_behavior": "Read/Grep/Glob are selected by default. Portable Skills, profile-allowlisted MCP server names, and exact tools from those servers can be selected explicitly. permissionMode is omitted and inherits parent policy. A permissive parent cannot be tightened through permissionMode.",
       "reserved_names": [],
       "evidence": {
         "sources": [

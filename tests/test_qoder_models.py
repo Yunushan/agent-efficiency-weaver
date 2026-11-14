@@ -149,4 +149,27 @@ class QoderModelsTests(unittest.TestCase):
         ):
             with self.subTest(flags=flags):
                 self.assertEqual(invoke(*ide, *flags)[0], 2)
-        self.assertEqual(invoke(*base, "--surface", "cli", *opt_in)[0], 2)
+        self.assertEqual(invoke(*ide, *opt_in, "--allow-mcp-tool", "context7:resolve-library-id")[0], 2)
+
+    def test_cli_subagent_restricts_mcp_to_explicit_tools_on_selected_servers(self):
+        args = ("agent", "--root", str(ROOT), "--agent", "qoder", "--surface", "cli", "--dry-run",
+                "--name", "reviewer", "--description", "Review code", "--instructions-file", str(self.prompt))
+        selector = ("--model", "fixture-nested", "--qoder-catalog", str(self.path), "--reasoning-effort", "high")
+        context = ("--allow-skill", "security-review", "--mcp-profile", "efficient", "--allow-mcp", "context7")
+        tool = ("--allow-mcp-tool", "context7:resolve-library-id")
+        for flags, tools in (((), []), (tool, ["mcp__context7__resolve-library-id"])):
+            with self.subTest(tools=tools):
+                code, out, error = invoke(*args, *context, *selector, *flags)
+                self.assertEqual(code, 0, error)
+                artifacts = {item["kind"]: item["content"] for item in json.loads(out)["artifacts"]}
+                meta = yaml.safe_load(artifacts["agent-definition"].split("---\n", 2)[1])
+                self.assertEqual(meta, {"name": "reviewer", "description": "Review code",
+                                        "tools": ["Read", "Grep", "Glob", *tools], "skills": ["security-review"],
+                                        "mcpServers": ["context7"], "model": "fixture-nested", "effort": "high"})
+                self.assertNotIn("mcp", artifacts)
+        for flags in (tool + tool, ("--allow-mcp-tool", "context7:*"), ("--allow-mcp-tool", "github:search"),
+                      ("--allow-mcp-tool", "mcp__context7__resolve-library-id"),
+                      ("--allow-mcp-tool", "context7:resolve-library-id,Write")):
+            with self.subTest(flags=flags):
+                self.assertEqual(invoke(*args, *context, *flags)[0], 2)
+        self.assertEqual(invoke(*args, *tool)[0], 2)
