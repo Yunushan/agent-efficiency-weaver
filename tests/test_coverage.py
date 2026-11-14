@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 257)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 260)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -769,7 +769,7 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         kimi = next(item for item in report["requested_items"] if item["id"] == "kimi-code")
         target, = kimi["targets"]
-        observation, skill_activation, headless = target["runtime_observations"]
+        observation, skill_activation, headless, headless_https, web_mcp = target["runtime_observations"]
         self.assertEqual(target["surface_id"], "cli")
         self.assertEqual(observation["product_version"], "2.6.2")
         self.assertEqual(observation["engine_version"], "2.6.2")
@@ -794,8 +794,21 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertEqual(headless[field], observation[field])
         self.assertEqual(headless["interface"], "headless-loopback")
         self.assertEqual({check["check"]: check["capability"] for check in headless["checks"]}, {
-            "kimi-headless-project-stdio-call": "mcp",
+            "kimi-project-stdio-call": "mcp",
         })
+        for record, baseline in ((headless_https, headless), (web_mcp, observation)):
+            for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+                self.assertEqual(record[field], baseline[field])
+        self.assertEqual({check["check"]: check["capability"] for check in headless_https["checks"]}, {
+            "kimi-project-context7-https-call": "mcp",
+        })
+        self.assertEqual({check["check"]: check["capability"] for check in web_mcp["checks"]}, {
+            "kimi-project-context7-https-call": "mcp",
+            "kimi-project-stdio-call": "mcp",
+        })
+        self.assertEqual(len({check["evidence_sha256"]
+                              for record in (headless, headless_https, web_mcp)
+                              for check in record["checks"]}), 4)
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_qoder_signed_out_inventory_limits_runtime_claims(self):

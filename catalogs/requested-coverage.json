@@ -1135,8 +1135,50 @@
       "source_commit": "6439b2d746e0eb660702f3227cd8779fef9bf60c",
       "checks": [
         {
-          "check": "kimi-headless-project-stdio-call",
+          "check": "kimi-project-stdio-call",
           "evidence_sha256": "31b3e2a50281ac03d0197c6389ee5909990ae23f04ab61e1210d8973d8a9a69a"
+        }
+      ]
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "0139a422a990e68ad4568715ec4aa92b0095a39c",
+      "checks": [
+        {
+          "check": "kimi-project-context7-https-call",
+          "evidence_sha256": "72c818618824b900277a6e95c4a8087f36e69eb3524f3a10c93759a5770c83e3"
+        }
+      ]
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-web-api",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "0139a422a990e68ad4568715ec4aa92b0095a39c",
+      "checks": [
+        {
+          "check": "kimi-project-context7-https-call",
+          "evidence_sha256": "0748bed20c9fcf9ccc83a46e18ccced836235473634a8cc2767d8b991fadc71f"
+        },
+        {
+          "check": "kimi-project-stdio-call",
+          "evidence_sha256": "e9089e2e9bf0780b27436fe93b891f7fd341919edbfdace14a52386c227b8019"
         }
       ]
     },

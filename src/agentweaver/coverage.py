@@ -412,10 +412,15 @@ _OBSERVATION_CHECKS = {
         "skills", "The native session API activated the generated workspace Skill. The scripted loopback endpoint "
         "received its full instructions. Withholding the Skill file made activation fail before a provider request.",
     ),
-    "kimi-headless-project-stdio-call": (
-        "mcp", "The trusted headless CLI used the byte-for-byte generated project MCP file and returned a stdio "
+    "kimi-project-stdio-call": (
+        "mcp", "The trusted session used the byte-for-byte generated project MCP file and returned a stdio "
         "fixture result under an exact tool allow rule. An exact deny rule blocked the call. Untrusted and "
         "missing-config runs left the fixture idle.",
+    ),
+    "kimi-project-context7-https-call": (
+        "mcp", "A trusted session used the exact generated project config and returned the public React library "
+        "ID through Context7 over Streamable HTTPS. An exact tool deny rule rejected the same call. The tool "
+        "was unavailable without workspace trust or without the project config.",
     ),
     "kimi-web-model-catalog": (
         "models", "The local Web API enumerated three configured fixture aliases with their advertised effort lists.",
