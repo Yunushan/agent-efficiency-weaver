@@ -1,0 +1,2123 @@
+{
+  "schema_version": 1,
+  "requested_items": [
+    {
+      "id": "codex", "label": "Codex / OpenAI Codex",
+      "aliases": ["codex", "OpenAIcodex", "openai-codex", "OpenAI Codex"],
+      "targets": [{"product_id": "codex", "surface_id": "cli"}, {"product_id": "codex", "surface_id": "desktop"}, {"product_id": "codex", "surface_id": "ide"}]
+    },
+    {
+      "id": "chatgpt", "label": "ChatGPT / Work",
+      "aliases": ["chatgpt", "ChatGPT Work", "ChatGPT/Work", "Work"],
+      "targets": [{"product_id": "chatgpt", "surface_id": "desktop"}, {"product_id": "chatgpt", "surface_id": "web"}, {"product_id": "chatgpt", "surface_id": "work-local"}, {"product_id": "chatgpt", "surface_id": "work-cloud"}]
+    },
+    {
+      "id": "kilo", "label": "Kilo AI / Kilo Code",
+      "aliases": ["kilo", "kiloAI", "Kilo AI", "Kilo Code"],
+      "targets": [{"product_id": "kilo", "surface_id": "cli"}, {"product_id": "kilo", "surface_id": "ide"}]
+    },
+    {
+      "id": "opencode", "label": "OpenCode", "aliases": ["opencode", "Open Code"],
+      "targets": [{"product_id": "opencode", "surface_id": "cli"}]
+    },
+    {
+      "id": "vscode-agents", "label": "VS Code agents (named extension surfaces)",
+      "aliases": ["VSCodeagents", "VS Code agents", "vscode-agents"],
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "cline", "surface_id": "ide"}, {"product_id": "kilo", "surface_id": "ide"}, {"product_id": "codex", "surface_id": "ide"}, {"product_id": "claude-code", "surface_id": "vscode"}]
+    },
+    {
+      "id": "cline", "label": "Cline", "aliases": ["cline"],
+      "targets": [{"product_id": "cline", "surface_id": "ide"}, {"product_id": "cline", "surface_id": "cli"}, {"product_id": "cline", "surface_id": "desktop"}]
+    },
+    {
+      "id": "factory", "label": "Factory Droid", "aliases": ["factory", "FactoryDroid", "Factory Droid", "droid"],
+      "targets": [{"product_id": "factory", "surface_id": "cli"}]
+    },
+    {
+      "id": "devin", "label": "Devin Desktop", "aliases": ["devin", "DevinDesktop", "Devin Desktop"],
+      "targets": [{"product_id": "devin", "surface_id": "desktop-local"}]
+    },
+    {
+      "id": "jetbrains-air", "label": "JetBrains Air", "aliases": ["jetbrains-air", "JetBrainsAir", "JetBrains Air"],
+      "targets": [{"product_id": "jetbrains-air", "surface_id": "desktop"}, {"product_id": "jetbrains-air", "surface_id": "ide"}]
+    },
+    {
+      "id": "copilot", "label": "GitHub Copilot", "aliases": ["copilot", "GitHubCopilot", "GitHub Copilot"],
+      "targets": [{"product_id": "copilot", "surface_id": "vscode"}, {"product_id": "copilot", "surface_id": "cli"}, {"product_id": "copilot", "surface_id": "desktop"}]
+    },
+    {
+      "id": "cursor", "label": "Cursor", "aliases": ["cursor"],
+      "targets": [{"product_id": "cursor", "surface_id": "ide"}, {"product_id": "cursor", "surface_id": "cli"}]
+    },
+    {
+      "id": "openhands", "label": "OpenHands", "aliases": ["openhands", "Open Hands", "OpenHands Agent Canvas", "Agent Canvas"],
+      "targets": [{"product_id": "openhands", "surface_id": "cli"}, {"product_id": "openhands", "surface_id": "canvas"}]
+    },
+    {
+      "id": "zed", "label": "Zed AI", "aliases": ["zed", "ZedAI", "Zed AI"],
+      "targets": [{"product_id": "zed", "surface_id": "ide"}]
+    },
+    {
+      "id": "claude-code", "label": "Claude Code", "aliases": ["claude-code", "ClaudeCode", "Claude Code"],
+      "targets": [{"product_id": "claude-code", "surface_id": "cli"}, {"product_id": "claude-code", "surface_id": "vscode"}, {"product_id": "claude-code", "surface_id": "desktop"}]
+    },
+    {
+      "id": "kiro", "label": "Kiro", "aliases": ["kiro"],
+      "targets": [{"product_id": "kiro", "surface_id": "ide"}, {"product_id": "kiro", "surface_id": "cli"}]
+    },
+    {
+      "id": "antigravity", "label": "Google Antigravity", "aliases": ["antigravity", "GoogleAntigravity", "Google Antigravity"],
+      "targets": [{"product_id": "antigravity", "surface_id": "ide"}, {"product_id": "antigravity", "surface_id": "cli"}, {"product_id": "antigravity", "surface_id": "desktop"}]
+    },
+    {
+      "id": "hermes", "label": "Hermes", "aliases": ["hermes", "Hermes Agent"],
+      "targets": [{"product_id": "hermes", "surface_id": "cli"}]
+    },
+    {
+      "id": "qwen-code", "label": "Qwen Code", "aliases": ["qwen-code", "QwenCode", "Qwen Code"],
+      "targets": [{"product_id": "qwen-code", "surface_id": "cli"}, {"product_id": "qwen-code", "surface_id": "vscode"}, {"product_id": "qwen-code", "surface_id": "desktop"}]
+    },
+    {
+      "id": "qoder", "label": "Qoder", "aliases": ["qoder"],
+      "targets": [{"product_id": "qoder", "surface_id": "cli"}, {"product_id": "qoder", "surface_id": "ide"}]
+    },
+    {
+      "id": "kimi-code", "label": "Kimi Code", "aliases": ["kimi-code", "KimiCode", "Kimi Code"],
+      "targets": [{"product_id": "kimi-code", "surface_id": "cli"}]
+    },
+    {
+      "id": "openrouter", "label": "OpenRouter", "aliases": ["openrouter", "Open Router"],
+      "targets": [{"product_id": "openrouter", "surface_id": "gateway"}]
+    },
+    {
+      "id": "perplexity", "label": "Perplexity", "aliases": ["perplexity"],
+      "targets": [{"product_id": "perplexity", "surface_id": "app"}, {"product_id": "perplexity", "surface_id": "agent-api"}, {"product_id": "perplexity", "surface_id": "orchestrator"}]
+    },
+    {
+      "id": "lm-studio", "label": "LM Studio", "aliases": ["lm-studio", "LMStudio", "LM Studio"],
+      "targets": [{"product_id": "lm-studio", "surface_id": "desktop"}, {"product_id": "lm-studio", "surface_id": "bionic"}, {"product_id": "lm-studio", "surface_id": "api"}]
+    }
+  ],
+  "runtime_observations": [
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "ceb8bb664340c6be245a7166f3c1230382c79882",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "a947faac7a03315e5eb2d72b9c1d53b73eb869c8890270845e7fc9c50158d645"
+        },
+        {
+          "check": "stdio-subagent-approved-tool-call",
+          "evidence_sha256": "322bc307d10d825327d5f7b1a6701974c07d3a70424cea7f1c0823b50bd1e691"
+        },
+        {
+          "check": "remote-config-parse",
+          "evidence_sha256": "8e88343a2eac32b2f9f7c7372ac2131a2708bc7afb34a8c13d74bede416be126"
+        },
+        {
+          "check": "model-catalog",
+          "evidence_sha256": "06d121cf070f4f9c854154a338cabce236cb0f8509004b43a94764e0cdfee40d"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "product_version": "26.1106.6628.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "ceb8bb664340c6be245a7166f3c1230382c79882",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "a947faac7a03315e5eb2d72b9c1d53b73eb869c8890270845e7fc9c50158d645"
+        },
+        {
+          "check": "stdio-subagent-approved-tool-call",
+          "evidence_sha256": "322bc307d10d825327d5f7b1a6701974c07d3a70424cea7f1c0823b50bd1e691"
+        },
+        {
+          "check": "remote-config-parse",
+          "evidence_sha256": "8e88343a2eac32b2f9f7c7372ac2131a2708bc7afb34a8c13d74bede416be126"
+        },
+        {
+          "check": "model-catalog",
+          "evidence_sha256": "06d121cf070f4f9c854154a338cabce236cb0f8509004b43a94764e0cdfee40d"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "d5ed6c2e564c996d112d833a822d52cc07beb00c",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "a947faac7a03315e5eb2d72b9c1d53b73eb869c8890270845e7fc9c50158d645"
+        },
+        {
+          "check": "stdio-subagent-approved-tool-call",
+          "evidence_sha256": "322bc307d10d825327d5f7b1a6701974c07d3a70424cea7f1c0823b50bd1e691"
+        },
+        {
+          "check": "remote-config-parse",
+          "evidence_sha256": "8e88343a2eac32b2f9f7c7372ac2131a2708bc7afb34a8c13d74bede416be126"
+        },
+        {
+          "check": "model-catalog",
+          "evidence_sha256": "06d121cf070f4f9c854154a338cabce236cb0f8509004b43a94764e0cdfee40d"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "1a8b84490118c857907ad7cc6b2640df854e3d19697e5c3e70c5eaab8e1da356"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "product_version": "26.1106.6628.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "3320a642b8f51eb8ea4c9cb81d0a54f62f322f77",
+      "checks": [
+        {
+          "check": "public-docs-https-tool-call",
+          "evidence_sha256": "504d5d3bfc05c5864af56ecb168aa06e4665c3b443bb59dbea3c1c48f20594fd"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "ff69dab0940322e57e3aaad83b44e16c598ef787",
+      "checks": [
+        {
+          "check": "context7-https-subagent-tool-call",
+          "evidence_sha256": "db51ee08764e000337310bcdf33a4e9fdcc2493805d30b3fed03381d8249ff4a"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "product_version": "26.1106.6628.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "ff69dab0940322e57e3aaad83b44e16c598ef787",
+      "checks": [
+        {
+          "check": "context7-https-subagent-tool-call",
+          "evidence_sha256": "9a393a5bfbdc2d6a4f2a37c02a35a78d581a8ddfe75a5a4034ae904c620a4df4"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "ff69dab0940322e57e3aaad83b44e16c598ef787",
+      "checks": [
+        {
+          "check": "context7-https-subagent-tool-call",
+          "evidence_sha256": "00d6accb92517923ec0674ac9f3e3b9e27f97a9564abaab2a8155ef55e7b6c57"
+        }
+      ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "1.0.73",
+      "extension_version": "0.74.0",
+      "checked_on": "2026-11-13",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "source_commit": "83684be011d212d3ba4895afab0c402c9f7ccf58",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "29f7b08f16219b4cc29df87881d8b8ab8de358fb2c7476d18515e358aa203da7"
+        },
+        {
+          "check": "workspace-mcp-parse",
+          "evidence_sha256": "fe41ef958c3fbe5f446753fd0b6f38a006bd98a57c254a7687052a7151090613"
+        }
+      ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "1.0.73",
+      "extension_version": "0.74.0",
+      "checked_on": "2026-11-13",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "source_commit": "6295cd04080b2b9475ed930d767d22a8d6cd896d",
+      "checks": [
+        {
+          "check": "workspace-stdio-tool-call",
+          "evidence_sha256": "0638287c7dffb96fb5f9784fbdeaa31c195c7e3a4cfbcbb50a1bb414657674b7"
+        }
+      ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "1.0.73",
+      "extension_version": "0.74.0",
+      "checked_on": "2026-11-13",
+      "source_commit": "9840dfb5ab35258487c70d78ad578d209fbad0f2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "checks": [
+        {
+          "check": "agent-model-effort-config-load",
+          "evidence_sha256": "a5043cfbf45f0c7acb7fb95d68c62b80e96757d75b20e243179effb8b6f1dc21"
+        },
+        {
+          "check": "agent-model-array-rejected",
+          "evidence_sha256": "154bcbe1458bcd818093ebbbeb5988a8e5df5380487ddf49634ef158cf48e1dc"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300",
+      "architecture": "x64",
+      "checked_on": "2026-11-13",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "f754c6b66c56a268f759d513c90cecf0fb2c2b3f",
+      "checks": [
+        {
+          "check": "named-profile-model-request",
+          "evidence_sha256": "53377713ce6cf69de447d12c13d04eca298e61f05b2f132063f2745c24bc4433"
+        },
+        {
+          "check": "named-profile-effort-precedence",
+          "evidence_sha256": "53377713ce6cf69de447d12c13d04eca298e61f05b2f132063f2745c24bc4433"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "024d7cf45e41a4423efb3be4f11096f105b42927",
+      "checks": [
+        {
+          "check": "codex-lmstudio-local-generation",
+          "evidence_sha256": "859a74b450d1cb5587a80ac3bffb3083357460b3b9ec47fdc0e6ea4efadea95b"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "73d6c1306b4849b43c1ab67b9f4832070e6907c2",
+      "checks": [
+        {
+          "check": "codex-lmstudio-reasoning-off",
+          "evidence_sha256": "c4e88ebdcb52922f56eec46dd094f616f0db7b4c5881ec77aee0051e413e2fb7"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-13",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "source_commit": "682cfd0ff2c9a332cf1a13c8ebbd34395897676f",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-metadata-discovery",
+          "evidence_sha256": "b04faa49ba1a2da58b24f93dfcdafff9c5320bb44fbbf070710751e3791ee3e2"
+        },
+        {
+          "check": "project-http-pending-approval",
+          "evidence_sha256": "fce4dbd6f3476e6ba72f643e541aa12c70b4a13f129021b9cbcca3fd3bece200"
+        },
+        {
+          "check": "project-stdio-healthcheck",
+          "evidence_sha256": "b2b3a2e37a2cafad5f0acf7356ee064c77bb9b9f9311cd3c3f5899ff5b541485"
+        },
+        {
+          "check": "signed-out-model-list",
+          "evidence_sha256": "cae819b6990b30f2a8d18fc42d0b01d7a87cc3e58dd29c34ce33af10cc17d580"
+        },
+        {
+          "check": "signed-out-effort-options",
+          "evidence_sha256": "cae819b6990b30f2a8d18fc42d0b01d7a87cc3e58dd29c34ce33af10cc17d580"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-13",
+      "source_commit": "e6bd9a7480aeeb89eeb3d6431ee0013cd7193a78",
+      "checks": [
+        {
+          "check": "project-public-docs-tool-discovery",
+          "evidence_sha256": "1e99332aa586bb4aab538f26a8d0babda941da25fa9ae6a19df918cf8249c80d"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "2.1.322",
+      "extension_version": "2.1.322",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-runtime",
+      "environment": "isolated-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "7a254a8bd6901e71cee324c23b78f73c7239e7b4",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "claude-child-model-request",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "claude-child-effort-request",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "06cabb4b6dc1cddd5461f67b4e3b0f8384bd8a5958b2bc1a3f3970b160338603"
+        },
+        {
+          "check": "claude-child-mcp-tool-filter",
+          "evidence_sha256": "830b80bb62b94f82ee2c7f77e8f5baf586c313760519da51daeddd12f497d775"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "daemon-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "0b6e23b6edc66d473f1bc174b930504d0e125866",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "qwen-daemon-agent-discovery",
+          "evidence_sha256": "340545f9c83651c61298a2f3f9057f21af25648de43ced429bdb9a6b776282af"
+        },
+        {
+          "check": "qwen-daemon-mcp-pending-approval",
+          "evidence_sha256": "06cabb4b6dc1cddd5461f67b4e3b0f8384bd8a5958b2bc1a3f3970b160338603"
+        },
+        {
+          "check": "qwen-daemon-startup-model",
+          "evidence_sha256": "1e33b99ec12d409d2950979e9aca19bbd0668db4651033ac2d53b6cb0f2e1480"
+        },
+        {
+          "check": "qwen-daemon-session-effort",
+          "evidence_sha256": "179d29dc9ea9982c18cf324b7ac0f1129bde4f0077f6749a49e1f44ed7891f05"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "2d8abac5a1166a12a79a468d1bab878ea46983f6",
+      "interface": "daemon-http",
+      "checks": [
+        {
+          "check": "qwen-daemon-approved-stdio-discovery",
+          "evidence_sha256": "8450d4e3079225e6fa103b7778249e2153bb03b571d5af7cf7586ad5d2bbd3b4"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "cli",
+      "product_version": "0.27.3",
+      "engine_version": "26.12.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "2d8abac5a1166a12a79a468d1bab878ea46983f6",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "70e86e97a661fb8797bd7b77539ad87196031f2ca0792a2e5f9f05e71ed6e187"
+        }
+      ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "serve-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "a62460fabb0a83cb6c37407ce904325c7c3ae8a2",
+      "checks": [
+        {
+          "check": "opencode-v2-disabled-mcp-load",
+          "evidence_sha256": "27a5dda6a94a8adab367449f8c31a5c589af5948ed013355245f6b371c091f33"
+        },
+        {
+          "check": "opencode-v2-model-variant-catalog",
+          "evidence_sha256": "66993c059db39e037699b598e561a67e52ae87e12ca441f64201d1ab414e3cff"
+        }
+      ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "serve-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4cce6fbe45df18e4fbfdbb8296afba20e213d567",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "e57957b2846de27e8ce545618992f0ea753d65c301c6e2ed7660563fab8666ad"
+        },
+        {
+          "check": "opencode-v2-agent-variant-load",
+          "evidence_sha256": "e57957b2846de27e8ce545618992f0ea753d65c301c6e2ed7660563fab8666ad"
+        },
+        {
+          "check": "opencode-v2-stdio-discovery",
+          "evidence_sha256": "c9e2f29f9979625a456e20b534c9f0c41a5057bdd523d5b50ebe58d82ce750da"
+        }
+      ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "d5880844b00f8779b488e690bce9424ed6b9a8db",
+      "checks": [
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "f7f5e9cd2305ac0b089739e907ad3f05c13f71261b955c10d077b0897615d196"
+        },
+        {
+          "check": "opencode-v2-variant-effort-request",
+          "evidence_sha256": "f7f5e9cd2305ac0b089739e907ad3f05c13f71261b955c10d077b0897615d196"
+        }
+      ]
+    },
+    {
+      "product_id": "opencode",
+      "surface_id": "cli",
+      "product_version": "2.3.0",
+      "engine_version": "2.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "46fcb02a21948ba581efa93a82f660a7afda717f",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        },
+        {
+          "check": "opencode-v2-child-skill-use",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "opencode-v2-child-mcp-filter",
+          "evidence_sha256": "e70f816c88f53120230b05cb9b2bc91b774ef7ca16c412145cf2d9c47265249f"
+        }
+      ]
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "product_version": "7.8.27",
+      "engine_version": "7.8.27",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "serve-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4b556cce04285b5419f759f501a0638d3746a4e9",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "agent-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-stdio-discovery",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-model-variant-catalog",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        },
+        {
+          "check": "kilo-agent-variant-load",
+          "evidence_sha256": "f4cb9524b5ca3e4fcf695b5b6a9913b105dd11b3626c45468202a5f74eba377b"
+        }
+      ]
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "cli",
+      "product_version": "7.8.27",
+      "engine_version": "7.8.27",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "4b556cce04285b5419f759f501a0638d3746a4e9",
+      "checks": [
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "23f5743281563e9e5aa3d131ba9823b6161a35f659b7cd16564f33a0dea4b14f"
+        },
+        {
+          "check": "kilo-cli-variant-request",
+          "evidence_sha256": "23f5743281563e9e5aa3d131ba9823b6161a35f659b7cd16564f33a0dea4b14f"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        },
+        {
+          "check": "kilo-child-ambient-mcp",
+          "evidence_sha256": "88cb27a36f97658215884c17ccb572243e3112370d347a94bbd7ad7cf2650732"
+        }
+      ]
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "7.8.27",
+      "extension_version": "7.8.27",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "vscode-extension-host",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "fc01c46de8e4e5cf1f16473400bcc61ac180c57f",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
+        },
+        {
+          "check": "kilo-extension-subagent-discovery",
+          "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
+        },
+        {
+          "check": "kilo-stdio-discovery",
+          "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
+        },
+        {
+          "check": "kilo-extension-model-selection",
+          "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
+        },
+        {
+          "check": "kilo-extension-variant-selection",
+          "evidence_sha256": "8e827bf62c0f3ce52db1bf44819723e0ba90a6cdc36d50b4e07366bff5458a50"
+        }
+      ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "cli",
+      "product_version": "3.0.74",
+      "engine_version": "3.0.74",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "1c25fdf009d1e5bd72177d4164e0564a7c6e0913",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        },
+        {
+          "check": "cline-agent-file-inventory",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        },
+        {
+          "check": "cline-disabled-mcp-registration",
+          "evidence_sha256": "dfc5ae9b2efc38882e3a2fcd2df6656dffa1998636280723ce8d52fa9a7cd71c"
+        }
+      ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "cli",
+      "product_version": "3.0.74",
+      "engine_version": "3.0.74",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "exec-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "1c25fdf009d1e5bd72177d4164e0564a7c6e0913",
+      "checks": [
+        {
+          "check": "cline-session-model-request",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-session-effort-request",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-child-skill-use",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        },
+        {
+          "check": "cline-child-mcp-filter",
+          "evidence_sha256": "57dca14208faa794ce6299010b8bc0761c9d1b13444242dd61a7a1ad447645a7"
+        }
+      ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "desktop",
+      "product_version": "0.0.49",
+      "engine_version": "0.2.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "desktop-sidecar",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-13",
+      "source_commit": "c5398ba35e8a39d542ad972902651c6c4b439e62",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-agent-file-inventory",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-disabled-mcp-registration",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-model-catalog",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-session-model-request",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-session-effort-request",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-desktop-max-effort-fallback",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-child-skill-use",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        },
+        {
+          "check": "cline-child-mcp-filter",
+          "evidence_sha256": "08f7e490f9f8a3b9d20b33289da095e43b8f0beb2cc004de2c590bc1f145b545"
+        }
+      ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "factory-droid-discovery",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        },
+        {
+          "check": "factory-cli-skill-use",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "ecc618a14a8d8c0aea286d7418f70a5858712b5af058efda160fa9fa76c569b7"
+        }
+      ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-jsonrpc",
+      "checks": [
+        {
+          "check": "factory-cli-model-catalog",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        }
+      ]
+    },
+    {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "296d784f026e30801ebecaae501ff9cfd40d3e2d",
+      "interface": "exec-loopback",
+      "checks": [
+        {
+          "check": "factory-cli-custom-model-request",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        },
+        {
+          "check": "factory-cli-custom-effort-request",
+          "evidence_sha256": "25564f6e4da2627ed24093d5fa656a22f3d09562509ab8885195779367e6831f"
+        }
+      ]
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-web-api",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "5de2acba4d5e8e22fe5c55d309afd89c65b0b2ee",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "29ec8a2c733cc80c2634c5ab8c9ea7eea0260fd010c73e2d487d0ecfa8d331ea"
+        },
+        {
+          "check": "kimi-web-stdio-tool-discovery",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-model-catalog",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-session-model-effort",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        },
+        {
+          "check": "kimi-web-subagent-pool-effort",
+          "evidence_sha256": "b55a8499de17e58f63107d263533007f842c760612b9c7abf07f319ae9377026"
+        }
+      ]
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "cli",
+      "product_version": "1.1.89",
+      "engine_version": "1.1.89",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "dc3cfd87f46f5ff45081a073c94da509a4406d07",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "d2a91794b038715460debe50d9fa8598ff3a2c93fd6eaaf2c01ebac9cd8c05e8"
+        },
+        {
+          "check": "qoder-cli-stdio-healthcheck",
+          "evidence_sha256": "d2a91794b038715460debe50d9fa8598ff3a2c93fd6eaaf2c01ebac9cd8c05e8"
+        },
+        {
+          "check": "qoder-cli-context7-https-healthcheck",
+          "evidence_sha256": "d2a91794b038715460debe50d9fa8598ff3a2c93fd6eaaf2c01ebac9cd8c05e8"
+        }
+      ]
+    },
+    {
+      "product_id": "qoder",
+      "surface_id": "cli",
+      "product_version": "1.1.89",
+      "engine_version": "1.1.89",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "acp-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "f056e64d2ddd3abf9ad079fc820b4ba96c881148",
+      "checks": [
+        {
+          "check": "qoder-cli-acp-authentication",
+          "evidence_sha256": "5e619369f12c0ced9a440253f2e922ef5fa34802c6cb078dd4e8989766d5cb1b"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "dc3cfd87f46f5ff45081a073c94da509a4406d07",
+      "checks": [
+        {
+          "check": "public-docs-https-subagent-tool-call",
+          "evidence_sha256": "79bc769115f3887e0a66f6f54aaccff7cbf252cfa413ea523e047e41d943812c"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "desktop",
+      "product_version": "26.1106.6628.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "dc3cfd87f46f5ff45081a073c94da509a4406d07",
+      "checks": [
+        {
+          "check": "public-docs-https-subagent-tool-call",
+          "evidence_sha256": "5af9baedc88502033de97348fd5bc8b445e44008dfb44cf9d8e51abf0d95e26e"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "0.167.0-alpha.4.1",
+      "extension_version": "26.1106.51428",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "app-server-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "dc3cfd87f46f5ff45081a073c94da509a4406d07",
+      "checks": [
+        {
+          "check": "public-docs-https-subagent-tool-call",
+          "evidence_sha256": "2e3505f017dcd5e97b0ebe71c44007386705bb88ed14d08d7ac919659fcb2b8a"
+        }
+      ]
+    },
+    {
+      "product_id": "copilot",
+      "surface_id": "cli",
+      "product_version": "1.0.111",
+      "engine_version": "1.0.111",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "prompt-mode",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "982f52c3ccb033c85a4c52c9d0d788a05126abb2",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-skill-use",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-mcp-filter",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-byok-model-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-byok-effort-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-model-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-model-fallback",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        },
+        {
+          "check": "copilot-cli-child-effort-request",
+          "evidence_sha256": "9acddff5bafeb1b5b38447b542d283bf3766928627d3471e0a91dd801f3c245f"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "desktop",
+      "product_version": "0.27.3",
+      "engine_version": "22.20.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-daemon-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "46856f2c36b3abd1b7fbaa3c90060e55d943d46b",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-skill-use",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-agent-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-mcp-pending-approval",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-approved-stdio-discovery",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-startup-model",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-session-effort",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-child-model-request",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        },
+        {
+          "check": "qwen-daemon-child-effort-request",
+          "evidence_sha256": "80124d26366369988a395bf182d11f6fefb0094c2f9946e335172a00f13499a7"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "stream-json",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "463b0e6c75d4b775a960a1f48a4a857031c3ff1e",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "agent-metadata-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-http-pending-approval",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-stdio-healthcheck",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "project-public-docs-tool-discovery",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "signed-out-model-list",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "signed-out-effort-options",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "stream-json",
+      "environment": "isolated-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "463b0e6c75d4b775a960a1f48a4a857031c3ff1e",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-skill-use",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "stdio-tool-call",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-public-docs-tool-call",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-mcp-tool-filter",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-model-request",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-child-effort-request",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-catalog-model-requests",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-catalog-effort-requests",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        },
+        {
+          "check": "claude-cli-default-child-model",
+          "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "print-json",
+      "environment": "isolated-loopback",
+      "source_commit": "024d7cf45e41a4423efb3be4f11096f105b42927",
+      "checks": [
+        {
+          "check": "claude-lmstudio-local-generation",
+          "evidence_sha256": "d75b32c09bf7a29a39e65759741421be83b468274dc67ca2761f7e1d1a95ede4"
+        }
+      ]
+    },
+    {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "99778fd55766fd50be3e81b8595d9bbc945175ee",
+      "checks": [
+        {
+          "check": "agent-load",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        },
+        {
+          "check": "stdio-subagent-tool-approval",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        },
+        {
+          "check": "agent-model-effort-selection",
+          "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
+        }
+      ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "d71b743eefc16b005f96c6aede7da545091684c3",
+      "checks": [
+        {
+          "check": "lmstudio-local-model-inventory",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-local-reasoning-switch",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-local-embedding-request",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-ephemeral-mcp-tool-call",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-compatible-chat-requests",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        }
+      ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "a09da9e7915f5d8d6214580024744b0c604d377f",
+      "checks": [
+        {
+          "check": "lmstudio-decision-instance-inventory",
+          "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
+        },
+        {
+          "check": "lmstudio-local-decision-requests",
+          "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
+        }
+      ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "source_commit": "73d6c1306b4849b43c1ab67b9f4832070e6907c2",
+      "checks": [
+        {
+          "check": "lmstudio-compatible-reasoning-switch",
+          "evidence_sha256": "77dd386ecc444dfe16cc148329909ab2ce01b803137b6c191d5b59f856214779"
+        },
+        {
+          "check": "lmstudio-messages-thinking-switch",
+          "evidence_sha256": "b0e072f4a10421811d87f37a00abe8ce199b8a942a5684a2cbb70dbf00491f36"
+        }
+      ]
+    },
+    {
+      "product_id": "cline",
+      "surface_id": "ide",
+      "product_version": "1.146.0",
+      "engine_version": "4.1.26",
+      "extension_version": "4.1.26",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "vscode-extension-host",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "ab57b76b7909dd97161b64487c9a7d8c83be2d0b",
+      "checks": [
+        {
+          "check": "skill-discovery",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-stdio-activation",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-delegation-unavailable",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-local-model-selection",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        },
+        {
+          "check": "cline-ide-reasoning-effort-request",
+          "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
+        }
+      ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "0.27.3",
+      "extension_version": "0.27.3",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "vscode-extension-host",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "d941d7fb07e4936359182b3491f9c9e36c220645",
+      "checks": [
+        {
+          "check": "qwen-companion-skill-use",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-mcp-approval",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-model-selection",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-reasoning-request",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        }
+      ]
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "cli",
+      "product_version": "3.3.0",
+      "engine_version": "3.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "acp-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "d04901fb8bf0d64891da70d9443aeef1d8968491",
+      "checks": [
+        {
+          "check": "kiro-v3-project-skill-discovery",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-workspace-agent-selection",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-stdio-activation",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        }
+      ]
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "cli",
+      "product_version": "3.3.0",
+      "engine_version": "3.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "d04901fb8bf0d64891da70d9443aeef1d8968491",
+      "checks": [
+        {
+          "check": "kiro-v3-model-login-required",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-workspace-effort-readback",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        }
+      ]
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "product_version": "0.23.1",
+      "engine_version": "0.23.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "cb67ace69aa387919d9da1a6739c1a591280fbe3",
+      "checks": [
+        {
+          "check": "hermes-profile-role-loading",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-skill-view",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-stdio-tool-call",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-model-read",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-effort-resolution",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        }
+      ]
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "product_version": "0.23.1",
+      "engine_version": "0.23.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "direct-engine",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "301b7d5731b35f77e44ac08f00be93ec561dfd16",
+      "checks": [
+        {
+          "check": "hermes-lmstudio-local-generation",
+          "evidence_sha256": "265533ef26120e6c2d819254dafaeae3b631d258c8e9d11233c3f841a1bf6ff9"
+        },
+        {
+          "check": "hermes-lmstudio-reasoning-off",
+          "evidence_sha256": "265533ef26120e6c2d819254dafaeae3b631d258c8e9d11233c3f841a1bf6ff9"
+        }
+      ]
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "product_version": "0.23.1",
+      "engine_version": "0.23.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "oneshot-gateway",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "434684a5ec903283cfa96d43b7abe856f8a86c28",
+      "checks": [
+        {
+          "check": "hermes-lmstudio-gateway-generation",
+          "evidence_sha256": "883e2f710a102a7bc254dcaa00adb4ec4e3fdce88cf45fb97beb51a859647255"
+        },
+        {
+          "check": "hermes-lmstudio-gateway-reasoning-off",
+          "evidence_sha256": "883e2f710a102a7bc254dcaa00adb4ec4e3fdce88cf45fb97beb51a859647255"
+        }
+      ]
+    },
+    {
+      "product_id": "zed",
+      "surface_id": "ide",
+      "product_version": "1.28.1",
+      "engine_version": "1.28.1+stable.390.e8bc16acee5ae1937600d571d441c4b5d7b0d288",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "editor-startup",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "a71863ffd9719e4c619c94f0d5b5d8693c67a390",
+      "checks": [
+        {
+          "check": "zed-stdio-explicit-activation",
+          "evidence_sha256": "adbfdc470ddfc87dcd6ea038528825adbc170810168ca2cc9e6288de948ee9b4"
+        }
+      ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "cli",
+      "product_version": "1.16.0",
+      "engine_version": "1.21.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711:WSL2 Ubuntu 26.04.1",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "aaa9f087cfe00a4be9b8018cd361af4c54e76363",
+      "checks": [
+        {
+          "check": "openhands-headless-skill-invocation",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-headless-agent-task",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-headless-stdio-tool-call",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-named-profile-model-request",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-named-profile-effort-request",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        }
+      ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "product_version": "1.40.0",
+      "engine_version": "1.62.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-agent-server-asgi",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "d6c7c3b83635eb5b9773b3799af32340f284562f",
+      "checks": [
+        {
+          "check": "canvas-disabled-mcp-settings",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        },
+        {
+          "check": "canvas-stdio-test-tool-call",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        },
+        {
+          "check": "canvas-backend-project-skill-load",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        },
+        {
+          "check": "canvas-agent-profile-materialization",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        },
+        {
+          "check": "canvas-llm-profile-preflight-model",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        },
+        {
+          "check": "canvas-llm-profile-preflight-effort",
+          "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
+        }
+      ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "product_version": "1.40.0",
+      "engine_version": "1.62.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-agent-server-asgi",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "1d1d0c5ce813e49e62c733ec41a262224d2ac235",
+      "checks": [
+        {
+          "check": "canvas-conversation-agent-profile",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-skill-invocation",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-stdio-tool-call",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-model-request",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-effort-request",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        }
+      ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "product_version": "1.40.0",
+      "engine_version": "1.62.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-agent-server-asgi",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "a665bd5a3a6abfdb96783d9739e43524c400bf38",
+      "checks": [
+        {
+          "check": "canvas-conversation-context7-tool-call",
+          "evidence_sha256": "b237d12c3f1b4c1744cdf7c97af9c247672778fcd50c8791a72f33b07fcc6041"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "mcp-cli-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "32d90eb1e285c73b392cedb1d49a38838355e3e6",
+      "checks": [
+        {
+          "check": "cursor-cli-mcp-approval-and-tool-discovery",
+          "evidence_sha256": "709473558f6722a81cfbaa95ca2394af4f07e5c21166d0378a8ace0bf6502de4"
+        },
+        {
+          "check": "cursor-cli-catalog-authentication",
+          "evidence_sha256": "709473558f6722a81cfbaa95ca2394af4f07e5c21166d0378a8ace0bf6502de4"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-subagent-loader",
+      "environment": "isolated-native-loader",
+      "checked_on": "2026-11-14",
+      "source_commit": "9e217eb39ad1d22edbc535b4a058dd5cf00073fe",
+      "checks": [
+        {
+          "check": "cursor-cli-bundled-subagent-load",
+          "evidence_sha256": "8ceee40360ff6984a4950f4a6d730dd8d1daea9801f7de6eca9063f85147c86b"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-skill-loader",
+      "environment": "isolated-native-loader",
+      "checked_on": "2026-11-14",
+      "source_commit": "9e217eb39ad1d22edbc535b4a058dd5cf00073fe",
+      "checks": [
+        {
+          "check": "cursor-cli-bundled-skill-load",
+          "evidence_sha256": "3893c32b381393dca9ecb88399b81b31ae779d80a753ebeccd947f1926cc6ef7"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "c52d77b64961aba177a1ede6bf41cd9f9997a1bb",
+      "checks": [
+        {
+          "check": "antigravity-cli-account-catalog-authentication",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-workspace-instructions",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-skill-expansion",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-subagent-tier",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-scoped-stdio-call",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-subagent-mcp-isolation",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-model-selector-request",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-effort-request",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-bundled-variant-requests",
+          "evidence_sha256": "70f7ff66165708d141f1027d5fff299b2ddf6ca3df573a606d0728199c7f7a42"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "78f42cdbd6ea35cfbc42f602728bfcdabe2b5fd7",
+      "checks": [
+        {
+          "check": "antigravity-cli-project-context7-https-call",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        },
+        {
+          "check": "antigravity-cli-project-openai-docs-https-call",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        },
+        {
+          "check": "antigravity-cli-project-https-permissions",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "acp-stdio",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "78f42cdbd6ea35cfbc42f602728bfcdabe2b5fd7",
+      "checks": [
+        {
+          "check": "antigravity-cli-acp-model-inventory",
+          "evidence_sha256": "5be595ae21ced2c847394e45bca049d3880bf96a843e114608c780f4759789a5"
+        },
+        {
+          "check": "antigravity-cli-acp-variant-requests",
+          "evidence_sha256": "5be595ae21ced2c847394e45bca049d3880bf96a843e114608c780f4759789a5"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "desktop",
+      "product_version": "2.32.0",
+      "engine_version": "2.32.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-language-server",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "993e2ed8760f68571dd3fba69b011696999f333a",
+      "checks": [
+        {
+          "check": "antigravity-desktop-workspace-instructions",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-workspace-skill",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-workspace-agent",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-mcp-inventory",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-signed-out-model-boundary",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        }
+      ]
+    },
+    {
+      "product_version": "2.32.0",
+      "engine_version": "2.32.0",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-language-server",
+      "source_commit": "34b047f7e21df1a04aa6224d5ec5c6033d3f5959",
+      "product_id": "antigravity",
+      "surface_id": "desktop",
+      "os_id": "windows",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "checks": [
+        {
+          "check": "antigravity-desktop-mcp-user-stdio-prompt",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        },
+        {
+          "check": "antigravity-desktop-mcp-user-https-discovery",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        },
+        {
+          "check": "antigravity-desktop-mcp-workspace-refresh-boundary",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        }
+      ]
+    }
+  ]
+}

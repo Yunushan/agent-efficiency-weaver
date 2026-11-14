@@ -464,6 +464,11 @@ def _smoke(python, outside, environment, host_os):
     commands = [
         ["validate"],
         ["inventory", "--format", "json"],
+        ["coverage", "--format", "json"],
+        ["models", "--format", "json"],
+        ["agents", "inventory", "--format", "json"],
+        ["model", "--agent", "qwen-code", "--provider", "openai", "--model", "synthetic-model",
+         "--dry-run"],
         [
             "doctor",
             "--agent",

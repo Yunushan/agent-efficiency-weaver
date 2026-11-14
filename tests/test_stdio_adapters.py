@@ -1,0 +1,469 @@
+"""Synthetic stdio launch fixtures; no package is installed or executed."""
+import copy
+import json
+import os
+import socket
+import subprocess
+import tempfile
+import tomllib
+import unittest
+from dataclasses import replace
+from pathlib import Path
+from unittest import mock
+
+import yaml
+
+from agentweaver.adapters import hermes_profile_mcp, render_mcp, stdio_inventory
+from agentweaver.artifacts import write_artifacts
+from agentweaver.config import WeaverError, load_json, render, select_servers, validate_catalog
+from agentweaver.integrations import load_integrations
+from tests.test_cli_exports import invoke
+
+ROOT = Path(__file__).resolve().parents[1]
+COMMAND = "synthetic-mcp-fixture"
+ARGS = ["--fixture-only", "not-an-installed-package"]
+STDIO = dict(kind="stdio", command=COMMAND, args=ARGS, default_enabled=False,
+             description="Synthetic argv fixture; never installed or executed.")
+PLAIN = {"abacus", "amp", "antigravity", "claude-code", "cline", "devin", "junie", "kiro",
+         "pi", "qoder", "zed", "kimi-code", "qwen-code", "openhands"}
+TYPE_STDIO = {"copilot", "cursor", "factory", "lm-studio"}
+LOCAL_ARRAY = {"kilo", "opencode"}
+SUPPORTED = PLAIN | TYPE_STDIO | LOCAL_ARRAY | {"codex", "goose", "hermes"}
+
+
+class StdioConfigurationTests(unittest.TestCase):
+    def setUp(self):
+        self.catalog = load_json(ROOT / "catalogs/mcp-servers.json")
+        self.catalog["servers"]["synthetic-stdio"] = copy.deepcopy(STDIO)
+        self.profile = load_json(ROOT / "profiles/efficient.json")
+        self.profile.update(allowed_mcp=["context7", "synthetic-stdio"], max_mcp_servers=2)
+        self.integrations = load_integrations(ROOT)
+
+    def artifact(self, product, surface=None, enabled=None):
+        spec = self.integrations[product]
+        return render_mcp(spec, surface or spec.default_surface, self.profile,
+                          self.catalog, enabled if enabled is not None else ["synthetic-stdio"])[0]
+
+    def test_stdio_catalog_is_strict_default_off_and_selection_keeps_remote_contract(self):
+        self.assertEqual(validate_catalog(self.catalog), [])
+        self.assertEqual(select_servers(self.profile, self.catalog, []), {})
+        selected = select_servers(self.profile, self.catalog, ["synthetic-stdio", "context7"])
+        self.assertEqual(selected["context7"], "https://mcp.context7.com/mcp")
+        self.assertEqual(selected["synthetic-stdio"], dict(kind="stdio", command=COMMAND, args=ARGS))
+        self.assertEqual(list(selected), ["context7", "synthetic-stdio"])
+        selected["synthetic-stdio"]["args"].append("changed-output")
+        self.assertEqual(self.catalog["servers"]["synthetic-stdio"]["args"], ARGS)
+
+    def test_stdio_validation_rejects_shell_strings_expansion_controls_and_unbounded_argv(self):
+        invalid_changes = [
+            {"command": "npx -y package"}, {"command": "npx;execute"}, {"command": "npx|execute"},
+            {"command": "python scripts/server.py"}, {"command": "node ./server.js"},
+            {"command": "$(helper)"}, {"command": "${EXECUTABLE}"}, {"command": ""},
+            {"command": ["npx", "-y"]}, {"command": "bad\ud800"}, {"command": "bad\u202e"},
+            {"command": "x" * 1025}, {"args": "--raw shell string"}, {"args": None},
+            {"args": [None]}, {"args": [[]]}, {"args": ["bad\nline"]}, {"args": ["bad\ud800"]},
+            {"args": ["${SECRET}"]}, {"args": ["$SECRET"]}, {"args": ["%SECRET%"]},
+            {"args": ["{env:SECRET}"]}, {"args": ["x" * 4097]}, {"args": ["x"] * 129},
+            {"args": ["x" * 4096] * 9}, {"default_enabled": True}, {"default_enabled": 0},
+            {"url": "https://example.invalid/mcp"}, {"env": {}}, {"headers": {}},
+            {"cwd": "."}, {"shell": True}, {"permissions": {"allow": True}},
+        ]
+        for changes in invalid_changes:
+            catalog = copy.deepcopy(self.catalog)
+            catalog["servers"]["synthetic-stdio"].update(changes)
+            with self.subTest(changes=repr(changes)):
+                self.assertTrue(validate_catalog(catalog))
+                with self.assertRaises(WeaverError):
+                    select_servers(self.profile, catalog, [])
+        for missing in ("command", "args", "default_enabled"):
+            catalog = copy.deepcopy(self.catalog)
+            del catalog["servers"]["synthetic-stdio"][missing]
+            with self.subTest(missing=missing):
+                self.assertTrue(validate_catalog(catalog))
+
+    def test_secret_like_argv_and_unknown_fields_are_redacted_in_errors(self):
+        secret = "NEVER-ECHO"
+        for value in (
+            f"--api-key={secret}", "--token", f"TOKEN={secret}", f"password={secret}",
+            f"Bearer {secret}", f"Basic {secret}", f"https://user:{secret}@example.invalid",
+            "sk-" + "x" * 24, "ghp_" + "x" * 24,
+        ):
+            catalog = copy.deepcopy(self.catalog)
+            catalog["servers"]["synthetic-stdio"]["args"] = [value]
+            with self.subTest(value=value), self.assertRaises(WeaverError) as raised:
+                select_servers(self.profile, catalog, ["synthetic-stdio"])
+            self.assertNotIn(secret, str(raised.exception))
+            self.assertNotIn(value, str(raised.exception))
+        for field in ("env", "api_key", "headers", "authorization", secret):
+            catalog = copy.deepcopy(self.catalog)
+            catalog["servers"]["synthetic-stdio"][field] = secret
+            with self.subTest(field=field), self.assertRaises(WeaverError) as raised:
+                select_servers(self.profile, catalog, [])
+            self.assertNotIn(secret, str(raised.exception))
+
+    def test_opencode_v2_stages_remote_and_stdio_as_disabled(self):
+        spec = self.integrations["opencode"]
+        empty = render_mcp(spec, "cli", self.profile, self.catalog, [], opencode_v2=True)[0]
+        self.assertEqual(json.loads(empty.content), {"mcp": {"servers": {}}})
+        artifact = render_mcp(spec, "cli", self.profile, self.catalog,
+                              ["context7", "synthetic-stdio"], opencode_v2=True)[0]
+        self.assertEqual(artifact.relative_path.as_posix(), "opencode/opencode.json")
+        self.assertEqual(json.loads(artifact.content), {"mcp": {"servers": {
+            "context7": {"type": "remote", "url": "https://mcp.context7.com/mcp", "disabled": True},
+            "synthetic-stdio": {"type": "local", "command": [COMMAND, *ARGS], "disabled": True},
+        }}})
+        with self.assertRaisesRegex(WeaverError, "OpenCode CLI"):
+            render_mcp(self.integrations["kilo"], "cli", self.profile, self.catalog, [], opencode_v2=True)
+
+    def test_kiro_cli_stages_stdio_with_disabled_flag(self):
+        artifact = self.artifact("kiro", "cli")
+        self.assertEqual(artifact.relative_path.as_posix(), "kiro/.kiro/settings/mcp.json")
+        self.assertEqual(json.loads(artifact.content), {"mcpServers": {
+            "synthetic-stdio": {"command": COMMAND, "args": ARGS, "disabled": True},
+        }})
+
+    def test_copilot_portable_stages_http_and_stdio_for_the_native_workspace_format(self):
+        spec = self.integrations["copilot"]
+        selected = ["context7", "synthetic-stdio"]
+        default, = render_mcp(spec, "vscode", self.profile, self.catalog, selected)
+        self.assertEqual(default.relative_path.as_posix(), "copilot/.vscode/mcp.json")
+        self.assertEqual(set(json.loads(default.content)), {"servers"})
+        empty, = render_mcp(spec, "vscode", self.profile, self.catalog, [], copilot_portable=True)
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        portable, = render_mcp(spec, "vscode", self.profile, self.catalog, selected, copilot_portable=True)
+        self.assertEqual(portable.relative_path.as_posix(), "copilot/.mcp.json")
+        self.assertEqual(json.loads(portable.content), {"mcpServers": {
+            "context7": {"type": "http", "url": "https://mcp.context7.com/mcp", "tools": ["*"]},
+            "synthetic-stdio": {"type": "stdio", "command": COMMAND, "args": ARGS, "tools": ["*"]},
+        }})
+        for surface in ("cli", "desktop"):
+            with self.subTest(surface=surface):
+                artifact, = render_mcp(spec, surface, self.profile, self.catalog, selected)
+                self.assertEqual(artifact, portable)
+        with self.assertRaisesRegex(WeaverError, "VS Code Copilot project target"):
+            render_mcp(self.integrations["opencode"], "cli", self.profile, self.catalog, [], copilot_portable=True)
+        restricted = dict(self.profile, allowed_mcp=["context7"])
+        with self.assertRaises(WeaverError):
+            render_mcp(spec, "vscode", restricted, self.catalog, selected, copilot_portable=True)
+
+    def test_copilot_portable_cli_handoff_names_the_native_destination_and_tool_scope(self):
+        base = ("--root", str(ROOT), "--agent", "copilot", "--profile", "efficient", "--dry-run")
+        code, output, errors = invoke("render", *base, "--copilot-portable", "--enable", "context7")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertEqual(fragment["path"], "copilot/.mcp.json")
+        self.assertIn("workspace-root .mcp.json", handoff["content"])
+        self.assertIn("narrow tools before import", handoff["content"])
+        self.assertIn("may start in the destination", handoff["content"])
+        self.assertNotIn(".vscode/mcp.json", handoff["content"])
+        self.assertEqual(invoke("render", *base, "--copilot-portable", "--opencode-v2")[0], 2)
+
+    def test_hermes_profile_mcp_disables_both_transports_without_changing_fragment_behavior(self):
+        selected = ["context7", "synthetic-stdio"]
+        expected = {
+            "context7": {"url": "https://mcp.context7.com/mcp", "enabled": False},
+            "synthetic-stdio": {"command": COMMAND, "args": ARGS, "enabled": False},
+        }
+        self.assertEqual(hermes_profile_mcp(self.profile, self.catalog, selected),
+                         {"mcp_servers": expected})
+        standard = yaml.safe_load(self.artifact("hermes", enabled=selected).content)
+        self.assertEqual(standard, {"mcp_servers": {
+            name: dict(entry, enabled=True) for name, entry in expected.items()
+        }})
+        with self.assertRaises(WeaverError):
+            hermes_profile_mcp(dict(self.profile, max_mcp_servers=1), self.catalog, selected)
+
+    def test_opencode_v2_cli_handoff_explains_review_and_activation(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "opencode", "--profile",
+                                      "efficient", "--opencode-v2", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        artifacts = json.loads(output)["artifacts"]
+        self.assertTrue(json.loads(artifacts[0]["content"])["mcp"]["servers"]["context7"]["disabled"])
+        self.assertIn("same-name server entries", artifacts[1]["content"])
+
+    def test_stdio_requires_explicit_selection_allowlist_and_profile_capacity(self):
+        for product in SUPPORTED:
+            with self.subTest(product=product):
+                self.assertNotIn(COMMAND.encode(), self.artifact(product, enabled=[]).content)
+        unpermitted = dict(self.profile, allowed_mcp=["context7"])
+        with self.assertRaises(WeaverError):
+            select_servers(unpermitted, self.catalog, ["synthetic-stdio"])
+        zero = load_json(ROOT / "profiles/enterprise-secure.json")
+        self.assertEqual(select_servers(zero, self.catalog, []), {})
+        with self.assertRaises(WeaverError):
+            select_servers(zero, self.catalog, ["synthetic-stdio"])
+
+    def test_zed_user_fragment_handoff_requires_explicit_activation(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "zed", "--surface", "ide",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertFalse(json.loads(fragment["content"])["context_servers"]["context7"]["enabled"])
+        self.assertIn("context_servers with enabled: false", handoff["content"])
+        self.assertIn("enable only the intended servers", handoff["content"])
+
+    def test_cursor_cli_handoff_documents_individual_workspace_approvals(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "cursor", "--surface", "cli",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        config, guide = json.loads(output)["artifacts"]
+        self.assertEqual(config["path"], "cursor/.cursor/mcp.json")
+        self.assertEqual(json.loads(config["content"]), {
+            "mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}},
+        })
+        self.assertIn("agent mcp enable NAME --workspace PROJECT", guide["content"])
+        self.assertIn("agent mcp list-tools NAME --workspace PROJECT", guide["content"])
+
+    def test_antigravity_cli_stages_reviewable_workspace_mcp(self):
+        spec = self.integrations["antigravity"]
+        empty, = render_mcp(spec, "cli", self.profile, self.catalog, [])
+        self.assertEqual(empty.relative_path.as_posix(), "antigravity/.agents/mcp_config.json")
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        staged, = render_mcp(spec, "cli", self.profile, self.catalog, ["context7", "synthetic-stdio"])
+        self.assertEqual(staged.relative_path, empty.relative_path)
+        self.assertEqual(json.loads(staged.content), {
+            "mcpServers": {
+                "context7": {"serverUrl": "https://mcp.context7.com/mcp"},
+                "synthetic-stdio": {"command": COMMAND, "args": ARGS},
+            },
+        })
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "antigravity", "--surface", "cli",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        _, handoff = json.loads(output)["artifacts"]
+        self.assertIn("/mcp in a trusted workspace session", handoff["content"])
+        self.assertIn("mcp(SERVER/TOOL)", handoff["content"])
+        self.assertIn("permissions.allow", handoff["content"])
+
+    def test_antigravity_desktop_stages_both_transports_with_app_handoff(self):
+        spec = self.integrations["antigravity"]
+        for selected in ([], ["context7", "synthetic-stdio"]):
+            desktop, = render_mcp(spec, "desktop", self.profile, self.catalog, selected)
+            cli, = render_mcp(spec, "cli", self.profile, self.catalog, selected)
+            self.assertEqual(desktop.relative_path.as_posix(), "antigravity/.agents/mcp_config.json")
+            self.assertEqual(desktop.content, cli.content)
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "antigravity", "--surface", "desktop",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        _, handoff = json.loads(output)["artifacts"]
+        self.assertIn("Customizations > Installed > MCP Servers", handoff["content"])
+        self.assertNotIn("permissions.allow", handoff["content"])
+
+    def test_antigravity_desktop_user_mcp_is_an_explicit_reviewable_fragment(self):
+        spec = self.integrations["antigravity"]
+        for selected in ([], ["context7", "synthetic-stdio"]):
+            user, = render_mcp(spec, "desktop", self.profile, self.catalog, selected, antigravity_user_mcp=True)
+            project, = render_mcp(spec, "desktop", self.profile, self.catalog, selected)
+            self.assertEqual(user.kind, "mcp-fragment")
+            self.assertEqual(user.relative_path.as_posix(), "antigravity/fragments/mcp.desktop.user.json")
+            self.assertEqual(user.content, project.content)
+        common = ("render", "--root", str(ROOT), "--agent", "antigravity",
+                  "--profile", "efficient", "--enable", "context7", "--dry-run", "--antigravity-user-mcp")
+        code, output, errors = invoke(*common, "--surface", "desktop")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertEqual(fragment["path"], "antigravity/fragments/mcp.desktop.user.json")
+        self.assertEqual(handoff["path"], "antigravity/MCP-USER-HANDOFF.md")
+        self.assertIn("~/.gemini/config/mcp_config.json", handoff["content"])
+        self.assertIn("applies to every App project", handoff["content"])
+        self.assertNotIn("Project target", handoff["content"])
+        for surface in ("cli", "ide"):
+            self.assertEqual(invoke(*common, "--surface", surface)[0], 2)
+
+    def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
+        spec = self.integrations["openhands"]
+        requests = render_mcp(spec, "canvas", self.profile, self.catalog, ["synthetic-stdio", "context7"])
+        self.assertEqual({item.relative_path.as_posix(): json.loads(item.content) for item in requests}, {
+            "openhands/requests/canvas/context7.json": {
+                "transport": "http", "url": "https://mcp.context7.com/mcp", "enabled": False},
+            "openhands/requests/canvas/synthetic-stdio.json": {
+                "transport": "stdio", "command": COMMAND, "args": ARGS, "enabled": False},
+        })
+        self.assertEqual({item.kind for item in requests}, {"mcp-request"})
+        self.assertEqual(render_mcp(spec, "canvas", self.profile, self.catalog, []), [])
+        with self.assertRaises(WeaverError):
+            render_mcp(spec, "canvas", self.profile, self.catalog, ["openai-docs"])
+
+    def test_openhands_canvas_cli_handoff_and_skill_use_separate_destinations(self):
+        common = ("--root", str(ROOT), "--agent", "openhands", "--surface", "canvas",
+                  "--profile", "efficient", "--dry-run")
+        code, output, errors = invoke("render", *common)
+        self.assertEqual(code, 0, errors)
+        handoff, = json.loads(output)["artifacts"]
+        self.assertEqual(handoff["path"], "openhands/MCP-HANDOFF.md")
+        self.assertIn("POST /api/settings/mcp/<server-id>", handoff["content"])
+        code, output, errors = invoke("bundle", *common, "--skill", "token-efficient-retrieval")
+        self.assertEqual(code, 0, errors)
+        self.assertEqual({artifact["path"] for artifact in json.loads(output)["artifacts"]}, {
+            "openhands/AGENTS.md", "openhands/.agents/skills/token-efficient-retrieval/SKILL.md",
+            "openhands/OS-HANDOFF.md",
+        })
+
+    def test_each_supported_host_uses_its_documented_native_shape(self):
+        metadata = stdio_inventory()
+        self.assertEqual(set(metadata), SUPPORTED)
+        for product in SUPPORTED:
+            spec = self.integrations[product]
+            for surface in spec.surfaces:
+                if surface.mcp_dialect != metadata[product]["mcp_dialect"]:
+                    continue
+                with self.subTest(product=product, surface=surface.id):
+                    artifact = self.artifact(product, surface.id)
+                    text = artifact.content.decode()
+                    parsed = tomllib.loads(text) if product == "codex" else json.loads(text)
+                    root = ("mcp_servers" if product in {"codex", "hermes"} else
+                            "mcp" if product in LOCAL_ARRAY else "servers" if product == "copilot" else
+                            "context_servers" if product == "zed" else "extensions" if product == "goose" else
+                            "amp.mcpServers" if product == "amp" else "mcpServers")
+                    entry = parsed[root]["synthetic-stdio"]
+                    base = dict(command=COMMAND, args=ARGS)
+                    expected = ({"type": "stdio", **base} if product in TYPE_STDIO else
+                                {"type": "local", "command": [COMMAND, *ARGS], "enabled": True} if product in LOCAL_ARRAY else
+                                {"type": "stdio", "name": "synthetic-stdio", "enabled": True, "cmd": COMMAND, "args": ARGS} if product == "goose" else
+                                {**base, "enabled": True} if product == "hermes" else base)
+                    if product == "cline" or (product, surface.id) == ("kiro", "cli"):
+                        expected["disabled"] = True
+                    if product in {"zed", "openhands"}:
+                        expected["enabled"] = False
+                    self.assertEqual(entry, expected)
+                    for remote_field in ("url", "serverUrl", "httpUrl", "uri"):
+                        self.assertNotIn(remote_field, entry)
+                    self.assertNotIn("env", entry)
+                    self.assertFalse(metadata[product]["runtime_checks"])
+                    self.assertEqual(metadata[product]["checked_on"], "2026-10-26")
+                    self.assertTrue(metadata[product]["sources"])
+
+    def test_mixed_remote_and_stdio_keep_existing_http_shapes(self):
+        golden = load_json(ROOT / "tests/fixtures/adapters/golden.json")
+        for product in SUPPORTED:
+            with self.subTest(product=product):
+                artifact = self.artifact(product, enabled=["context7", "synthetic-stdio"])
+                parsed = tomllib.loads(artifact.content.decode()) if product == "codex" else json.loads(artifact.content)
+                expected = golden[product]["enabled"]
+                expected = tomllib.loads(expected) if product == "codex" else expected
+                root = next(iter(expected))
+                self.assertEqual(parsed[root]["context7"], expected[root]["context7"])
+
+    def test_user_scope_fragments_and_yaml_compatibility_are_preserved(self):
+        for product in ("cline", "zed", "goose", "hermes", "lm-studio", "openhands"):
+            artifact = self.artifact(product)
+            with self.subTest(product=product):
+                self.assertIn("fragments", artifact.relative_path.parts)
+                self.assertEqual(artifact.kind, "mcp-fragment")
+                if product in {"goose", "hermes"}:
+                    self.assertEqual(yaml.safe_load(artifact.content), json.loads(artifact.content))
+
+    def test_remote_only_request_and_unestablished_native_stdio_fail_closed(self):
+        for product, surface in (("perplexity", "agent-api"), ("lm-studio", "api"),
+                                 ("jetbrains-air", "desktop")):
+            with self.subTest(product=product), self.assertRaises(WeaverError) as raised:
+                self.artifact(product, surface)
+            self.assertIn("stdio", str(raised.exception))
+        spec = self.integrations["abacus"]
+        changed = replace(spec, surfaces=(replace(spec.surface("desktop"), mcp_dialect="context_servers.url"),))
+        with self.assertRaises(WeaverError):
+            render_mcp(changed, "desktop", self.profile, self.catalog, ["synthetic-stdio"])
+
+    def test_legacy_kilo_and_abacus_routes_keep_stdio_structured(self):
+        kilo = render("kilo", self.profile, self.catalog, ["synthetic-stdio"])
+        abacus = render("abacus", self.profile, self.catalog, ["synthetic-stdio"])
+        self.assertEqual(kilo["mcp"]["synthetic-stdio"],
+                         {"type": "local", "command": [COMMAND, *ARGS], "enabled": True})
+        self.assertEqual(abacus["mcpServers"]["synthetic-stdio"], {"command": COMMAND, "args": ARGS})
+
+    def test_unicode_quoted_arguments_and_executable_paths_round_trip_without_expansion(self):
+        command = "C:\\Program Files\\synthetic-fixture\\server.exe"
+        args = ["資料", 'quoted "argument"', "", "semi;colon", "a&b"]
+        self.catalog["servers"]["synthetic-stdio"].update(command=command, args=args)
+        for product in ("abacus", "codex", "kilo", "goose", "openhands"):
+            artifact = self.artifact(product)
+            parsed = tomllib.loads(artifact.content.decode()) if product == "codex" else json.loads(artifact.content)
+            root = "mcp_servers" if product == "codex" else "mcp" if product == "kilo" else "extensions" if product == "goose" else "mcpServers"
+            entry = parsed[root]["synthetic-stdio"]
+            with self.subTest(product=product):
+                self.assertEqual(entry["cmd" if product == "goose" else "command"], [command, *args] if product == "kilo" else command)
+                if product != "kilo":
+                    self.assertEqual(entry["args"], args)
+
+    def test_openhands_manual_json_stdio_fragment_and_cli_dry_run_keep_native_path_safe(self):
+        command = "C:\\Program Files\\synthetic-fixture\\server.exe"
+        args = ["--fixture-only", "資料", 'quoted "argument"', "", "semi;colon", "a&b"]
+        self.catalog["servers"]["synthetic-stdio"].update(command=command, args=args)
+        empty = self.artifact("openhands", enabled=[])
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        artifact = self.artifact("openhands")
+        self.assertEqual(artifact.relative_path.as_posix(), "openhands/fragments/mcp.json")
+        self.assertEqual(artifact.kind, "mcp-fragment")
+        self.assertEqual(json.loads(artifact.content), {
+            "mcpServers": {"synthetic-stdio": {"command": command, "args": args, "enabled": False}}})
+        metadata = stdio_inventory()["openhands"]
+        self.assertEqual(metadata["schema"], "command-args")
+        self.assertTrue(any("mcp-servers.mdx" in source for source in metadata["sources"]))
+        self.assertTrue(any("283c6ac3610f4299f405f7389f65766dcb83e12a" in source for source in metadata["sources"]))
+        self.assertEqual(metadata["runtime_checks"], [])
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            fixture_root = Path(directory)
+            (fixture_root / "catalogs").mkdir()
+            (fixture_root / "profiles").mkdir()
+            for filename in ("integrations.json", "operating-systems.json", "requested-coverage.json"):
+                (fixture_root / "catalogs" / filename).write_bytes((ROOT / "catalogs" / filename).read_bytes())
+            (fixture_root / "catalogs/mcp-servers.json").write_text(json.dumps(self.catalog), encoding="utf-8")
+            (fixture_root / "profiles/efficient.json").write_text(json.dumps(self.profile), encoding="utf-8")
+            output = fixture_root / "not-created-by-dry-run"
+            with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                    mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
+                    mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
+                    mock.patch.object(Path, "home", side_effect=AssertionError("home read")), \
+                    mock.patch("agentweaver.platforms.collect_host_facts", return_value={
+                        "system": "Windows", "sys_platform": "win32", "release": "11", "version": "fixture-build"}), \
+                    mock.patch("agentweaver.platforms.platform.machine", return_value="AMD64"):
+                code, text, error = invoke("render", "--root", str(fixture_root), "--agent", "openhands",
+                    "--profile", "efficient", "--enable", "synthetic-stdio", "--output-dir", str(output), "--dry-run")
+            self.assertEqual(code, 0, error)
+            self.assertFalse(output.exists())
+            staged = next(item for item in json.loads(text)["artifacts"] if item["kind"] == "mcp-fragment")
+            self.assertEqual(staged["path"], artifact.relative_path.as_posix())
+            self.assertEqual(json.loads(staged["content"]), json.loads(artifact.content))
+            handoff = next(item for item in json.loads(text)["artifacts"] if item["kind"] == "handoff")
+            self.assertIn("openhands mcp enable NAME", handoff["content"])
+            write_artifacts(output, [artifact])
+            target = output / artifact.relative_path
+            target.write_text("user edited configuration\n", encoding="utf-8")
+            with self.assertRaises(WeaverError):
+                write_artifacts(output, [artifact], force=True)
+            self.assertEqual(target.read_text(encoding="utf-8"), "user edited configuration\n")
+
+    def test_staging_never_executes_resolves_environment_or_overwrites_modified_artifacts(self):
+        with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                mock.patch.object(subprocess, "run", side_effect=AssertionError("process used")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process used")), \
+                mock.patch.object(os, "getenv", side_effect=AssertionError("environment read")), \
+                mock.patch.object(Path, "home", side_effect=AssertionError("home read")):
+            artifact = self.artifact("codex")
+            self.assertEqual(artifact, self.artifact("codex"))
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            destination = Path(directory).resolve()
+            target = destination / artifact.relative_path
+            self.assertFalse(target.exists())
+            write_artifacts(destination, [artifact])
+            with self.assertRaises(WeaverError):
+                write_artifacts(destination, [artifact])
+            target.write_text("user change\n", encoding="utf-8")
+            with self.assertRaises(WeaverError):
+                write_artifacts(destination, [artifact], force=True)
+            self.assertEqual(target.read_text(), "user change\n")
+
+    def test_perplexity_catalog_entry_is_real_remote_and_default_off_without_profile_enabling(self):
+        catalog = load_json(ROOT / "catalogs/mcp-servers.json")
+        entry = catalog["servers"]["perplexity"]
+        self.assertEqual(entry["kind"], "remote")
+        self.assertEqual(entry["url"], "https://api.perplexity.ai/mcp")
+        self.assertIs(entry["default_enabled"], False)
+        self.assertIn("Authenticate manually", entry["description"])
+        self.assertFalse(any(server["kind"] == "stdio" for server in catalog["servers"].values()))
+        for path in (ROOT / "profiles").glob("*.json"):
+            self.assertNotIn("perplexity", load_json(path)["allowed_mcp"])
+
+
+if __name__ == "__main__":
+    unittest.main()

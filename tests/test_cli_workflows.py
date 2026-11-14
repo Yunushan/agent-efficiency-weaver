@@ -69,13 +69,11 @@ class WorkflowCliTests(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertNotEqual(invoke('render', '--root', str(root), '--agent', 'kilo', '--profile', '../outside', '--dry-run')[0], 0)
 
-    def test_qoder_ide_provider_is_reachable_without_fabricating_other_capabilities(self):
+    def test_qoder_ide_provider_does_not_imply_a_cli_gateway_route(self):
         common = ('--root', str(ROOT), '--agent', 'qoder', '--surface', 'ide', '--dry-run')
         code, out, err = invoke('provider', *common, '--provider', 'openrouter', '--model', 'vendor/chosen-model')
         self.assertEqual(code, 0, err)
         self.assertIn('provider-setup.md', out)
-        self.assertNotEqual(invoke('render', *common, '--profile', 'efficient')[0], 0)
-        self.assertNotEqual(invoke('bundle', *common, '--profile', 'efficient')[0], 0)
         self.assertNotEqual(invoke('provider', '--root', str(ROOT), '--agent', 'qoder', '--surface', 'cli',
                                    '--provider', 'openrouter', '--model', 'vendor/chosen-model', '--dry-run')[0], 0)
 
