@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 21)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 184)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 22)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 189)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -172,6 +172,26 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_hermes_cli_observation_scopes_disposable_profile_loading(self):
+        report = coverage_report(ROOT)
+        hermes = next(item for item in report["requested_items"] if item["id"] == "hermes")
+        target, = hermes["targets"]
+        self.assertEqual(target["surface_id"], "cli")
+        profile, = target["runtime_observations"]
+        self.assertEqual(profile["product_version"], "0.23.1")
+        self.assertEqual(profile["engine_version"], "0.23.1")
+        self.assertEqual(profile["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(profile["architecture"], "x64")
+        self.assertEqual(profile["environment"], "isolated-signed-out")
+        self.assertEqual(profile["interface"], "config-inventory")
+        self.assertEqual({check["check"]: check["capability"] for check in profile["checks"]}, {
+            "hermes-profile-role-loading": "agents",
+            "hermes-profile-skill-view": "skills",
+            "hermes-profile-stdio-tool-call": "mcp",
+            "hermes-profile-model-read": "models",
+            "hermes-profile-effort-resolution": "reasoning",
+        })
 
     def test_kiro_cli_observations_distinguish_local_discovery_from_model_availability(self):
         report = coverage_report(ROOT)

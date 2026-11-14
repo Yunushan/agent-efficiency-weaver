@@ -1567,6 +1567,41 @@
           "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
         }
       ]
+    },
+    {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "product_version": "0.23.1",
+      "engine_version": "0.23.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "cb67ace69aa387919d9da1a6739c1a591280fbe3",
+      "checks": [
+        {
+          "check": "hermes-profile-role-loading",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-skill-view",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-stdio-tool-call",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-model-read",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        },
+        {
+          "check": "hermes-profile-effort-resolution",
+          "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
+        }
+      ]
     }
   ]
 }

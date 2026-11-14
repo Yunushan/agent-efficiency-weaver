@@ -327,6 +327,24 @@ _OBSERVATION_CHECKS = {
         "reasoning", "The CLI read back the exact staged Claude Sonnet 4.6 max effort default. The "
         "empty workspace had no default. The check covered settings readback.",
     ),
+    "hermes-profile-role-loading": (
+        "agents", "The local distribution planner accepted the generated manifest and the prompt "
+        "loader read the generated SOUL.md from a disposable profile.",
+    ),
+    "hermes-profile-skill-view": (
+        "skills", "The CLI listed the generated profile Skill, and the native Skill tool read it. "
+        "The empty profile did not expose that Skill.",
+    ),
+    "hermes-profile-stdio-tool-call": (
+        "mcp", "The generated disabled entry received no messages. Explicitly enabling it in the "
+        "disposable profile allowed discovery and a native tool dispatch that returned the fixture result.",
+    ),
+    "hermes-profile-model-read": (
+        "models", "The native profile loader read the configured synthetic model and its OpenRouter provider.",
+    ),
+    "hermes-profile-effort-resolution": (
+        "reasoning", "The native resolver applied the generated OpenRouter model-specific high effort override.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -351,6 +369,7 @@ _OBSERVATION_INTERFACES = {
     ("kilo", "ide", "vscode-extension-host"),
     ("kiro", "cli", "acp-stdio"),
     ("kiro", "cli", "config-inventory"),
+    ("hermes", "cli", "config-inventory"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
