@@ -387,7 +387,15 @@ _OBSERVATION_CHECKS = {
     ),
     "hermes-lmstudio-local-generation": (
         "models", "The native engine loaded the generated profile and role, and completed a Chat Completions turn "
-        "with an LM Studio model on loopback. The one-shot CLI requires a separate gateway check.",
+        "with an LM Studio model on loopback.",
+    ),
+    "hermes-lmstudio-gateway-generation": (
+        "models", "The one-shot CLI used a disposable foreground host gateway to run the generated named profile "
+        "and role with an LM Studio model. The usage receipt confirmed completion and the selected model.",
+    ),
+    "hermes-lmstudio-gateway-reasoning-off": (
+        "reasoning", "The one-shot CLI retained the generated per-model override through the host gateway. "
+        "LM Studio received reasoning_effort none and returned a response without reasoning content.",
     ),
     "hermes-lmstudio-reasoning-off": (
         "reasoning", "The generated per-model override made the Hermes engine send reasoning_effort none. "
@@ -493,6 +501,7 @@ _OBSERVATION_INTERFACES = {
     ("kiro", "cli", "config-inventory"),
     ("hermes", "cli", "config-inventory"),
     ("hermes", "cli", "direct-engine"),
+    ("hermes", "cli", "oneshot-gateway"),
     ("zed", "ide", "editor-startup"),
     ("openhands", "cli", "headless-loopback"),
     ("openhands", "canvas", "local-agent-server-asgi"),
