@@ -131,6 +131,20 @@ _OBSERVATION_CHECKS = {
     ),
     "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
+    "qwen-companion-skill-use": (
+        "skills", "The Companion listed the generated Skill in the sidebar and its ACP session returned the Skill instructions.",
+    ),
+    "qwen-companion-model-selection": (
+        "models", "The sidebar received both configured models and the bundled ACP process sent the generated parent and "
+        "child model IDs to a scripted server.",
+    ),
+    "qwen-companion-reasoning-request": (
+        "reasoning", "The bundled ACP process sent the configured low and high efforts for the parent and child models.",
+    ),
+    "qwen-companion-mcp-approval": (
+        "mcp", "The Companion called the generated stdio tool after scoped approval. The unapproved and changed entries "
+        "stayed disconnected.",
+    ),
     "qwen-daemon-skill-use": (
         "skills", "The bundled daemon invoked the generated Skill and included its instructions in a loopback request.",
     ),
@@ -308,6 +322,7 @@ _OBSERVATION_INTERFACES = {
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
     ("qwen-code", "desktop", "bundled-daemon-http"),
+    ("qwen-code", "vscode", "vscode-extension-host"),
     ("opencode", "cli", "serve-http"),
     ("opencode", "cli", "exec-loopback"),
     ("kilo", "cli", "serve-http"),
@@ -466,6 +481,7 @@ def _load_observations(
         environments = {
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "desktop"): {"isolated-release-loopback"},
+            ("qwen-code", "vscode"): {"isolated-release-loopback"},
             ("opencode", "cli"): {"isolated-release-loopback"},
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},

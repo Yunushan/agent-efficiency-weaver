@@ -1481,6 +1481,42 @@
           "evidence_sha256": "84a737c75fe89248ca212e98c015e86c58d98117638215f71b1fdf86002b8dd0"
         }
       ]
+    },
+    {
+      "product_id": "qwen-code",
+      "surface_id": "vscode",
+      "product_version": "1.146.0",
+      "engine_version": "0.27.3",
+      "extension_version": "0.27.3",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "vscode-extension-host",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "d941d7fb07e4936359182b3491f9c9e36c220645",
+      "checks": [
+        {
+          "check": "qwen-companion-skill-use",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "agent-load",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-mcp-approval",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-model-selection",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        },
+        {
+          "check": "qwen-companion-reasoning-request",
+          "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
+        }
+      ]
     }
   ]
 }

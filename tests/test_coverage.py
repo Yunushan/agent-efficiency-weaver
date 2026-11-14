@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 19)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 174)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 20)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 179)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -325,7 +325,6 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_qwen_release_daemon_observations_identify_each_packaged_runtime(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        self.assertEqual(targets["vscode"]["runtime_observations"], [])
         record, discovery, execution = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "0.27.3")
         self.assertEqual(record["interface"], "daemon-http")
@@ -361,6 +360,22 @@ class RequestedCoverageTests(unittest.TestCase):
             "qwen-daemon-session-effort": "reasoning",
             "qwen-daemon-child-model-request": "models",
             "qwen-daemon-child-effort-request": "reasoning",
+        })
+
+    def test_qwen_companion_observation_names_the_extension_and_acp_runtime(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
+        target, = [target for target in item["targets"] if target["surface_id"] == "vscode"]
+        observation, = target["runtime_observations"]
+        self.assertEqual(observation["product_version"], "1.146.0")
+        self.assertEqual(observation["extension_version"], "0.27.3")
+        self.assertEqual(observation["engine_version"], "0.27.3")
+        self.assertEqual(observation["interface"], "vscode-extension-host")
+        self.assertEqual(observation["environment"], "isolated-release-loopback")
+        self.assertEqual(observation["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(observation["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in observation["checks"]}, {
+            "qwen-companion-skill-use": "skills", "agent-load": "agents", "qwen-companion-mcp-approval": "mcp",
+            "qwen-companion-model-selection": "models", "qwen-companion-reasoning-request": "reasoning",
         })
 
     def test_opencode_v2_runtime_records_distinguish_config_discovery_and_execution(self):
