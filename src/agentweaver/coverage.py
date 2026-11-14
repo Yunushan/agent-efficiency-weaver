@@ -306,6 +306,27 @@ _OBSERVATION_CHECKS = {
         "models", "Both local decision endpoints accepted the generated instance selector and returned typed "
         "answers. Requests for a missing instance failed.",
     ),
+    "kiro-v3-project-skill-discovery": (
+        "skills", "ACP reported the generated project's Skill and steering paths. The empty workspace did "
+        "not report either file.",
+    ),
+    "kiro-v3-workspace-agent-selection": (
+        "agents", "ACP listed the generated agent as a workspace mode and switched to it. The empty "
+        "workspace reported that the agent was missing.",
+    ),
+    "kiro-v3-stdio-activation": (
+        "mcp", "The generated disabled fixture received no messages. After explicit enablement in the "
+        "disposable project, the fixture received initialize and tools/list. Selecting the generated "
+        "reviewer removed the fixture from the session's MCP status.",
+    ),
+    "kiro-v3-model-login-required": (
+        "models", "The signed-out CLI required login for model listing and for the generated session "
+        "launch. The isolated ACP session did not advertise a model picker.",
+    ),
+    "kiro-v3-workspace-effort-readback": (
+        "reasoning", "The CLI read back the exact staged Claude Sonnet 4.6 max effort default. The "
+        "empty workspace had no default. The check covered settings readback.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -328,6 +349,8 @@ _OBSERVATION_INTERFACES = {
     ("kilo", "cli", "serve-http"),
     ("kilo", "cli", "exec-loopback"),
     ("kilo", "ide", "vscode-extension-host"),
+    ("kiro", "cli", "acp-stdio"),
+    ("kiro", "cli", "config-inventory"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),

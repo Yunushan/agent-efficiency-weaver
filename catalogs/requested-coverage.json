@@ -1517,6 +1517,56 @@
           "evidence_sha256": "0bb11c3bc0b48638124d325f7172403dd7fb996798390b9dba720202d6fa3e87"
         }
       ]
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "cli",
+      "product_version": "3.3.0",
+      "engine_version": "3.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "acp-stdio",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "d04901fb8bf0d64891da70d9443aeef1d8968491",
+      "checks": [
+        {
+          "check": "kiro-v3-project-skill-discovery",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-workspace-agent-selection",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-stdio-activation",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        }
+      ]
+    },
+    {
+      "product_id": "kiro",
+      "surface_id": "cli",
+      "product_version": "3.3.0",
+      "engine_version": "3.3.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "config-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "d04901fb8bf0d64891da70d9443aeef1d8968491",
+      "checks": [
+        {
+          "check": "kiro-v3-model-login-required",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        },
+        {
+          "check": "kiro-v3-workspace-effort-readback",
+          "evidence_sha256": "508ac871611a1d57167b8315035a923bd85e4def34aa4207d1b01d7368dd9792"
+        }
+      ]
     }
   ]
 }

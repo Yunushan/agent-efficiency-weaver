@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 20)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 179)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 21)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 184)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -172,6 +172,31 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_kiro_cli_observations_distinguish_local_discovery_from_model_availability(self):
+        report = coverage_report(ROOT)
+        kiro = next(item for item in report["requested_items"] if item["id"] == "kiro")
+        targets = {target["surface_id"]: target for target in kiro["targets"]}
+        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        acp, inventory = targets["cli"]["runtime_observations"]
+        for record in (acp, inventory):
+            self.assertEqual(record["product_version"], "3.3.0")
+            self.assertEqual(record["engine_version"], "3.3.0")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+            self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertEqual(acp["interface"], "acp-stdio")
+        self.assertEqual({check["check"]: check["capability"] for check in acp["checks"]}, {
+            "kiro-v3-project-skill-discovery": "skills",
+            "kiro-v3-workspace-agent-selection": "agents",
+            "kiro-v3-stdio-activation": "mcp",
+        })
+        self.assertEqual(inventory["interface"], "config-inventory")
+        self.assertEqual({check["check"]: check["capability"] for check in inventory["checks"]}, {
+            "kiro-v3-model-login-required": "models",
+            "kiro-v3-workspace-effort-readback": "reasoning",
+        })
+        self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_cline_ide_observations_keep_the_extension_host_scope(self):
         report = coverage_report(ROOT)
