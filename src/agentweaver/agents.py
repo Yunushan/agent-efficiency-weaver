@@ -867,7 +867,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     if antigravity_skill_agent and skill_ids:
         lines.extend(["", "Antigravity Skill references: " + ", ".join(f"skills/{skill}" for skill in skill_ids) + ".",
                       f"Stage the matching .agents/skills files with bundle --agent antigravity --surface {surface} "
-                      "and each --skill ID. Verify resolution in the target host, including any same-name Skills."])
+                      "and each --skill ID. Verify resolution in the target host, including any same-name Skills.",
+                      "Workspace file access follows the host's tool and file permissions. Antigravity CLI 1.5.9 "
+                      "could also read a staged Skill absent from the explicit list."])
     if qoder_agent and mcp_ids:
         lines.extend(["", "Qoder MCP references: " + ", ".join(mcp_ids) + ".",
                       "Review separately configured servers with these exact names in Qoder. The definition "

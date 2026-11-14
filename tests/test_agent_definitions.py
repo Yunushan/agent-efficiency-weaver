@@ -607,6 +607,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertEqual(data, original | {"skills": [f"skills/{name}" for name in names]})
                 self.assertEqual(data["mcpServers"], [])
                 self.assertIn(f"bundle --agent antigravity --surface {surface}", handoff.content.decode())
+                self.assertIn("could also read a staged Skill absent from the explicit list", handoff.content.decode())
         for invalid in (["../security-review"], [names[0], names[0]], ["missing-skill"]):
             with self.subTest(invalid=invalid), self.assertRaises(WeaverError):
                 self.render("antigravity", "cli", allowed_skills=invalid)

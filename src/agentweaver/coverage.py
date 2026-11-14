@@ -108,6 +108,12 @@ _OBSERVATION_CHECKS = {
     "antigravity-cli-subagent-tier": (
         "agents", "A delegated custom subagent used its generated instructions and the Flash tier.",
     ),
+    "antigravity-cli-subagent-workspace-skill-read": (
+        "skills", "The generated reviewer read the entire staged Skill through read_file after seeing its ID "
+        "in the initial request. Removing the Skill file returned a missing-file result. Omitting the "
+        "reference still allowed reading the staged Skill, and a second workspace Skill absent from the "
+        "explicit list was also visible and readable.",
+    ),
     "antigravity-cli-scoped-stdio-call": (
         "mcp", "The trusted workspace fixture initialized and listed tools. The headless call was denied "
         "until the isolated profile allowed the exact server and tool. The call returned the fixture result.",

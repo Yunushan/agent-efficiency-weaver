@@ -94,7 +94,7 @@ In Antigravity CLI, use `/mcp` from a trusted session to inspect workspace entri
 
 Editors that use Antigravity's ACP adapter launch `agy acp`. The ACP picker provides model-dependent thinking levels. CLI launch arguments belong to a terminal session, while ACP clients set the model and thinking level through ACP session configuration. [Antigravity in ACP editors](https://antigravity.google/docs/ide/extensions/acp)
 
-For an Antigravity CLI or App subagent, repeat `agent --allow-skill ID` for each portable Skill reference. Weaver writes `skills/<id>` in the generated agent's frontmatter. Use `bundle --skill ID` on the same surface to stage each companion Skill under `.agents/skills`. Verify the resolved files in your target workspace. The reference does not grant shell access or permission to use MCP. [Antigravity subagent fields](https://antigravity.google/docs/subagents/) · [Antigravity Skill locations](https://antigravity.google/docs/skills)
+For an Antigravity CLI or App subagent, repeat `agent --allow-skill ID` for each portable Skill reference. Weaver writes `skills/<id>` in the generated agent's frontmatter. Use `bundle --skill ID` on the same surface to stage each companion Skill under `.agents/skills`. Verify the resolved files in your target workspace. Workspace file access follows the host's tool and file permissions. In the Windows x64 CLI 1.5.9 probe, the generated reviewer read both a referenced Skill and a workspace Skill absent from the explicit list through `read_file`. [Antigravity subagent fields](https://antigravity.google/docs/subagents/) · [Antigravity Skill locations](https://antigravity.google/docs/skills)
 
 ## MCP transports and stdio staging
 

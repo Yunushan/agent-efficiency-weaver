@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 254)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 255)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -222,7 +222,7 @@ class RequestedCoverageTests(unittest.TestCase):
             "antigravity-ide-mcp-user-https-discovery": "mcp",
             "antigravity-ide-mcp-user-stdio-prompt": "mcp",
         })
-        record, https, acp = targets["cli"]["runtime_observations"]
+        record, https, acp, skill_read = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "1.5.9")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
         self.assertEqual(record["architecture"], "x64")
@@ -253,6 +253,11 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({row["check"]: row["capability"] for row in acp["checks"]}, {
             "antigravity-cli-acp-model-inventory": "models",
             "antigravity-cli-acp-variant-requests": "reasoning",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(skill_read[field], record[field])
+        self.assertEqual({row["check"]: row["capability"] for row in skill_read["checks"]}, {
+            "antigravity-cli-subagent-workspace-skill-read": "skills",
         })
         desktop, desktop_mcp = targets["desktop"]["runtime_observations"]
         self.assertEqual(desktop["product_version"], "2.32.0")
