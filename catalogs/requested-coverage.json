@@ -67,7 +67,7 @@
     },
     {
       "id": "antigravity", "label": "Google Antigravity", "aliases": ["antigravity", "GoogleAntigravity", "Google Antigravity"],
-      "targets": [{"product_id": "antigravity", "surface_id": "ide"}, {"product_id": "antigravity", "surface_id": "cli"}]
+      "targets": [{"product_id": "antigravity", "surface_id": "ide"}, {"product_id": "antigravity", "surface_id": "cli"}, {"product_id": "antigravity", "surface_id": "desktop"}]
     },
     {
       "id": "hermes", "label": "Hermes", "aliases": ["hermes", "Hermes Agent"],
@@ -2054,6 +2054,41 @@
         {
           "check": "antigravity-cli-acp-variant-requests",
           "evidence_sha256": "5be595ae21ced2c847394e45bca049d3880bf96a843e114608c780f4759789a5"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "desktop",
+      "product_version": "2.32.0",
+      "engine_version": "2.32.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-language-server",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "993e2ed8760f68571dd3fba69b011696999f333a",
+      "checks": [
+        {
+          "check": "antigravity-desktop-workspace-instructions",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-workspace-skill",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-workspace-agent",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-mcp-inventory",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
+        },
+        {
+          "check": "antigravity-desktop-signed-out-model-boundary",
+          "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
         }
       ]
     }

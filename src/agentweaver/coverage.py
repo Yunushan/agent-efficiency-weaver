@@ -29,6 +29,26 @@ LIMITATIONS = (
 )
 
 _OBSERVATION_CHECKS = {
+    "antigravity-desktop-workspace-instructions": (
+        "instructions", "The bundled language server read the generated workspace AGENTS.md. "
+        "Withholding the file removed it from the inventory.",
+    ),
+    "antigravity-desktop-workspace-skill": (
+        "skills", "The bundled language server found the generated workspace Skill and returned its instructions. "
+        "Withholding the file removed it from the inventory.",
+    ),
+    "antigravity-desktop-workspace-agent": (
+        "agents", "The bundled language server listed the generated custom subagent as an enabled workspace definition. "
+        "Withholding the file removed the entry.",
+    ),
+    "antigravity-desktop-mcp-inventory": (
+        "mcp", "The bundled language server recognized generated HTTPS and stdio entries in separate workspace "
+        "inventories. Withholding the project file removed the entry. The inventory did not exercise tool calls.",
+    ),
+    "antigravity-desktop-signed-out-model-boundary": (
+        "models", "The isolated bundled language server reported no signed-in account and returned no model "
+        "entries or model reasoning configuration.",
+    ),
     "antigravity-cli-account-catalog-authentication": (
         "models", "The signed-out account model listing requested sign-in. The Gemini-compatible mode listed "
         "its bundled selectors with a loopback endpoint and a synthetic key.",
@@ -535,6 +555,7 @@ _OBSERVATION_FIELDS = {
 _OBSERVATION_INTERFACES = {
     ("antigravity", "cli", "headless-loopback"),
     ("antigravity", "cli", "acp-stdio"),
+    ("antigravity", "desktop", "bundled-language-server"),
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),

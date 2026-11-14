@@ -235,6 +235,20 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertIn("mcp(SERVER/TOOL)", handoff["content"])
         self.assertIn("permissions.allow", handoff["content"])
 
+    def test_antigravity_desktop_stages_both_transports_with_app_handoff(self):
+        spec = self.integrations["antigravity"]
+        for selected in ([], ["context7", "synthetic-stdio"]):
+            desktop, = render_mcp(spec, "desktop", self.profile, self.catalog, selected)
+            cli, = render_mcp(spec, "cli", self.profile, self.catalog, selected)
+            self.assertEqual(desktop.relative_path.as_posix(), "antigravity/.agents/mcp_config.json")
+            self.assertEqual(desktop.content, cli.content)
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "antigravity", "--surface", "desktop",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        _, handoff = json.loads(output)["artifacts"]
+        self.assertIn("Customizations > Installed > MCP Servers", handoff["content"])
+        self.assertNotIn("permissions.allow", handoff["content"])
+
     def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
         spec = self.integrations["openhands"]
         requests = render_mcp(spec, "canvas", self.profile, self.catalog, ["synthetic-stdio", "context7"])

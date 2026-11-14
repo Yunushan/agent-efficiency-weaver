@@ -451,6 +451,93 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "desktop",
+          "mcp_dialect": "mcpServers.serverUrl",
+          "config_fields": [
+            "mcpServers",
+            "serverUrl",
+            "command",
+            "args"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".agents/mcp_config.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".agents/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/mcp"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/customization-discovery/"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/customization-discovery/"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [
+                "https://antigravity.google/docs/install",
+                "https://antigravity.google/docs/models"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/getting-started"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": "Antigravity App: Windows 10/11 x64 or ARM64; macOS 13+ Intel or Apple Silicon; Linux x64/ARM64 with glibc >=2.28 and GLIBCXX >=3.4.25.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

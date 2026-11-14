@@ -344,6 +344,12 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
                 'For headless calls, allow the exact tool with mcp(SERVER/TOOL) under permissions.allow in reviewed CLI settings.',
                 'CLI permissions: https://antigravity.google/docs/cli/permissions',
             ])
+        if (spec.id, surface) == ('antigravity', 'desktop'):
+            lines.extend([
+                'Review and merge individual entries into .agents/mcp_config.json for a folder in the App project.',
+                'Inspect the selected servers under Customizations > Installed > MCP Servers in the Antigravity App.',
+                'App MCP settings: https://antigravity.google/docs/mcp',
+            ])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':

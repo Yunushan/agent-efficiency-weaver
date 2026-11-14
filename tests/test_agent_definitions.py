@@ -48,6 +48,7 @@ NATIVE_PATHS = {
     ("qoder", "ide"): ".qoder/agents/reviewer.md",
     ("antigravity", "ide"): ".agents/agents/reviewer.md",
     ("antigravity", "cli"): ".agents/agents/reviewer.md",
+    ("antigravity", "desktop"): ".agents/agents/reviewer.md",
     ("devin", "desktop-local"): ".devin/agents/reviewer.md",
     ("openhands", "cli"): ".agents/agents/reviewer.md",
 }
@@ -93,6 +94,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
                                  ("antigravity", "cli"): "2026-11-14",
+                                 ("antigravity", "desktop"): "2026-11-14",
                                  ("openhands", "canvas"): "2026-11-14",
                                  ("cursor", "cli"): "2026-11-14",
                                  ("cursor", "ide"): "2026-11-14",

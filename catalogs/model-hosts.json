@@ -230,6 +230,48 @@
     },
     {
       "product_id": "antigravity",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose an available standalone model or an Orchestrator option in the conversation picker. Account access controls the options.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the model selector under the conversation prompt",
+          "Choose an available model and supported thinking level"
+        ],
+        "sources": [
+          "https://antigravity.google/docs/models"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Thinking level",
+            "values": [
+              "Low",
+              "Medium",
+              "High",
+              "Extra"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://antigravity.google/docs/models"
+        ]
+      },
+      "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "antigravity",
       "surface_id": "cli",
       "selection": {
         "state": "manual",

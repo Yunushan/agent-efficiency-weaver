@@ -130,6 +130,7 @@ ADAPTER_SURFACES = {
     ("kiro", "ide"),
     ("antigravity", "ide"),
     ("antigravity", "cli"),
+    ("antigravity", "desktop"),
     ("pi", "cli"),
     ("codex", "cli"),
     ("devin", "desktop-local"),
@@ -178,6 +179,7 @@ PROVIDER_GAP_SOURCES = {
     ("kiro", "ide"): "https://kiro.dev/docs/models/",
     ("antigravity", "ide"): "https://antigravity.google/docs/models",
     ("antigravity", "cli"): "https://antigravity.google/docs/cli/install",
+    ("antigravity", "desktop"): "https://antigravity.google/docs/models",
     ("devin", "desktop-local"): "https://docs.devin.ai/desktop/models",
     ("qoder", "cli"): "https://docs.qoder.com/cli/custom-models",
     ("chatgpt", "web"): "https://learn.chatgpt.com/docs/auth",
@@ -487,7 +489,9 @@ class IntegrationRegistryTests(unittest.TestCase):
                     ("tests/test_adapters.py", "tests/test_stdio_adapters.py")
                     if (integration.id, surface.id) in {("copilot", "vscode"), ("openhands", "cli")} else
                     ("tests/test_stdio_adapters.py",)
-                    if (integration.id, surface.id) in {("cursor", "cli"), ("antigravity", "cli")} else
+                    if (integration.id, surface.id) in {
+                        ("cursor", "cli"), ("antigravity", "cli"), ("antigravity", "desktop"),
+                    } else
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
                     else ()
@@ -549,7 +553,8 @@ class IntegrationRegistryTests(unittest.TestCase):
                     self.assertIn(key, PROVIDER_GAPS, key)
                     self.assertEqual(evidence.state, "unknown", key)
                     self.assertIn(PROVIDER_GAP_SOURCES[key], evidence.sources, key)
-                    dates = {("kiro", "cli"): "2026-11-13", ("antigravity", "cli"): "2026-11-14"}
+                    dates = {("kiro", "cli"): "2026-11-13", ("antigravity", "cli"): "2026-11-14",
+                             ("antigravity", "desktop"): "2026-11-14"}
                     self.assertEqual(evidence.checked_on, dates.get(key, "2026-10-26"), key)
                     self.assertEqual(evidence.fixture_tests, (), key)
                     with self.assertRaises(WeaverError):
