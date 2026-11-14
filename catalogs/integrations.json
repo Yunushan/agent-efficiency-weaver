@@ -365,6 +365,92 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.serverUrl",
+          "config_fields": [
+            "mcpServers",
+            "serverUrl",
+            "command",
+            "args"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".agents/mcp_config.json",
+          "documented_location": null,
+          "instruction_mode": "rules",
+          "instruction_paths": [
+            ".agents/rules/",
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/mcp"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/customization-discovery/"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/customization-discovery/"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [
+                "https://antigravity.google/docs/cli/install"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://antigravity.google/docs/getting-started"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": "Google publishes native CLI installers for Windows, macOS, and Linux.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

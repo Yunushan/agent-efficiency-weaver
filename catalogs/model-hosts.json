@@ -229,6 +229,65 @@
       "availability": "unknown"
     },
     {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "List account-visible models with agy models, then select one for the session. The Gemini API key route uses a separate Gemini-compatible endpoint.",
+        "fields": [
+          "--model"
+        ],
+        "commands": [
+          "agy models",
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://antigravity.google/docs/cli/reference",
+          "https://antigravity.google/docs/cli/install"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "--effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "/effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://antigravity.google/docs/cli/reference",
+          "https://antigravity.google/docs/cli/commands/effort"
+        ]
+      },
+      "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "chatgpt",
       "surface_id": "desktop",
       "selection": {

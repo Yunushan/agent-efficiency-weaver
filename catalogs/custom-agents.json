@@ -131,6 +131,38 @@
       }
     },
     {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "antigravity-markdown",
+      "path_template": ".agents/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "tier",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "model inherits by default; only documented flash_lite/flash/pro tiers are accepted as explicit selections, not arbitrary provider model IDs.",
+      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "permission_behavior": "Only view_file/grep_search are selected; mainAgent: false, subagent: true, commandExecutionPolicy: off and inheritMcp: false and mcpServers: [] scope MCP access and narrow capabilities. Host validation and parent policy still apply.",
+      "reserved_names": [
+        "research",
+        "browser",
+        "self"
+      ],
+      "evidence": {
+        "sources": [
+          "https://antigravity.google/docs/cli/subagents",
+          "https://antigravity.google/docs/customization-discovery/",
+          "https://antigravity.google/docs/build-plugins/"
+        ],
+        "checked_on": "2026-11-14",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "chatgpt",
       "surface_id": "desktop",
       "state": "manual",

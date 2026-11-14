@@ -214,6 +214,20 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertIn("agent mcp enable NAME --workspace PROJECT", guide["content"])
         self.assertIn("agent mcp list-tools NAME --workspace PROJECT", guide["content"])
 
+    def test_antigravity_cli_stages_reviewable_workspace_mcp(self):
+        spec = self.integrations["antigravity"]
+        empty, = render_mcp(spec, "cli", self.profile, self.catalog, [])
+        self.assertEqual(empty.relative_path.as_posix(), "antigravity/.agents/mcp_config.json")
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        staged, = render_mcp(spec, "cli", self.profile, self.catalog, ["context7", "synthetic-stdio"])
+        self.assertEqual(staged.relative_path, empty.relative_path)
+        self.assertEqual(json.loads(staged.content), {
+            "mcpServers": {
+                "context7": {"serverUrl": "https://mcp.context7.com/mcp"},
+                "synthetic-stdio": {"command": COMMAND, "args": ARGS},
+            },
+        })
+
     def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
         spec = self.integrations["openhands"]
         requests = render_mcp(spec, "canvas", self.profile, self.catalog, ["synthetic-stdio", "context7"])

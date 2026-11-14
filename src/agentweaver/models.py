@@ -1018,6 +1018,34 @@ def render_cursor_cli_model(model: str) -> list[RenderedArtifact]:
     ]
 
 
+def render_antigravity_cli_model(model: str, effort: str | None) -> list[RenderedArtifact]:
+    """Stage an explicit Antigravity CLI model selector without resolving account models."""
+    identifier = _model_id(model)
+    if not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", identifier):
+        _fail("Antigravity CLI requires an exact model slug from agy models")
+    arguments = ["--model", identifier]
+    if effort is not None:
+        efforts = {"low", "medium", "high", "xhigh", "max"}
+        if effort not in efforts:
+            _fail("Unsupported Antigravity CLI effort")
+        suffix = identifier.rpartition("-")[2]
+        if suffix in efforts and suffix != effort:
+            _fail("Antigravity CLI model variant conflicts with the requested effort")
+        arguments.extend(("--effort", effort))
+    return [
+        _json_artifact("antigravity/model/session-arguments.json", arguments, "session-arguments"),
+        RenderedArtifact(PurePosixPath("antigravity/model/model-setup.md"), (
+            "# Antigravity CLI model setup\n\n"
+            "Confirm the exact slug with agy models in the intended account or provider mode. "
+            "Pass the staged arguments to agy for one session. A slug with an effort suffix requires "
+            "a matching flag. For a base slug, verify the selected effort in that CLI session. "
+            "Account availability requires separate verification.\n\n"
+            "- https://antigravity.google/docs/cli/reference\n"
+            "- https://antigravity.google/docs/cli/commands/effort\n"
+        ).encode(), "model-setup"),
+    ]
+
+
 def render_kiro_cli_model(model: str, effort: str | None, *, persistent: bool = False) -> list[RenderedArtifact]:
     """Stage Kiro service model settings using the documented V3 controls."""
     identifier = _model_id(model)

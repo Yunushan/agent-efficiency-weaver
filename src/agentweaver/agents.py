@@ -267,8 +267,11 @@ def _model_selection(row: Mapping[str, Any], root: Path, model_id: str | None, e
         raise WeaverError("Invalid custom-agent model identifier")
     style = row["model_style"]
     if style == "tier":
-        if model not in {"flash", "pro"} or effort is not None or provider_id is not None or snapshot is not None:
-            raise WeaverError("This host accepts only documented flash/pro tiers, not provider model overrides")
+        tiers = {"flash", "pro"}
+        if row["surface_id"] == "cli" and row["format"] == "antigravity-markdown":
+            tiers.add("flash_lite")
+        if model not in tiers or effort is not None or provider_id is not None or snapshot is not None:
+            raise WeaverError(f"This host accepts only its documented model tiers: {', '.join(sorted(tiers))}")
         return model, None
     if snapshot is not None and provider_id is None:
         raise WeaverError("A model snapshot requires its provider id")
@@ -382,6 +385,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     elif format_name == "antigravity-markdown":
         fields_any.update(model=model or "inherit", tools=["view_file", "grep_search"], subagent=True,
                           mainAgent=False, commandExecutionPolicy="off", mcpServers=[])
+        if row["surface_id"] == "cli":
+            fields_any["inheritMcp"] = False
     else:
         raise WeaverError("Native custom-agent renderer is unavailable")
     if model is not None:

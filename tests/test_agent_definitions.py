@@ -47,6 +47,7 @@ NATIVE_PATHS = {
     ("qoder", "cli"): ".qoder/agents/reviewer.md",
     ("qoder", "ide"): ".qoder/agents/reviewer.md",
     ("antigravity", "ide"): ".agents/agents/reviewer.md",
+    ("antigravity", "cli"): ".agents/agents/reviewer.md",
     ("devin", "desktop-local"): ".devin/agents/reviewer.md",
     ("openhands", "cli"): ".agents/agents/reviewer.md",
 }
@@ -91,6 +92,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
+                                 ("antigravity", "cli"): "2026-11-14",
                                  ("openhands", "canvas"): "2026-11-14",
                                  ("cursor", "cli"): "2026-11-14",
                                  ("cursor", "ide"): "2026-11-14",
@@ -581,6 +583,16 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         self.assertEqual(parsed["model"], "flash")
         with self.assertRaises(WeaverError):
             self.render("antigravity", "ide", model_id="models/gemini-3.8-flash")
+        for model in ("flash_lite", "flash", "pro"):
+            with self.subTest(model=model):
+                artifact = self.render("antigravity", "cli", model_id=model)[0]
+                subagent, _ = parse_definition(artifact.content, NATIVE_PATHS["antigravity", "cli"])
+                self.assertEqual(subagent["model"], model)
+                self.assertFalse(subagent["inheritMcp"])
+                self.assertFalse(subagent["mainAgent"])
+                self.assertEqual(subagent["commandExecutionPolicy"], "off")
+        with self.assertRaises(WeaverError):
+            self.render("antigravity", "cli", model_id="flash", effort="high")
 
     def test_selected_model_output_modalities_gate_native_language_agent_definitions(self):
         identifier = "fixture/selected-model"

@@ -632,6 +632,16 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         ):
             raise WeaverError('Cursor CLI session staging accepts an explicit Cursor model ID')
         artifacts = render_cursor_cli_model(args.model)
+    elif args.cmd == 'model' and (spec.id, surface) == ('antigravity', 'cli'):
+        from .models import render_antigravity_cli_model
+
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode',
+             'context_size', 'batch_endpoint', 'qoder_catalog')
+        ):
+            raise WeaverError('Antigravity CLI staging accepts an exact model slug and matching effort')
+        artifacts = render_antigravity_cli_model(args.model, args.reasoning_effort)
     elif args.cmd == 'model' and (spec.id, surface) == ('qoder', 'cli'):
         from .qoder_models import render_qoder_cli_model
 

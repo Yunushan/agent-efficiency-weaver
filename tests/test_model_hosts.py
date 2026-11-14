@@ -39,6 +39,31 @@ class ModelHostTests(unittest.TestCase):
             with self.subTest(unsupported=unsupported):
                 self.assertEqual(invoke(*args, *unsupported)[0], 2)
 
+    def test_antigravity_cli_stages_a_model_slug_and_matching_session_effort(self) -> None:
+        args = ("model", "--root", str(ROOT), "--agent", "antigravity", "--surface", "cli", "--dry-run")
+        for effort in ((), ("--reasoning-effort", "high")):
+            code, output, errors = invoke(*args, "--model", "gemini-3.1-pro-high", *effort)
+            self.assertEqual(code, 0, errors)
+            arguments, handoff, _ = json.loads(output)["artifacts"]
+            self.assertEqual(arguments["path"], "antigravity/model/session-arguments.json")
+            expected = ["--model", "gemini-3.1-pro-high"]
+            if effort:
+                expected.extend(("--effort", "high"))
+            self.assertEqual(json.loads(arguments["content"]), expected)
+            self.assertIn("agy models", handoff["content"])
+        code, output, errors = invoke(*args, "--model", "gemini-3.1-pro", "--reasoning-effort", "high")
+        self.assertEqual(code, 0, errors)
+        arguments = json.loads(output)["artifacts"][0]
+        self.assertEqual(json.loads(arguments["content"]), ["--model", "gemini-3.1-pro", "--effort", "high"])
+        for unsupported in (
+            ("--model", "gemini-3.1-pro-low", "--reasoning-effort", "high"),
+            ("--model", "gemini-3.1-pro-high", "--reasoning-effort", "max"),
+            ("--model", "--help"),
+            ("--model", "openrouter/vendor", "--provider", "openrouter"),
+        ):
+            with self.subTest(unsupported=unsupported):
+                self.assertEqual(invoke(*args, *unsupported)[0], 2)
+
     def catalog(self) -> dict:
         return json.loads((ROOT / "catalogs/model-hosts.json").read_text(encoding="utf-8"))
 
@@ -110,6 +135,12 @@ class ModelHostTests(unittest.TestCase):
         self.assertEqual(hosts[("amp", "cli")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertEqual(hosts[("devin", "desktop-local")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertNotIn("/effort", hosts[("antigravity", "ide")]["selection"]["commands"])
+        antigravity_cli = hosts[("antigravity", "cli")]
+        self.assertIn("agy models", antigravity_cli["selection"]["commands"])
+        self.assertEqual(antigravity_cli["selection"]["fields"], ["--model"])
+        self.assertEqual([control["field"] for control in antigravity_cli["reasoning"]["controls"]],
+                         ["--effort", "/effort"])
+        self.assertTrue(all(control["model_dependent"] for control in antigravity_cli["reasoning"]["controls"]))
         self.assertNotIn("/effort", hosts[("kiro", "ide")]["selection"]["commands"])
 
     def test_openhands_pinned_cli_loads_manual_model_dependent_reasoning_controls(self) -> None:

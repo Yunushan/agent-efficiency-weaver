@@ -30,6 +30,7 @@ NATIVE_TARGETS = {
     ("aider", "cli"): "CONVENTIONS.md",
     ("amp", "cli"): "AGENTS.md",
     ("antigravity", "ide"): "AGENTS.md",
+    ("antigravity", "cli"): "AGENTS.md",
     ("claude-code", "cli"): "CLAUDE.md",
     ("claude-code", "vscode"): "CLAUDE.md",
     ("claude-code", "desktop"): "CLAUDE.md",

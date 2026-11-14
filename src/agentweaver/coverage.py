@@ -29,6 +29,38 @@ LIMITATIONS = (
 )
 
 _OBSERVATION_CHECKS = {
+    "antigravity-cli-account-catalog-authentication": (
+        "models", "The signed-out account model listing requested sign-in. The Gemini-compatible mode listed "
+        "its bundled selectors with a loopback endpoint and a synthetic key.",
+    ),
+    "antigravity-cli-workspace-instructions": (
+        "instructions", "The headless runtime included the generated AGENTS.md in its loopback request.",
+    ),
+    "antigravity-cli-skill-expansion": (
+        "skills", "Headless slash invocation expanded the generated Skill into the loopback request. "
+        "Withholding the Skill file prevented expansion.",
+    ),
+    "antigravity-cli-subagent-tier": (
+        "agents", "A delegated custom subagent used its generated instructions and the Flash tier.",
+    ),
+    "antigravity-cli-scoped-stdio-call": (
+        "mcp", "The trusted workspace fixture initialized and listed tools. The headless call was denied "
+        "until the isolated profile allowed the exact server and tool. The call returned the fixture result.",
+    ),
+    "antigravity-cli-subagent-mcp-isolation": (
+        "mcp", "The generated subagent suppressed inherited workspace MCP tools visible to its parent.",
+    ),
+    "antigravity-cli-model-selector-request": (
+        "models", "Generated CLI arguments selected Gemini 3.1 Pro and Gemini 3.8 Flash in separate loopback requests.",
+    ),
+    "antigravity-cli-effort-request": (
+        "reasoning", "The loopback endpoint observed different thinking budgets for Gemini 3.1 Pro low and high, "
+        "and the thinking level for Gemini 3.8 Flash medium. The CLI rejected a conflicting effort and slug.",
+    ),
+    "antigravity-cli-bundled-variant-requests": (
+        "reasoning", "All 21 selectors advertised by the Gemini-compatible CLI mode completed a scripted "
+        "loopback turn. The endpoint recorded the resolved model and thinking settings for each selector.",
+    ),
     "cursor-cli-mcp-approval-and-tool-discovery": (
         "mcp", "The signed-out CLI read the exact generated MCP file, started the stdio fixture only "
         "after individual approval, and listed its tool. Disabling the server stopped launches, and "
@@ -480,6 +512,7 @@ _OBSERVATION_FIELDS = {
     "architecture", "interface", "environment", "checked_on", "source_commit", "checks",
 }
 _OBSERVATION_INTERFACES = {
+    ("antigravity", "cli", "headless-loopback"),
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),
@@ -660,6 +693,7 @@ def _load_observations(
             "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
         }
         environments = {
+            ("antigravity", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "desktop"): {"isolated-release-loopback"},
             ("qwen-code", "vscode"): {"isolated-release-loopback"},

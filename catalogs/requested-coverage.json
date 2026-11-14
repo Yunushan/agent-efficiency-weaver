@@ -67,7 +67,7 @@
     },
     {
       "id": "antigravity", "label": "Google Antigravity", "aliases": ["antigravity", "GoogleAntigravity", "Google Antigravity"],
-      "targets": [{"product_id": "antigravity", "surface_id": "ide"}]
+      "targets": [{"product_id": "antigravity", "surface_id": "ide"}, {"product_id": "antigravity", "surface_id": "cli"}]
     },
     {
       "id": "hermes", "label": "Hermes", "aliases": ["hermes", "Hermes Agent"],
@@ -1953,6 +1953,57 @@
         {
           "check": "cursor-cli-bundled-skill-load",
           "evidence_sha256": "3893c32b381393dca9ecb88399b81b31ae779d80a753ebeccd947f1926cc6ef7"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "c52d77b64961aba177a1ede6bf41cd9f9997a1bb",
+      "checks": [
+        {
+          "check": "antigravity-cli-account-catalog-authentication",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-workspace-instructions",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-skill-expansion",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-subagent-tier",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-scoped-stdio-call",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-subagent-mcp-isolation",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-model-selector-request",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-effort-request",
+          "evidence_sha256": "b8cbaf62bfccbc7154886558143fcf2d366ba9c55233742165de9bdeb2743eb1"
+        },
+        {
+          "check": "antigravity-cli-bundled-variant-requests",
+          "evidence_sha256": "70f7ff66165708d141f1027d5fff299b2ddf6ca3df573a606d0728199c7f7a42"
         }
       ]
     }

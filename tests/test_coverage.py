@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 26)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 221)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 27)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 230)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -183,6 +183,30 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_antigravity_cli_observations_are_scoped_to_the_headless_windows_release(self):
+        report = coverage_report(ROOT)
+        antigravity = next(item for item in report["requested_items"] if item["id"] == "antigravity")
+        targets = {row["surface_id"]: row for row in antigravity["targets"]}
+        self.assertEqual(set(targets), {"ide", "cli"})
+        self.assertFalse(targets["ide"]["runtime_observations"])
+        record, = targets["cli"]["runtime_observations"]
+        self.assertEqual(record["product_version"], "1.5.9")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["interface"], "headless-loopback")
+        self.assertEqual(record["environment"], "isolated-release-loopback")
+        self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
+            "antigravity-cli-account-catalog-authentication": "models",
+            "antigravity-cli-workspace-instructions": "instructions",
+            "antigravity-cli-skill-expansion": "skills",
+            "antigravity-cli-subagent-tier": "agents",
+            "antigravity-cli-scoped-stdio-call": "mcp",
+            "antigravity-cli-subagent-mcp-isolation": "mcp",
+            "antigravity-cli-model-selector-request": "models",
+            "antigravity-cli-effort-request": "reasoning",
+            "antigravity-cli-bundled-variant-requests": "reasoning",
+        })
 
     def test_cursor_cli_inventory_is_bound_to_the_signed_out_windows_release(self):
         report = coverage_report(ROOT)
