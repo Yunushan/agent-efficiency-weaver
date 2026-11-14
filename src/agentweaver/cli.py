@@ -167,6 +167,8 @@ def _parser() -> argparse.ArgumentParser:
                                      help='Stage Kiro CLI V3 per-model reasoning settings')
                 command.add_argument('--kiro-thinking-display', choices=['summarized', 'omitted'],
                                      help='Stage Kiro CLI adaptive thinking visibility')
+                command.add_argument('--kiro-max-output-tokens', type=int,
+                                     help='Stage Kiro CLI per-model max_tokens (output limit)')
                 command.add_argument('--qoder-settings', action='store_true',
                                      help='Stage a Qoder CLI model settings fragment for manual merge')
                 host_catalog.add_argument('--qoder-catalog', type=Path, help='Saved Qoder Agent SDK getAvailableModels() array')
@@ -548,6 +550,9 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     if (args.cmd == 'model' and args.kiro_thinking_display is not None
             and ((spec.id, surface) != ('kiro', 'cli') or not args.kiro_model_defaults)):
         raise WeaverError('--kiro-thinking-display requires Kiro CLI --kiro-model-defaults')
+    if (args.cmd == 'model' and args.kiro_max_output_tokens is not None
+            and ((spec.id, surface) != ('kiro', 'cli') or not args.kiro_model_defaults)):
+        raise WeaverError('--kiro-max-output-tokens requires Kiro CLI --kiro-model-defaults')
     if args.cmd == 'model' and args.qwen_auth_type is not None and args.qwen_workspace_catalog is None:
         raise WeaverError('Qwen model authentication filtering requires --qwen-workspace-catalog')
     if (args.cmd == 'model' and args.kimi_catalog is None
@@ -659,7 +664,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
                                     'context_size', 'batch_endpoint', 'qoder_catalog')):
             raise WeaverError('Kiro CLI model staging uses Kiro model IDs, effort, and persistent thinking settings')
         artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults,
-                                         thinking_mode=args.reasoning_mode, thinking_display=args.kiro_thinking_display)
+                                         thinking_mode=args.reasoning_mode, thinking_display=args.kiro_thinking_display,
+                                         max_output_tokens=args.kiro_max_output_tokens)
     elif args.cmd == 'model' and (spec.id, surface) == ('cursor', 'cli'):
         from .models import render_cursor_cli_model
 

@@ -1083,6 +1083,7 @@ def render_antigravity_cli_model(model: str, effort: str | None) -> list[Rendere
 def render_kiro_cli_model(
     model: str, effort: str | None, *, persistent: bool = False,
     thinking_mode: str | None = None, thinking_display: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> list[RenderedArtifact]:
     """Stage Kiro service model settings using the documented V3 controls."""
     identifier = _model_id(model)
@@ -1106,8 +1107,8 @@ def render_kiro_cli_model(
         allowed.add("none")
     if effort is not None and effort not in allowed:
         _fail("Requested effort is unsupported or unknown for this Kiro CLI model")
-    if not persistent and (thinking_mode is not None or thinking_display is not None):
-        _fail("Kiro thinking settings require --kiro-model-defaults")
+    if not persistent and any(value is not None for value in (thinking_mode, thinking_display, max_output_tokens)):
+        _fail("Kiro per-model settings require --kiro-model-defaults")
     if thinking_display is not None and (thinking_mode != "adaptive" or thinking_display not in {"summarized", "omitted"}):
         _fail("Kiro thinking display requires adaptive thinking and summarized or omitted visibility")
     if thinking_mode is not None:
@@ -1116,18 +1117,29 @@ def render_kiro_cli_model(
         )
         if thinking_mode not in modes:
             _fail("Requested thinking mode is unsupported or unknown for this Kiro CLI model")
+    if max_output_tokens is not None:
+        large_output_models = gpt_models | {"claude-opus-5", "claude-opus-4.8", "claude-sonnet-5"}
+        bounded_models = extended_claude | standard_claude | {"claude-sonnet-5.5"} | gpt_models
+        if identifier not in bounded_models:
+            _fail("The output token limit is unknown for this Kiro CLI model")
+        upper = 128_000 if identifier in large_output_models else 64_000
+        if type(max_output_tokens) is not int or not 1024 <= max_output_tokens <= upper:
+            _fail(f"Kiro CLI output tokens must be between 1024 and {upper} for {identifier}")
 
     if persistent:
-        settings: dict[str, dict[str, str]] = {}
+        settings: dict[str, dict[str, str] | int] = {}
         if effort is not None:
             field = "reasoning" if identifier in gpt_models else "output_config"
             settings[field] = {"effort": effort}
         if thinking_mode is not None:
-            settings["thinking"] = {"type": thinking_mode}
+            thinking = {"type": thinking_mode}
             if thinking_display is not None:
-                settings["thinking"]["display"] = thinking_display
+                thinking["display"] = thinking_display
+            settings["thinking"] = thinking
+        if max_output_tokens is not None:
+            settings["max_tokens"] = max_output_tokens
         if not settings:
-            _fail("Kiro per-model defaults require an explicit reasoning effort or thinking mode")
+            _fail("Kiro per-model defaults require an explicit reasoning effort, thinking mode, or output token limit")
         fragment = {"chat.modelDefaults": {identifier: settings}}
         output = _json_artifact("kiro/model/cli.fragment.json", fragment, "model-config")
         instructions = (

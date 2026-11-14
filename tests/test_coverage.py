@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 262)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 263)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -428,8 +428,8 @@ class RequestedCoverageTests(unittest.TestCase):
         kiro = next(item for item in report["requested_items"] if item["id"] == "kiro")
         targets = {target["surface_id"]: target for target in kiro["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
-        acp, inventory, thinking = targets["cli"]["runtime_observations"]
-        for record in (acp, inventory, thinking):
+        acp, inventory, thinking, output_limit = targets["cli"]["runtime_observations"]
+        for record in (acp, inventory, thinking, output_limit):
             self.assertEqual(record["product_version"], "3.3.0")
             self.assertEqual(record["engine_version"], "3.3.0")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -449,6 +449,10 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(thinking["interface"], "config-inventory")
         self.assertEqual({check["check"]: check["capability"] for check in thinking["checks"]}, {
             "kiro-v3-workspace-thinking-readback": "reasoning",
+        })
+        self.assertEqual(output_limit["interface"], "config-inventory")
+        self.assertEqual({check["check"]: check["capability"] for check in output_limit["checks"]}, {
+            "kiro-v3-workspace-output-limit-readback": "models",
         })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 

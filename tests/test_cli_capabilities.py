@@ -152,6 +152,31 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(invoke('model', *ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run',
                                 '--model', 'auto', '--kiro-thinking-display', 'omitted')[0], 2)
 
+    def test_kiro_model_defaults_validate_and_stage_output_limits(self):
+        base = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run', '--kiro-model-defaults')
+        for model, limit, flags, expected in (
+            ('claude-opus-5', 128000, ('--reasoning-effort', 'xhigh', '--reasoning-mode', 'adaptive'),
+             {'output_config': {'effort': 'xhigh'}, 'thinking': {'type': 'adaptive'}}),
+            ('claude-sonnet-5.5', 64000, (), {}),
+            ('gpt-5.6-luna', 1024, ('--reasoning-effort', 'none'), {'reasoning': {'effort': 'none'}}),
+        ):
+            with self.subTest(model=model, limit=limit):
+                code, output, error = invoke('model', *base, '--model', model,
+                                             '--kiro-max-output-tokens', str(limit), *flags)
+                self.assertEqual(code, 0, error)
+                fragment = next(item for item in json.loads(output)['artifacts'] if item['kind'] == 'model-config')
+                self.assertEqual(json.loads(fragment['content']), {
+                    'chat.modelDefaults': {model: expected | {'max_tokens': limit}},
+                })
+        for model, limit in (('claude-sonnet-5.5', 64001), ('gpt-5.6-luna', 128001),
+                             ('claude-opus-5', 1023), ('auto', 2048)):
+            with self.subTest(model=model, limit=limit):
+                self.assertEqual(invoke('model', *base, '--model', model,
+                                        '--kiro-max-output-tokens', str(limit))[0], 2)
+        for product in ('kiro', 'qoder'):
+            self.assertEqual(invoke('model', *ROOT_ARGS, '--agent', product, '--surface', 'cli', '--dry-run',
+                                    '--model', 'claude-opus-5', '--kiro-max-output-tokens', '2048')[0], 2)
+
     def test_qoder_cli_stages_exact_model_ids_and_optional_session_or_settings_controls(self):
         base = (*ROOT_ARGS, '--agent', 'qoder', '--surface', 'cli', '--dry-run')
         params = (*base, '--model', 'fixture/Model-v2', '--context-size', '400000', '--reasoning-effort', 'high')
