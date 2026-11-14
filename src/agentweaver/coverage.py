@@ -61,6 +61,27 @@ _OBSERVATION_CHECKS = {
         "reasoning", "All 21 selectors advertised by the Gemini-compatible CLI mode completed a scripted "
         "loopback turn. The endpoint recorded the resolved model and thinking settings for each selector.",
     ),
+    "antigravity-cli-project-context7-https-call": (
+        "mcp", "The headless CLI loaded the exact generated workspace entry, called the public Context7 "
+        "resolver over Streamable HTTPS and returned the React library ID.",
+    ),
+    "antigravity-cli-project-openai-docs-https-call": (
+        "mcp", "The headless CLI loaded the exact generated workspace entry and returned a public "
+        "documentation link from OpenAI Docs over Streamable HTTPS.",
+    ),
+    "antigravity-cli-project-https-permissions": (
+        "mcp", "The Context7 call required an exact scoped permission in the isolated home. No grant "
+        "or a grant for a different tool denied the call. The empty project config exposed no MCP tool.",
+    ),
+    "antigravity-cli-acp-model-inventory": (
+        "models", "The ACP server required authentication for a new session. Its Gemini-compatible mode "
+        "listed 21 bundled model variants after using a synthetic key and loopback endpoint.",
+    ),
+    "antigravity-cli-acp-variant-requests": (
+        "reasoning", "ACP session configuration selected each bundled model and thinking level. "
+        "All 21 variants sent their resolved model and thinking settings to a scripted loopback "
+        "endpoint. Hydrogen rejected the unavailable max setting.",
+    ),
     "cursor-cli-mcp-approval-and-tool-discovery": (
         "mcp", "The signed-out CLI read the exact generated MCP file, started the stdio fixture only "
         "after individual approval, and listed its tool. Disabling the server stopped launches, and "
@@ -513,6 +534,7 @@ _OBSERVATION_FIELDS = {
 }
 _OBSERVATION_INTERFACES = {
     ("antigravity", "cli", "headless-loopback"),
+    ("antigravity", "cli", "acp-stdio"),
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),

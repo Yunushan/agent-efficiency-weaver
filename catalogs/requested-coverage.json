@@ -2006,6 +2006,56 @@
           "evidence_sha256": "70f7ff66165708d141f1027d5fff299b2ddf6ca3df573a606d0728199c7f7a42"
         }
       ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "78f42cdbd6ea35cfbc42f602728bfcdabe2b5fd7",
+      "checks": [
+        {
+          "check": "antigravity-cli-project-context7-https-call",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        },
+        {
+          "check": "antigravity-cli-project-openai-docs-https-call",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        },
+        {
+          "check": "antigravity-cli-project-https-permissions",
+          "evidence_sha256": "d894c486a5b96a59705d8c4e9eba5829d250a7ffea08b99567a314b1c2e91b2c"
+        }
+      ]
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "cli",
+      "product_version": "1.5.9",
+      "engine_version": "1.5.9",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "acp-stdio",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "78f42cdbd6ea35cfbc42f602728bfcdabe2b5fd7",
+      "checks": [
+        {
+          "check": "antigravity-cli-acp-model-inventory",
+          "evidence_sha256": "5be595ae21ced2c847394e45bca049d3880bf96a843e114608c780f4759789a5"
+        },
+        {
+          "check": "antigravity-cli-acp-variant-requests",
+          "evidence_sha256": "5be595ae21ced2c847394e45bca049d3880bf96a843e114608c780f4759789a5"
+        }
+      ]
     }
   ]
 }

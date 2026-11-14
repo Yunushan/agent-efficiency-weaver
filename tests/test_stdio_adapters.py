@@ -227,6 +227,13 @@ class StdioConfigurationTests(unittest.TestCase):
                 "synthetic-stdio": {"command": COMMAND, "args": ARGS},
             },
         })
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "antigravity", "--surface", "cli",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        _, handoff = json.loads(output)["artifacts"]
+        self.assertIn("/mcp in a trusted workspace session", handoff["content"])
+        self.assertIn("mcp(SERVER/TOOL)", handoff["content"])
+        self.assertIn("permissions.allow", handoff["content"])
 
     def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
         spec = self.integrations["openhands"]
