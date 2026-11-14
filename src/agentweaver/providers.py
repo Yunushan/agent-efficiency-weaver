@@ -173,6 +173,8 @@ def _route(agent_id: str, surface: str) -> _Route:
         return _CLINE_CLI_ROUTE
     if (agent_id, surface) == ("cline", "desktop"):
         return _CLINE_DESKTOP_ROUTE
+    if (agent_id, surface) == ("openhands", "canvas"):
+        return _OPENHANDS_CANVAS_ROUTE
     if (agent_id, surface) == ("copilot", "cli"):
         return _COPILOT_CLI_ROUTE
     if (agent_id, surface) == ("copilot", "desktop"):
@@ -904,6 +906,23 @@ _ROUTES = {
         ),
     ),
 }
+
+_OPENHANDS_CANVAS_ROUTE = _Route(
+    allowed_surfaces=("canvas",),
+    model_prefix="openrouter/",
+    model_guidance="Use the displayed OpenRouter model ID in the Advanced LLM profile editor.",
+    steps=("Select the intended backend and open Settings > LLM > Advanced.",
+           "Enter the displayed model ID and the OpenRouter API base URL.",
+           "Save a named LLM profile and select it for the next OpenHands conversation."),
+    env=(),
+    credential_note="Supply credentials in the editor or use a saved Provider Connection on a local backend.",
+    endpoint=None,
+    endpoint_note="Use the OpenRouter API base URL for the LiteLLM OpenRouter route.",
+    restrictions=("The backend can contact the provider to validate the profile on save.",
+                  "The selected backend, provider, and model determine available reasoning fields."),
+    sources=("https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles",
+             "https://docs.openhands.dev/openhands/usage/llms/openrouter", _OPENROUTER),
+)
 
 # These are deliberate manual handoffs. A documented compatible endpoint does not
 # establish installed-version validation, inference success, or native agent export.

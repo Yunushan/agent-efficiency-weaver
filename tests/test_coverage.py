@@ -176,7 +176,12 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_openhands_observation_uses_the_released_sdk_and_wsl_variant(self):
         report = coverage_report(ROOT)
         openhands = next(item for item in report["requested_items"] if item["id"] == "openhands")
-        target, = openhands["targets"]
+        targets = {row["surface_id"]: row for row in openhands["targets"]}
+        self.assertEqual(set(targets), {"cli", "canvas"})
+        self.assertEqual(resolve_product_alias(ROOT, "OpenHands Agent Canvas"), "openhands")
+        self.assertFalse(targets["canvas"]["runtime_observations"])
+        self.assertEqual(targets["canvas"]["capabilities"]["mcp"]["state"], "available")
+        target = targets["cli"]
         record, = target["runtime_observations"]
         self.assertEqual(target["surface_id"], "cli")
         self.assertEqual(record["product_version"], "1.16.0")

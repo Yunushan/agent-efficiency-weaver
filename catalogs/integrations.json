@@ -2443,6 +2443,99 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "canvas",
+          "mcp_dialect": "openhands-canvas.settings-mcp",
+          "config_fields": [
+            "transport",
+            "url",
+            "command",
+            "args",
+            "enabled"
+          ],
+          "config_scope": "request",
+          "native_path_hint": "requests/canvas",
+          "documented_location": "POST /api/settings/mcp/<server-id> on the local Agent Server",
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".agents/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/agent-canvas/customize-and-settings",
+                "https://github.com/OpenHands/OpenHands/blob/v1.40.0/src/utils/mcp-config.ts",
+                "https://github.com/OpenHands/OpenHands/blob/v1.40.0/.agents/skills/verify-openhands/references/feature-map/F17-mcp-servers.md"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": "Canvas v1.40.0 canonical local Agent Server settings request; each generated entry is disabled.",
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/overview/skills",
+                "https://docs.openhands.dev/openhands/usage/agent-canvas/agent-profiles"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/agent-canvas/customize-and-settings",
+                "https://docs.openhands.dev/overview/skills"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles",
+                "https://docs.openhands.dev/openhands/usage/llms/openrouter"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_model_hosts.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://docs.openhands.dev/openhands/usage/agent-canvas/setup"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": "Desktop preview packages for Windows/Linux x64 and macOS Intel/Apple silicon; the browser workflow uses a supported backend.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

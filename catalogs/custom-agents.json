@@ -1259,6 +1259,33 @@
       }
     },
     {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "state": "manual",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Choose a saved LLM profile in the named OpenHands Agent Profile.",
+      "reasoning_behavior": "Reasoning depends on the selected backend schema and LLM profile.",
+      "permission_behavior": "Review inherited tools, secrets, and MCP scopes on the active backend.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://docs.openhands.dev/openhands/usage/agent-canvas/agent-profiles",
+          "https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles"
+        ],
+        "checked_on": "2026-11-14",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "openrouter",
       "surface_id": "gateway",
       "state": "unsupported",

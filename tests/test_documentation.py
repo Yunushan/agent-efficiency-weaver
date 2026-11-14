@@ -94,10 +94,10 @@ def expected_mcp(agent, surface):
         if state == "unsupported":
             return "Unsupported"
         return "Not exported"
-    if artifacts[0].kind == "mcp-fragment":
-        return "Fragment export; manual import"
     if surface.config_scope == "request":
         return "Request fragment"
+    if artifacts and artifacts[0].kind == "mcp-fragment":
+        return "Fragment export; manual import"
     return "Native staged"
 
 

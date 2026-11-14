@@ -202,6 +202,35 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertIn("context_servers with enabled: false", handoff["content"])
         self.assertIn("enable only the intended servers", handoff["content"])
 
+    def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
+        spec = self.integrations["openhands"]
+        requests = render_mcp(spec, "canvas", self.profile, self.catalog, ["synthetic-stdio", "context7"])
+        self.assertEqual({item.relative_path.as_posix(): json.loads(item.content) for item in requests}, {
+            "openhands/requests/canvas/context7.json": {
+                "transport": "http", "url": "https://mcp.context7.com/mcp", "enabled": False},
+            "openhands/requests/canvas/synthetic-stdio.json": {
+                "transport": "stdio", "command": COMMAND, "args": ARGS, "enabled": False},
+        })
+        self.assertEqual({item.kind for item in requests}, {"mcp-request"})
+        self.assertEqual(render_mcp(spec, "canvas", self.profile, self.catalog, []), [])
+        with self.assertRaises(WeaverError):
+            render_mcp(spec, "canvas", self.profile, self.catalog, ["openai-docs"])
+
+    def test_openhands_canvas_cli_handoff_and_skill_use_separate_destinations(self):
+        common = ("--root", str(ROOT), "--agent", "openhands", "--surface", "canvas",
+                  "--profile", "efficient", "--dry-run")
+        code, output, errors = invoke("render", *common)
+        self.assertEqual(code, 0, errors)
+        handoff, = json.loads(output)["artifacts"]
+        self.assertEqual(handoff["path"], "openhands/MCP-HANDOFF.md")
+        self.assertIn("POST /api/settings/mcp/<server-id>", handoff["content"])
+        code, output, errors = invoke("bundle", *common, "--skill", "token-efficient-retrieval")
+        self.assertEqual(code, 0, errors)
+        self.assertEqual({artifact["path"] for artifact in json.loads(output)["artifacts"]}, {
+            "openhands/AGENTS.md", "openhands/.agents/skills/token-efficient-retrieval/SKILL.md",
+            "openhands/OS-HANDOFF.md",
+        })
+
     def test_each_supported_host_uses_its_documented_native_shape(self):
         metadata = stdio_inventory()
         self.assertEqual(set(metadata), SUPPORTED)

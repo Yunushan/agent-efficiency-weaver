@@ -50,8 +50,8 @@
       "targets": [{"product_id": "cursor", "surface_id": "ide"}]
     },
     {
-      "id": "openhands", "label": "OpenHands", "aliases": ["openhands", "Open Hands"],
-      "targets": [{"product_id": "openhands", "surface_id": "cli"}]
+      "id": "openhands", "label": "OpenHands", "aliases": ["openhands", "Open Hands", "OpenHands Agent Canvas", "Agent Canvas"],
+      "targets": [{"product_id": "openhands", "surface_id": "cli"}, {"product_id": "openhands", "surface_id": "canvas"}]
     },
     {
       "id": "zed", "label": "Zed AI", "aliases": ["zed", "ZedAI", "Zed AI"],

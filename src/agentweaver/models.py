@@ -1098,7 +1098,7 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if protocol in _OPENROUTER_TASK_ENDPOINTS and (registered.id, surface) != ("openrouter", "gateway"):
         _fail("OpenRouter task endpoint selections require the OpenRouter gateway surface")
     if protocol is None and provider_id == "lm-studio" and (registered.id, surface) in {
-        ("copilot", "cli"), ("copilot", "desktop")
+        ("copilot", "cli"), ("copilot", "desktop"), ("openhands", "canvas")
     }:
         protocol = "openai-chat"
     checked = check_model(root, provider_id, model_id, snapshot, effort=effort, budget_tokens=budget_tokens,
@@ -1136,6 +1136,22 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
     if not text_candidate:
         native_note = ("The supplied architecture does not declare text output. Use a task-specific manual handoff; "
                        "language-agent compatibility is unknown.")
+    canvas_model = text_candidate and (registered.id, surface) == ("openhands", "canvas") and (
+        (provider_id, chosen) in {("openrouter", "openrouter-chat"), ("lm-studio", "openai-chat")}
+    )
+    if canvas_model:
+        model_prefix = "openrouter/" if provider_id == "openrouter" else "openai/"
+        native_note = (
+            f"On the intended backend, open Settings > LLM > Advanced. Enter the model "
+            f"`{model_prefix}{model_id}` and a backend-reachable base URL (reference `{api_base}`). "
+            "Supply credentials separately. Saving can contact the provider. Select the saved profile "
+            "for the next OpenHands conversation."
+        )
+        if effort is not None:
+            native_note += (
+                f" In the All tab, set `reasoning_effort` to `{effort}` only if the installed backend "
+                "schema and selected model support it. Review any other requested fields against that schema."
+            )
     if chosen in _OPENROUTER_TASK_ENDPOINTS:
         native_note = ("Use the staged fields in a request to the listed OpenRouter endpoint. "
                        "Add the endpoint's task-specific input and authenticate separately.")
@@ -1412,6 +1428,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
              "Model selection does not install custom agents, Skills, MCP servers, or enable autonomous operation.", "",
              f"Documentation checked on: {provider['checked_on']}", "", "Sources:", ""]
     lines.extend(f"- {source}" for source in provider["sources"])
+    if canvas_model:
+        lines.append("- https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles")
     if codex_lmstudio:
         lines.extend(["- https://lmstudio.ai/docs/integrations/codex",
                       "- https://learn.chatgpt.com/docs/config-file/config-advanced#profiles"])

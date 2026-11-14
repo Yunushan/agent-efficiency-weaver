@@ -270,6 +270,13 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.extend(['User-scope fragment only: use the vendor settings interface to review and manually merge',
                           f'the selected entries at {target.documented_location or "the documented user settings location"}.',
                           'Do not copy this fragment into a project or replace the entire user configuration.'])
+        elif (spec.id, surface) == ('openhands', 'canvas'):
+            lines.extend([
+                'Each JSON file is one disabled server body for POST /api/settings/mcp/<server-id>.',
+                'Use the filename stem as the server ID. Check for existing entries on the intended local Agent Server.',
+                'After review and authorized import, enable only the intended entries in Customize > MCP Servers.',
+                'An empty selection stages only this handoff. Weaver does not contact the backend.',
+            ])
         elif target.config_scope == 'request':
             lines.extend(['API request fragment only: merge into the documented request after review.',
                           'No request was sent and no local server, connector, or MCP setting was enabled.'])

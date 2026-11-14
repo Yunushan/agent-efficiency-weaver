@@ -660,6 +660,14 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "tools: [] declares no external tools. Base finish/think behavior may remain, and this "
                       "does not establish an OS sandbox. No MCP servers, hooks or permission modes are emitted. "
                       "Host and parent policy still apply."])
+    if (spec.id, surface) == ("openhands", "canvas"):
+        lines.extend(["", "## Manual Agent Canvas profile", "",
+                      "On the intended backend, open Settings > Agent and create a named OpenHands Agent Profile. "
+                      "Set System prompt to Default + your instructions and paste the role below.",
+                      "Choose a saved LLM profile and review inherited tools, secrets, and MCP access. "
+                      "An unset MCP server selection lets the agent use all configured servers; select only "
+                      "the servers intended for this profile.",
+                      "Select the saved profile before starting a new conversation."])
     if spec.id == "jetbrains-air" and surface == "ide" and state == "manual":
         lines.extend(["", "## Manual Air IDE preset", "",
                       "Open Manage Agents > Manage Presets, add a New Preset, and choose an already "

@@ -53,6 +53,7 @@ NATIVE_TARGETS = {
     ("kimi-code", "cli"): "AGENTS.md",
     ("opencode", "cli"): "AGENTS.md",
     ("openhands", "cli"): "AGENTS.md",
+    ("openhands", "canvas"): "AGENTS.md",
     ("kiro", "cli"): ".kiro/steering/agentweaver.md",
     ("pi", "cli"): "AGENTS.md",
     ("qwen-code", "cli"): "QWEN.md",

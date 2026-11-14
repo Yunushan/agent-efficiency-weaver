@@ -69,6 +69,10 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'qwen-code': ('mcpServers.httpUrl', 'command-args', 'https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/'),
 }
 _STDIO_ADDITIONAL_ROUTES = {
+    ('openhands', 'openhands-canvas.settings-mcp'): (
+        'transport-stdio-disabled', 'https://github.com/OpenHands/OpenHands/blob/v1.40.0/src/utils/mcp-config.ts',
+        '2026-11-14', 'tests/test_stdio_adapters.py',
+    ),
     ('copilot', 'mcpServers.copilot-portable'): (
         'copilot-portable-stdio', 'https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers',
         '2026-11-13', 'tests/test_stdio_adapters.py',
@@ -129,6 +133,8 @@ def _stdio_entry(agent_id: str | None, dialect: str, name: str, selection: Stdio
         return {'type': 'stdio', 'name': name, 'enabled': True, 'cmd': command, 'args': args}
     if shape == 'copilot-portable-stdio':
         return {'type': 'stdio', 'command': command, 'args': args, 'tools': ['*']}
+    if shape == 'transport-stdio-disabled':
+        return {'transport': 'stdio', 'command': command, 'args': args, 'enabled': False}
     entry: dict[str, Any] = {'command': command, 'args': args}
     if shape == 'type-stdio':
         entry = {'type': 'stdio', **entry}
@@ -190,10 +196,23 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     if copilot_portable and (opencode_v2 or (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
             'copilot', 'vscode', 'servers.type-http', 'project', '.vscode/mcp.json')):
         raise WeaverError('Portable Copilot MCP staging requires the VS Code Copilot project target')
-    if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT)
+    if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT, 'openhands-canvas.settings-mcp')
             or target.capabilities['mcp'].state not in ('available', 'manual')):
         raise WeaverError('Native MCP export unavailable on this surface; use bundle for instruction handoff')
     selected = select_servers(profile, catalog, enabled)
+    if dialect == 'openhands-canvas.settings-mcp':
+        if ((spec.id, surface, target.config_scope) != ('openhands', 'canvas', 'request')
+                or target.native_path_hint != 'requests/canvas'):
+            raise WeaverError('OpenHands MCP settings requests require the Agent Canvas surface')
+        return [
+            RenderedArtifact(
+                PurePosixPath(spec.id, target.native_path_hint, f'{name}.json'),
+                json_bytes({'transport': 'http', 'url': selection, 'enabled': False}
+                           if isinstance(selection, str) else _stdio_entry(spec.id, dialect, name, selection)),
+                'mcp-request',
+            )
+            for name, selection in selected.items()
+        ]
     if copilot_portable:
         document = _json_document('mcpServers.copilot-portable', selected, spec.id)
         return [RenderedArtifact(PurePosixPath(spec.id, '.mcp.json'), json_bytes(document), 'mcp')]

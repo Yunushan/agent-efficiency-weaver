@@ -1861,6 +1861,49 @@
       "availability": "unknown"
     },
     {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Create a named LLM profile on the active backend. Use the exact provider model ID and a backend-reachable base URL. Saving can contact the provider for validation.",
+        "fields": [
+          "model",
+          "base_url"
+        ],
+        "commands": [],
+        "ui_steps": [
+          "Open Settings > LLM > Advanced for an explicit model and base URL",
+          "Use the All tab for fields exposed by the backend schema",
+          "Select a saved profile for the next OpenHands conversation"
+        ],
+        "sources": [
+          "https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "reasoning_effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://docs.openhands.dev/openhands/usage/agent-canvas/llm-profiles",
+          "https://github.com/OpenHands/OpenHands/blob/v1.40.0/src/utils/sdk-settings-schema.ts",
+          "https://github.com/OpenHands/OpenHands/blob/v1.40.0/.agents/skills/verify-openhands/references/feature-map/F10-llm-profiles.md"
+        ]
+      },
+      "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "openrouter",
       "surface_id": "gateway",
       "selection": {

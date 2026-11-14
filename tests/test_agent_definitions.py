@@ -90,6 +90,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
+                                 ("openhands", "canvas"): "2026-11-14",
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
@@ -659,6 +660,16 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             with self.assertRaises(WeaverError):
                 write_artifacts(destination, artifacts, force=True)
             self.assertEqual(target.read_text(encoding="utf-8"), "user edited definition\n")
+
+    def test_openhands_canvas_handoff_uses_conversation_profiles(self):
+        handoff, = self.render("openhands", "canvas")
+        self.assertEqual(handoff.kind, "agent-handoff")
+        content = handoff.content.decode()
+        for step in ("Settings > Agent", "Default + your instructions", "saved LLM profile",
+                     "all configured servers", "before starting a new conversation"):
+            self.assertIn(step, content)
+        with self.assertRaises(WeaverError):
+            self.render("openhands", "canvas", llm_profile="review")
 
     def test_openhands_explicit_local_profile_preserves_sdk_reference_as_yaml_data(self):
         for reference in ("Research.v2_profile-1.json", "Inherit", "inherit.json", "con", "NUL.json",

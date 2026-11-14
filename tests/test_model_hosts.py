@@ -19,6 +19,7 @@ from agentweaver.models import (
     read_model_snapshot,
     render_model_setup,
 )
+from agentweaver.providers import render_provider_setup
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -117,6 +118,33 @@ class ModelHostTests(unittest.TestCase):
         self.assertTrue(any("edaac806d1599a4ee1662fd4008fbcd7b537ecd1" in url and url.endswith("llm/options/chat_options.py") for url in sources))
         self.assertEqual(host["availability"], "unknown")
         self.assertEqual(host["runtime_checks"], [])
+
+    def test_openhands_canvas_model_routes_use_backend_profile_and_model_specific_reasoning(self) -> None:
+        spec = get_integration("openhands", ROOT)
+        handoff, = render_provider_setup(spec, "canvas", provider_id="openrouter", model_id="vendor/model")
+        self.assertIn(b"Settings > LLM > Advanced", handoff.content)
+        self.assertIn(b"openrouter/vendor/model", handoff.content)
+        self.assertIn(b"validate the profile", handoff.content)
+        self.assertNotIn(b"override-with-envs", handoff.content)
+        artifacts = render_model_setup(spec, "canvas", root=ROOT, provider_id="lm-studio",
+                                       model_id="local-model")
+        self.assertTrue(all(item.relative_path.suffix in {".json", ".md"} for item in artifacts))
+        guide = next(item.content for item in artifacts if item.relative_path.suffix == ".md")
+        self.assertIn(b"openai/local-model", guide)
+        self.assertIn(b"http://localhost:1234/v1", guide)
+        self.assertIn(b"Saving can contact the provider", guide)
+        snapshot = {"provider_id": "openrouter", "models": [{"id": "vendor/model",
+                     "reasoning": {"state": "declared", "efforts": ["high"]}}]}
+        routed = render_model_setup(spec, "canvas", root=ROOT, provider_id="openrouter",
+                                    model_id="vendor/model", snapshot=snapshot, effort="high")
+        guide = next(item.content for item in routed if item.relative_path.suffix == ".md")
+        self.assertIn(b"`reasoning_effort` to `high` only if", guide)
+        host = next(row for row in load_model_hosts(ROOT)
+                    if (row["product_id"], row["surface_id"]) == ("openhands", "canvas"))
+        self.assertEqual(host["reasoning"]["controls"], [
+            {"kind": "effort", "field": "reasoning_effort", "values": None, "model_dependent": True},
+        ])
+        self.assertEqual(host["availability"], "unknown")
 
     def test_kimi_subagent_pool_uses_configured_aliases_and_model_dependent_effort(self) -> None:
         host = next(host for host in load_model_hosts(ROOT) if (host["product_id"], host["surface_id"]) == ("kimi-code", "cli"))
