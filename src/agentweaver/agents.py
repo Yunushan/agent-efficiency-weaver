@@ -24,7 +24,7 @@ from .factory_models import inspect_factory_models
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
 from .opencode_models import validate_kilo_selection, validate_opencode_selection
-from .qoder_models import inspect_qoder_models
+from .qoder_models import inspect_qoder_models, validate_qoder_thinking_budget
 from .skills import selected_portable_skill_ids, stage_hermes_profile_skills
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -305,7 +305,7 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 
 
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
-            model: str | list[str] | None, effort: str | None, *, opencode_v2: bool = False,
+            model: str | list[str] | None, effort: str | int | None, *, opencode_v2: bool = False,
             skill_ids: tuple[str, ...] = (), mcp_ids: tuple[str, ...] = (), copilot_catalog: bool = False,
             mcp_tools: tuple[str, ...] = (),
             cline_provider: str | None = None, copilot_model_policy: str | None = None) -> bytes:
@@ -314,7 +314,7 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
         fields = {"name": name, "description": description, "developer_instructions": instructions}
         if isinstance(model, str):
             fields["model"] = model
-        if effort is not None:
+        if isinstance(effort, str):
             fields["model_reasoning_effort"] = effort
         lines = [f"{key} = {_quoted(value)}" for key, value in fields.items()]
         lines.extend(["", "[features]", "shell_tool = false", "apps = false", "plugins = false"])
@@ -403,7 +403,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
 
 def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, name: str,
                             description: str, instructions: str, model_id: str | None = None,
-                            effort: str | None = None, provider_id: str | None = None,
+                            effort: str | None = None, reasoning_budget: int | None = None,
+                            provider_id: str | None = None,
                             snapshot: Mapping[str, Any] | None = None,
                             llm_profile: str | None = None,
                             codex_catalog: Path | None = None, opencode_catalog: Path | None = None,
@@ -431,6 +432,14 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             _text(value, label, maximum=250)
     if snapshot is not None and not isinstance(snapshot, Mapping):
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
+    if reasoning_budget is not None:
+        if (spec.id, surface) != ("qoder", "cli"):
+            raise WeaverError("Agent reasoning budget staging requires the Qoder CLI surface")
+        if effort is not None:
+            raise WeaverError("Qoder subagents use a single effort field for named effort or a numeric budget")
+        if qoder_catalog is None:
+            raise WeaverError("A Qoder subagent reasoning budget requires --qoder-catalog and an explicit model")
+        validate_qoder_thinking_budget(reasoning_budget)
     if cursor_parameters and cursor_catalog is None:
         raise WeaverError("Cursor model parameters require --cursor-catalog")
     if cursor_catalog is not None:
@@ -604,6 +613,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         model, checked = _model_selection(row, root, model_id, None, None, None)
         qoder_report = inspect_qoder_models(qoder_catalog, model=model_id, effort=effort)
         qoder_digest = qoder_report["snapshot_sha256"]
+        if reasoning_budget is not None and qoder_report["selection"]["thinking_enabled_advertised"] is False:
+            raise WeaverError("The Qoder catalog does not advertise enabled thinking for this model")
         if row["model_style"] == "display-name-link":
             label = _text(qoder_report["selection"]["display_name"], "Qoder IDE model display name")
             if label != label.strip() or any(char in label for char in "[]\\"):
@@ -867,6 +878,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.append(f"Explicit native model selection: {model}")
     if effort is not None:
         lines.append(f"Explicit native effort selection: {effort}")
+    if reasoning_budget is not None:
+        lines.extend(["", f"Explicit thinking budget in tokens: {reasoning_budget}",
+                      "The Qoder SDK snapshot does not declare fixed-budget ranges. Confirm support and the "
+                      "effective budget for the selected model in the target Qoder account."])
     evidence = row["evidence"]
     lines.extend(["", "Evidence: documentation and offline fixtures are separate from runtime verification.",
                   f"Documentation checked: {evidence['checked_on'] or 'unknown'}",
@@ -876,7 +891,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     if state == "native":
         path = row["path_template"].replace("{name}", identifier)
         native_model = copilot_models if copilot_models and len(copilot_models) > 1 else model
-        native_effort = model_variant if kilo_digest is not None else effort
+        native_effort: str | int | None = model_variant if kilo_digest is not None else effort
+        if reasoning_budget is not None:
+            native_effort = reasoning_budget
         if cursor_digest is not None:
             native_effort = None
         content = _native(row, identifier, summary, prompt, native_model, native_effort,

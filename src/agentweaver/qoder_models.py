@@ -11,6 +11,11 @@ _DISABLED_EFFORTS = frozenset({"disabled", "off", "none"})
 _THINKING_MODES = frozenset({"auto", "adaptive", "enabled", "disabled"})
 
 
+def validate_qoder_thinking_budget(value: int) -> None:
+    if type(value) is not int or not 1 <= value <= 2**53 - 1:
+        raise WeaverError("Qoder thinking budget must be a positive safe integer")
+
+
 def _record(value: object, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise WeaverError(f"Invalid Qoder {label} object")
@@ -149,8 +154,7 @@ def render_qoder_cli_model(model: str, effort: str | None, context_size: int | N
     if thinking_mode is not None and thinking_mode not in _THINKING_MODES:
         raise WeaverError("Unsupported Qoder thinking mode")
     if thinking_budget is not None:
-        if type(thinking_budget) is not int or not 1 <= thinking_budget <= 2**53 - 1:
-            raise WeaverError("Qoder thinking budget must be a positive safe integer")
+        validate_qoder_thinking_budget(thinking_budget)
         if thinking_mode not in {None, "enabled"}:
             raise WeaverError("A Qoder fixed budget implies enabled thinking and conflicts with the selected mode")
     evidence = "Confirm the model, effort and context in the target account."

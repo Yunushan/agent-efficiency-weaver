@@ -205,6 +205,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--profile-mcp', action='append', help='Bundle an allowlisted MCP server, disabled')
             command.add_argument('--profile-context-size', type=int, help='Explicit context length for a Hermes LM Studio profile')
             command.add_argument('--reasoning-effort')
+            command.add_argument('--reasoning-budget', type=int, help='Stage numeric effort for a Qoder CLI subagent')
     report = subs.add_parser('report')
     report.add_argument('--input', type=Path, required=True)
     report.add_argument('--format', choices=['json', 'markdown'], default='markdown')
@@ -725,7 +726,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         artifacts = render_agent_definition(
             spec, surface, root=root, name=args.name, description=args.description,
             instructions=args.instructions_file.read_text(encoding='utf-8'), model_id=args.model,
-            effort=args.reasoning_effort, provider_id=args.provider, snapshot=_model_snapshot(args, root),
+            effort=args.reasoning_effort, reasoning_budget=args.reasoning_budget,
+            provider_id=args.provider, snapshot=_model_snapshot(args, root),
             llm_profile=args.llm_profile, codex_catalog=args.codex_catalog,
             copilot_catalog=args.copilot_catalog, copilot_fallbacks=args.copilot_fallback_model,
             copilot_model_policy=args.copilot_model_policy,

@@ -202,3 +202,32 @@ class QoderModelsTests(unittest.TestCase):
             with self.subTest(flags=flags):
                 self.assertEqual(invoke(*args, *context, *flags)[0], 2)
         self.assertEqual(invoke(*args, *tool)[0], 2)
+
+    def test_cli_subagent_stages_a_numeric_effort_with_catalog_provenance(self):
+        base = ("agent", "--root", str(ROOT), "--agent", "qoder", "--dry-run", "--name", "reviewer",
+                "--description", "Review code", "--instructions-file", str(self.prompt))
+        model = ("--model", "fixture-nested", "--qoder-catalog", str(self.path))
+        budget = ("--reasoning-budget", "2048")
+        args = (*base, "--surface", "cli")
+        code, output, error = invoke(*args, *model, *budget)
+        self.assertEqual(code, 0, error)
+        artifacts = {item["kind"]: item["content"] for item in json.loads(output)["artifacts"]}
+        meta = yaml.safe_load(artifacts["agent-definition"].split("---\n", 2)[1])
+        self.assertIs(type(meta["effort"]), int)
+        self.assertEqual(meta["effort"], 2048)
+        self.assertEqual(meta["model"], "fixture-nested")
+        self.assertIn(hashlib.sha256(self.path.read_bytes()).hexdigest(), artifacts["agent-handoff"])
+        self.assertIn("does not declare fixed-budget ranges", artifacts["agent-handoff"])
+        for opts in (
+            ("--model", "fixture-nested", *budget),
+            ("--qoder-catalog", str(self.path), *budget),
+            (*model, *budget, "--reasoning-effort", "high"),
+            (*model, "--reasoning-budget", "0"),
+            (*model, "--reasoning-budget", "9007199254740992"),
+            ("--model", "fixture-disabled", "--qoder-catalog", str(self.path), *budget),
+        ):
+            with self.subTest(opts=opts):
+                self.assertEqual(invoke(*args, *opts)[0], 2)
+        self.assertEqual(invoke(*base, "--surface", "ide", *model, *budget)[0], 2)
+        self.save([{"value": "fixture-nested", "isEnabled": True, "thinking_config": {"disabled": {}}}])
+        self.assertEqual(invoke(*args, *model, *budget)[0], 2)
