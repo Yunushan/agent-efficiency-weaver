@@ -2063,6 +2063,25 @@
       "os_id": "windows",
       "os_variant": "windows:11:10.0.26300.9711",
       "architecture": "x64",
+      "interface": "mcp-cli-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "b420019dfe6a7e9ceac1a450c3a05da24274bcf6",
+      "checks": [
+        {
+          "check": "cursor-cli-context7-https-inventory",
+          "evidence_sha256": "8f5aef047946cb03042dd9b51907f1bf4205a08fb72b3d46f9e4677b2ef6f282"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
       "interface": "bundled-subagent-loader",
       "environment": "isolated-native-loader",
       "checked_on": "2026-11-14",

@@ -158,6 +158,10 @@ _OBSERVATION_CHECKS = {
         "after individual approval, and listed its tool. Disabling the server stopped launches, and "
         "withholding the file removed the entry.",
     ),
+    "cursor-cli-context7-https-inventory": (
+        "mcp", "The signed-out CLI discovered both Context7 tools over Streamable HTTPS after approving "
+        "the exact generated project entry. Disabling the server or withholding the config removed the tools.",
+    ),
     "cursor-cli-catalog-authentication": (
         "models", "The isolated signed-out CLI required authentication before listing account models.",
     ),

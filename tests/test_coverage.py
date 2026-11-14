@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 261)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 262)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -288,9 +288,10 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {row["surface_id"]: row for row in cursor["targets"]}
         self.assertEqual(set(targets), {"ide", "cli"})
         self.assertFalse(targets["ide"]["runtime_observations"])
-        records = {item["interface"]: item for item in targets["cli"]["runtime_observations"]}
+        observations = targets["cli"]["runtime_observations"]
+        record, context7 = (item for item in observations if item["interface"] == "mcp-cli-inventory")
+        records = {item["interface"]: item for item in observations}
         self.assertEqual(set(records), {"mcp-cli-inventory", "bundled-subagent-loader", "bundled-skill-loader"})
-        record = records["mcp-cli-inventory"]
         self.assertEqual(record["product_version"], "2026.11.13-eacade1")
         self.assertEqual(record["architecture"], "x64")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -298,6 +299,11 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
             "cursor-cli-mcp-approval-and-tool-discovery": "mcp",
             "cursor-cli-catalog-authentication": "models",
+        })
+        for field in ("product_version", "engine_version", "architecture", "os_variant", "environment"):
+            self.assertEqual(context7[field], record[field])
+        self.assertEqual({row["check"]: row["capability"] for row in context7["checks"]}, {
+            "cursor-cli-context7-https-inventory": "mcp",
         })
         for interface, check_id, capability in (
             ("bundled-subagent-loader", "cursor-cli-bundled-subagent-load", "agents"),
