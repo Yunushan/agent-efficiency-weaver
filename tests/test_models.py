@@ -804,6 +804,27 @@ class ModelRenderingTests(unittest.TestCase):
         artifacts = render_model_setup(spec, "cli", **(options | {"protocol": "openai-responses"}))
         self.assertFalse(any(item.kind == "model-config" for item in artifacts))
 
+    def test_hermes_lmstudio_stages_a_model_scoped_reasoning_override(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lm-studio.json"
+            path.write_text(json.dumps({"models": [{"key": "fixture/local", "type": "llm",
+                "capabilities": {"reasoning": {"allowed_options": ["off", "on", "high"], "default": "on"}}}]}),
+                encoding="utf-8")
+            snapshot = read_model_snapshot(path, "lm-studio", ROOT)
+        spec = get_integration("hermes", ROOT)
+        kwargs = dict(root=ROOT, provider_id="lm-studio", model_id="fixture/local", snapshot=snapshot,
+                      protocol="openai-chat")
+        for selection, effort in (({"reasoning_enabled": False}, "none"), ({"effort": "high"}, "high")):
+            with self.subTest(selection=selection):
+                files = render_model_setup(spec, "cli", **kwargs, **selection)
+                settings = next(item for item in files if item.kind == "model-config")
+                config = yaml.safe_load(settings.content)
+                self.assertEqual(config["agent"], {"reasoning_overrides": {"lmstudio/fixture/local": effort}})
+                payload = next(item for item in files if item.kind == "model-selection")
+                self.assertEqual(json.loads(payload.content)["reasoning_effort"], effort)
+        with self.assertRaises(WeaverError):
+            render_model_setup(spec, "cli", **kwargs, effort="low")
+
     def test_hermes_openrouter_stages_model_scoped_effort_for_chat_only(self) -> None:
         spec = get_integration("hermes", ROOT)
         snapshot = {"provider_id": "openrouter", "models": [

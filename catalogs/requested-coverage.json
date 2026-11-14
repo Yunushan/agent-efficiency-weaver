@@ -1703,6 +1703,29 @@
       ]
     },
     {
+      "product_id": "hermes",
+      "surface_id": "cli",
+      "product_version": "0.23.1",
+      "engine_version": "0.23.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "direct-engine",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "301b7d5731b35f77e44ac08f00be93ec561dfd16",
+      "checks": [
+        {
+          "check": "hermes-lmstudio-local-generation",
+          "evidence_sha256": "265533ef26120e6c2d819254dafaeae3b631d258c8e9d11233c3f841a1bf6ff9"
+        },
+        {
+          "check": "hermes-lmstudio-reasoning-off",
+          "evidence_sha256": "265533ef26120e6c2d819254dafaeae3b631d258c8e9d11233c3f841a1bf6ff9"
+        }
+      ]
+    },
+    {
       "product_id": "zed",
       "surface_id": "ide",
       "product_version": "1.28.1",

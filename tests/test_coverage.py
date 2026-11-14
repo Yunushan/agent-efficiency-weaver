@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 26)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 217)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 219)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -289,7 +289,7 @@ class RequestedCoverageTests(unittest.TestCase):
         hermes = next(item for item in report["requested_items"] if item["id"] == "hermes")
         target, = hermes["targets"]
         self.assertEqual(target["surface_id"], "cli")
-        profile, = target["runtime_observations"]
+        profile, local_engine = target["runtime_observations"]
         self.assertEqual(profile["product_version"], "0.23.1")
         self.assertEqual(profile["engine_version"], "0.23.1")
         self.assertEqual(profile["os_variant"], "windows:11:10.0.26300.9711")
@@ -302,6 +302,14 @@ class RequestedCoverageTests(unittest.TestCase):
             "hermes-profile-stdio-tool-call": "mcp",
             "hermes-profile-model-read": "models",
             "hermes-profile-effort-resolution": "reasoning",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture"):
+            self.assertEqual(local_engine[field], profile[field])
+        self.assertEqual(local_engine["interface"], "direct-engine")
+        self.assertEqual(local_engine["environment"], "isolated-release-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in local_engine["checks"]}, {
+            "hermes-lmstudio-local-generation": "models",
+            "hermes-lmstudio-reasoning-off": "reasoning",
         })
 
     def test_kiro_cli_observations_distinguish_local_discovery_from_model_availability(self):

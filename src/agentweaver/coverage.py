@@ -385,6 +385,14 @@ _OBSERVATION_CHECKS = {
     "hermes-profile-effort-resolution": (
         "reasoning", "The native resolver applied the generated OpenRouter model-specific high effort override.",
     ),
+    "hermes-lmstudio-local-generation": (
+        "models", "The native engine loaded the generated profile and role, and completed a Chat Completions turn "
+        "with an LM Studio model on loopback. The one-shot CLI requires a separate gateway check.",
+    ),
+    "hermes-lmstudio-reasoning-off": (
+        "reasoning", "The generated per-model override made the Hermes engine send reasoning_effort none. "
+        "The local response completed without reasoning content.",
+    ),
     "zed-stdio-explicit-activation": (
         "mcp", "The exact generated disabled entry and the absent entry sent no stdio messages. "
         "Enabling the fixture in disposable Zed user settings produced initialize and tools/list.",
@@ -484,6 +492,7 @@ _OBSERVATION_INTERFACES = {
     ("kiro", "cli", "acp-stdio"),
     ("kiro", "cli", "config-inventory"),
     ("hermes", "cli", "config-inventory"),
+    ("hermes", "cli", "direct-engine"),
     ("zed", "ide", "editor-startup"),
     ("openhands", "cli", "headless-loopback"),
     ("openhands", "canvas", "local-agent-server-asgi"),
@@ -655,6 +664,7 @@ def _load_observations(
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("cline", "ide"): {"isolated-release-loopback"},
             ("factory", "cli"): {"isolated-release-loopback"},
+            ("hermes", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
             ("lm-studio", "api"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},

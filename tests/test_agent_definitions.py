@@ -904,6 +904,11 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertEqual(model.get("context_length"), context)
         with self.assertRaises(WeaverError):
             self.render("hermes", profile_context_size=0, **options)
+        snapshot["models"][0]["reasoning"] = {"efforts": ["high"]}
+        artifacts = self.render("hermes", snapshot=snapshot, effort="high", **options)
+        config = next(item for item in artifacts if item.kind == "profile-config")
+        self.assertEqual(yaml.safe_load(config.content)["agent"],
+                         {"reasoning_overrides": {"lmstudio/fixture/local": "high"}})
         snapshot["models"][0]["lm_studio"]["type"] = "embedding"
         with self.assertRaises(WeaverError):
             self.render("hermes", snapshot=snapshot, **options)

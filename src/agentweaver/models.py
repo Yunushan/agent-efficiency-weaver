@@ -1075,15 +1075,21 @@ def _hermes_model_config(checked: Mapping[str, Any], api_base: str, effort: str 
     if architecture is not None and "text" not in architecture.get("output_modalities", ("text",)):
         return None
     provider, protocol, model = checked["provider_id"], checked["protocol"], checked["model_id"]
-    if (provider, protocol) == ("lm-studio", "openai-chat") and effort is None:
+    if (provider, protocol) == ("lm-studio", "openai-chat"):
+        selected_effort = checked["reasoning_payload"].get("reasoning_effort")
+        if selected_effort is not None and selected_effort not in {"none", "minimal", "low", "medium", "high", "xhigh"}:
+            return None
         config: dict[str, Any] = {
             "provider": "lmstudio", "default": model, "base_url": api_base, "api_mode": "chat_completions",
         }
         if context_size is not None:
             config["context_length"] = context_size
-        return {"model": config}
+        result: dict[str, Any] = {"model": config}
+        if selected_effort is not None:
+            result["agent"] = {"reasoning_overrides": {f"lmstudio/{model}": selected_effort}}
+        return result
     if (provider, protocol) == ("openrouter", "openrouter-chat") and context_size is None:
-        result: dict[str, Any] = {"model": {"provider": "openrouter", "default": model, "base_url": "",
+        result = {"model": {"provider": "openrouter", "default": model, "base_url": "",
                                           "api_mode": "chat_completions"}}
         if effort is not None:
             result["agent"] = {"reasoning_overrides": {f"openrouter/{model}": effort}}
@@ -1232,9 +1238,8 @@ def render_model_setup(spec: IntegrationSpec, surface: str, *, root: Path, provi
             "Catalog-validated API request fields are separate from the app picker."
         )
     hermes_config = None
-    if (registered.id, surface) == ("hermes", "cli") and all(
-        value is None for value in (budget_tokens, reasoning_enabled, mode)
-    ):
+    if ((registered.id, surface) == ("hermes", "cli") and budget_tokens is None and mode is None
+            and (reasoning_enabled is None or (provider_id == "lm-studio" and reasoning_enabled is False))):
         hermes_config = _hermes_model_config(checked, api_base, effort, context_size)
     codex_effort = checked["reasoning_payload"].get("reasoning", {}).get("effort") if codex_lmstudio else None
     if (codex_lmstudio and all(value is None for value in (budget_tokens, mode, context_size))
