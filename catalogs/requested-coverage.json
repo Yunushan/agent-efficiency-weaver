@@ -1695,6 +1695,41 @@
           "evidence_sha256": "1644d067687b8885a3865edef65290f8bbbc081495a44fa31c9c72b1738b2165"
         }
       ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "product_version": "1.40.0",
+      "engine_version": "1.62.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-agent-server-asgi",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "1d1d0c5ce813e49e62c733ec41a262224d2ac235",
+      "checks": [
+        {
+          "check": "canvas-conversation-agent-profile",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-skill-invocation",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-stdio-tool-call",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-model-request",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        },
+        {
+          "check": "canvas-conversation-effort-request",
+          "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
+        }
+      ]
     }
   ]
 }

@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 25)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 201)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 206)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -201,13 +201,15 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         openhands = next(item for item in report["requested_items"] if item["id"] == "openhands")
         canvas = next(row for row in openhands["targets"] if row["surface_id"] == "canvas")
-        record, = canvas["runtime_observations"]
-        self.assertEqual(record["product_version"], "1.40.0")
-        self.assertEqual(record["engine_version"], "1.62.0")
-        self.assertEqual(record["interface"], "local-agent-server-asgi")
-        self.assertEqual(record["environment"], "isolated-release-loopback")
-        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
-        self.assertEqual(record["architecture"], "x64")
+        record, conversation = canvas["runtime_observations"]
+        for observation in (record, conversation):
+            self.assertEqual(observation["product_version"], "1.40.0")
+            self.assertEqual(observation["engine_version"], "1.62.0")
+            self.assertEqual(observation["interface"], "local-agent-server-asgi")
+            self.assertEqual(observation["environment"], "isolated-release-loopback")
+            self.assertEqual(observation["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(observation["architecture"], "x64")
+        self.assertNotEqual(record["source_commit"], conversation["source_commit"])
         self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
             "canvas-disabled-mcp-settings": "mcp",
             "canvas-stdio-test-tool-call": "mcp",
@@ -215,6 +217,13 @@ class RequestedCoverageTests(unittest.TestCase):
             "canvas-agent-profile-materialization": "agents",
             "canvas-llm-profile-preflight-model": "models",
             "canvas-llm-profile-preflight-effort": "reasoning",
+        })
+        self.assertEqual({row["check"]: row["capability"] for row in conversation["checks"]}, {
+            "canvas-conversation-agent-profile": "agents",
+            "canvas-conversation-skill-invocation": "skills",
+            "canvas-conversation-stdio-tool-call": "mcp",
+            "canvas-conversation-model-request": "models",
+            "canvas-conversation-effort-request": "reasoning",
         })
         self.assertEqual(canvas["capabilities"]["mcp"]["runtime_status"], "pending")
 

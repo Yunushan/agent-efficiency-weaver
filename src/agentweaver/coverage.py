@@ -393,6 +393,26 @@ _OBSERVATION_CHECKS = {
         "reasoning", "The local Agent Server exposed reasoning settings in its schema and sent the "
         "configured low effort in the preflight Chat Completions request once chat mode was explicit.",
     ),
+    "canvas-conversation-agent-profile": (
+        "agents", "A local Agent Server conversation launched by saved profile ID received the staged "
+        "role instructions and completed using scripted loopback responses.",
+    ),
+    "canvas-conversation-skill-invocation": (
+        "skills", "The conversation advertised the generated project Skill and returned its body "
+        "from invoke_skill to the loopback provider.",
+    ),
+    "canvas-conversation-stdio-tool-call": (
+        "mcp", "The generated disabled stdio entry sent no fixture messages. The conversation launched "
+        "after explicit enablement discovered and called the fixture and received its sentinel.",
+    ),
+    "canvas-conversation-model-request": (
+        "models", "The local conversation sent the named LLM profile's model in every scripted "
+        "Chat Completions turn.",
+    ),
+    "canvas-conversation-effort-request": (
+        "reasoning", "The local conversation sent the named profile's configured low reasoning effort "
+        "in every scripted Chat Completions turn.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
