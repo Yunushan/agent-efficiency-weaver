@@ -17,7 +17,7 @@ from .adapters import hermes_profile_mcp, json_bytes
 from .artifacts import RenderedArtifact
 from .claude_models import inspect_claude_models
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
-from .config import WeaverError, load_json, safe_https_url, safe_name
+from .config import WeaverError, load_json, safe_https_url, safe_name, select_servers
 from .copilot_models import validate_copilot_selection
 from .cursor_models import inspect_cursor_models
 from .factory_models import inspect_factory_models
@@ -306,7 +306,7 @@ def _markdown(fields: Mapping[str, Any], instructions: str) -> bytes:
 
 def _native(row: Mapping[str, Any], name: str, description: str, instructions: str,
             model: str | list[str] | None, effort: str | None, *, opencode_v2: bool = False,
-            skill_ids: tuple[str, ...] = (), copilot_catalog: bool = False,
+            skill_ids: tuple[str, ...] = (), mcp_ids: tuple[str, ...] = (), copilot_catalog: bool = False,
             cline_provider: str | None = None, copilot_model_policy: str | None = None) -> bytes:
     format_name = row["format"]
     if format_name == "codex-toml":
@@ -377,7 +377,11 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
                        "websearch": "deny", "todowrite": "deny", "read": "allow", "glob": "allow", "grep": "allow"})
         fields_any.update(mode="subagent", permission=permission)
     elif format_name == "qoder-markdown":
-        fields_any.update(tools=["Read", "Grep", "Glob"], mcpServers=[])
+        fields_any.update(tools=["Read", "Grep", "Glob"], mcpServers=list(mcp_ids))
+        if row["surface_id"] == "ide":
+            fields_any["tools"] = "Read, Grep, Glob"
+            if skill_ids:
+                fields_any["skills"] = list(skill_ids)
     elif format_name == "devin-markdown":
         fields_any["allowed-tools"] = ["read", "grep", "glob"]
     elif format_name == "openhands-markdown":
@@ -403,7 +407,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             llm_profile: str | None = None,
                             codex_catalog: Path | None = None, opencode_catalog: Path | None = None,
                             model_variant: str | None = None,
-                            allowed_skills: list[str] | None = None, hermes_profile: bool = False,
+                            allowed_skills: list[str] | None = None, allowed_mcp: list[str] | None = None,
+                            hermes_profile: bool = False,
                             profile_skills: list[str] | None = None, mcp_profile: str | None = None,
                             profile_mcp: list[str] | None = None,
                             profile_context_size: int | None = None,
@@ -473,8 +478,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                                                opencode_catalog, copilot_catalog, effort)):
             raise WeaverError("A Kilo catalog conflicts with provider, catalog, profile or effort overrides")
     cline_configured_agent = spec.id == "cline" and surface in {"cli", "desktop"}
-    if allowed_skills and opencode_catalog is None and copilot_catalog is None and not cline_configured_agent:
-        raise WeaverError("Agent Skill selection requires Cline CLI/Desktop or an OpenCode V2 or Copilot SDK catalog")
+    qoder_ide_agent = (spec.id, surface) == ("qoder", "ide")
+    if (allowed_skills and opencode_catalog is None and copilot_catalog is None
+            and not (cline_configured_agent or qoder_ide_agent)):
+        raise WeaverError("Agent Skill selection requires Cline CLI/Desktop, Qoder IDE, or an OpenCode V2 or Copilot SDK catalog")
+    if allowed_mcp and not qoder_ide_agent:
+        raise WeaverError("Agent MCP references require the Qoder IDE custom-agent target")
     if copilot_fallbacks and copilot_catalog is None:
         raise WeaverError("Copilot fallback models require --copilot-catalog")
     if copilot_model_policy is not None:
@@ -492,11 +501,14 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Profile context size requires --hermes-profile")
     if hermes_profile_route and not hermes_profile:
         raise WeaverError("Hermes profile routing requires --hermes-profile")
-    if mcp_profile is not None or profile_mcp:
+    if profile_mcp or (mcp_profile is not None and not qoder_ide_agent):
         if not hermes_profile:
             raise WeaverError("Profile MCP staging requires --hermes-profile")
         if not safe_name(mcp_profile) or not profile_mcp:
             raise WeaverError("Profile MCP staging requires a valid --mcp-profile and at least one --profile-mcp")
+    if qoder_ide_agent and (mcp_profile is not None or allowed_mcp):
+        if not safe_name(mcp_profile) or not allowed_mcp:
+            raise WeaverError("Qoder IDE MCP references require --mcp-profile and at least one --allow-mcp")
     spec.surface(surface)
     registered = load_integrations(root).get(spec.id)
     if registered != spec:
@@ -545,7 +557,12 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     qoder_digest: str | None = None
     cursor_digest: str | None = None
     copilot_models: list[str] | None = None
-    skill_ids: tuple[str, ...] = ()
+    skill_ids = selected_portable_skill_ids(root, allowed_skills) if qoder_ide_agent and allowed_skills else ()
+    mcp_ids: tuple[str, ...] = ()
+    if qoder_ide_agent and allowed_mcp:
+        profile = load_json(root / "profiles" / f"{mcp_profile}.json")
+        catalog = load_json(root / "catalogs/mcp-servers.json")
+        mcp_ids = tuple(select_servers(profile, catalog, allowed_mcp))
     if cursor_catalog is not None:
         if row["format"] != "cursor-markdown" or row["effort_field"] != "model" or model_id in {None, "inherit"}:
             raise WeaverError("A Cursor SDK catalog requires an explicit model for a native Cursor subagent")
@@ -815,6 +832,13 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     if qoder_digest is not None:
         lines.extend(["", f"Saved Qoder Agent SDK model catalog SHA-256: {qoder_digest}",
                       "Verify the selection in the target Qoder project and account before use."])
+    if qoder_ide_agent and skill_ids:
+        lines.extend(["", "Qoder IDE Skill IDs: " + ", ".join(skill_ids) + ".",
+                      "Stage matching portable Skill files with bundle --agent qoder --surface ide and each --skill ID."])
+    if qoder_ide_agent and mcp_ids:
+        lines.extend(["", "Qoder IDE MCP references: " + ", ".join(mcp_ids) + ".",
+                      "Review separately configured servers with these exact names in Qoder IDE. The definition "
+                      "contains names only. Server registration, trust, and permissions follow Qoder's settings."])
     if cline_configured_agent and skill_ids:
         lines.extend(["", "Cline Skill IDs: " + ", ".join(skill_ids) + ".",
                       f"Stage matching files with bundle --agent cline --surface {surface} and each --skill ID."])
@@ -841,7 +865,7 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if cursor_digest is not None:
             native_effort = None
         content = _native(row, identifier, summary, prompt, native_model, native_effort,
-                          opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
+                          opencode_v2=opencode_digest is not None, skill_ids=skill_ids, mcp_ids=mcp_ids,
                           copilot_catalog=copilot_digest is not None,
                           copilot_model_policy=copilot_model_policy,
                           cline_provider=provider_id if cline_configured_agent else None)

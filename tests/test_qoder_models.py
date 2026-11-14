@@ -117,3 +117,36 @@ class QoderModelsTests(unittest.TestCase):
                 self.assertEqual(invoke(*args, *selector)[0], 2)
         self.save([self.listing[0] | {"isEnabled": False}])
         self.assertEqual(invoke(*args, *selector)[0], 2)
+
+    def test_ide_subagent_can_reference_selected_skills_and_allowlisted_servers(self):
+        base = ("agent", "--root", str(ROOT), "--agent", "qoder", "--dry-run", "--name", "reviewer",
+                "--description", "Review code", "--instructions-file", str(self.prompt))
+        ide = (*base, "--surface", "ide")
+        opt_in = ("--allow-skill", "security-review", "--mcp-profile", "efficient", "--allow-mcp", "context7")
+        selector = ("--model", "fixture-nested", "--qoder-catalog", str(self.path))
+        for model in ((), selector):
+            with self.subTest(model=model):
+                status, out, err = invoke(*ide, *opt_in, *model)
+                self.assertEqual(status, 0, err)
+                artifacts = {item["kind"]: item["content"] for item in json.loads(out)["artifacts"]}
+                data = yaml.safe_load(artifacts["agent-definition"].split("---\n", 2)[1])
+                self.assertEqual(data["tools"], "Read, Grep, Glob")
+                self.assertEqual(data["skills"], ["security-review"])
+                self.assertEqual(data["mcpServers"], ["context7"])
+                self.assertEqual("model" in data, bool(model))
+                self.assertNotIn("https://", artifacts["agent-definition"])
+                self.assertIn("contains names only", artifacts["agent-handoff"])
+                self.assertNotIn("mcp", artifacts)
+        for flags in (
+            ("--allow-skill", "absent-skill"),
+            ("--allow-skill", "security-review", "--allow-skill", "security-review"),
+            ("--allow-mcp", "context7"),
+            ("--mcp-profile", "efficient"),
+            ("--mcp-profile", "../efficient", "--allow-mcp", "context7"),
+            ("--mcp-profile", "efficient", "--allow-mcp", "github"),
+            ("--mcp-profile", "efficient", "--allow-mcp", "context7", "--allow-mcp", "context7"),
+            ("--mcp-profile", "efficient", "--profile-mcp", "context7"),
+        ):
+            with self.subTest(flags=flags):
+                self.assertEqual(invoke(*ide, *flags)[0], 2)
+        self.assertEqual(invoke(*base, "--surface", "cli", *opt_in)[0], 2)

@@ -192,12 +192,14 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--opencode-catalog', type=Path, help='Saved OpenCode V2 GET /api/model JSON response')
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant from the saved OpenCode V2 or Kilo model list')
-            command.add_argument('--allow-skill', action='append', help='Select a portable Skill for OpenCode V2, Copilot, or Cline CLI/Desktop')
+            command.add_argument('--allow-skill', action='append',
+                                 help='Select a portable Skill for OpenCode V2, Copilot, Cline CLI/Desktop, or Qoder IDE')
+            command.add_argument('--allow-mcp', action='append', help='Name a profile-allowlisted MCP server for Qoder IDE')
             command.add_argument('--hermes-profile', action='store_true', help='Stage a Hermes profile distribution')
             command.add_argument('--hermes-profile-route', action='store_true',
                                  help='Stage a separate Hermes parent delegation fragment for this profile')
             command.add_argument('--profile-skill', action='append', help='Bundle a portable Skill in a staged Hermes profile')
-            command.add_argument('--mcp-profile', help='Weaver profile ID that allowlists Hermes MCP servers')
+            command.add_argument('--mcp-profile', help='Weaver profile ID that allowlists Hermes or Qoder IDE MCP servers')
             command.add_argument('--profile-mcp', action='append', help='Bundle an allowlisted MCP server, disabled')
             command.add_argument('--profile-context-size', type=int, help='Explicit context length for a Hermes LM Studio profile')
             command.add_argument('--reasoning-effort')
@@ -730,7 +732,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             qoder_catalog=args.qoder_catalog, claude_catalog=args.claude_catalog,
             cursor_catalog=args.cursor_catalog, cursor_parameters=args.cursor_param,
             qwen_auth_type=args.qwen_auth_type,
-            allowed_skills=args.allow_skill,
+            allowed_skills=args.allow_skill, allowed_mcp=args.allow_mcp,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
             hermes_profile_route=args.hermes_profile_route,
             mcp_profile=args.mcp_profile, profile_mcp=args.profile_mcp,

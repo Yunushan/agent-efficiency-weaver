@@ -1556,7 +1556,7 @@
       "efforts": [],
       "model_behavior": "The default follows the conversation. Use a saved Qoder SDK catalog with an enabled model and its display name to stage the documented display-name/model-ID link.",
       "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
-      "permission_behavior": "Only Read/Grep/Glob are selected with mcpServers: []; parent and organization permissions still apply.",
+      "permission_behavior": "Read/Grep/Glob are selected. Portable Skills and profile-allowlisted MCP server names can be referenced explicitly. The default MCP list is empty. Server registration and permissions follow Qoder settings and organization policy.",
       "reserved_names": [],
       "evidence": {
         "sources": [
