@@ -193,7 +193,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--kilo-catalog', type=Path, help='Saved Kilo GET /api/model JSON response')
             command.add_argument('--model-variant', help='Named variant from the saved OpenCode V2 or Kilo model list')
             command.add_argument('--allow-skill', action='append',
-                                 help='Select a portable Skill for OpenCode V2, Copilot, Cline CLI/Desktop, or Qoder')
+                                 help='Select a portable Skill for Antigravity CLI/App, OpenCode V2, Copilot, Cline CLI/Desktop, or Qoder')
             command.add_argument('--allow-mcp', action='append', help='Name a profile-allowlisted MCP server for Qoder')
             command.add_argument('--allow-mcp-tool', action='append', metavar='SERVER:TOOL',
                                  help='Select an exact tool on a referenced Qoder CLI MCP server')

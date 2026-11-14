@@ -390,6 +390,8 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     elif format_name == "antigravity-markdown":
         fields_any.update(model=model or "inherit", tools=["view_file", "grep_search"], subagent=True,
                           mainAgent=False, commandExecutionPolicy="off", mcpServers=[])
+        if skill_ids:
+            fields_any["skills"] = [f"skills/{skill_id}" for skill_id in skill_ids]
         if row["surface_id"] == "cli":
             fields_any["inheritMcp"] = False
     else:
@@ -490,9 +492,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A Kilo catalog conflicts with provider, catalog, profile or effort overrides")
     cline_configured_agent = spec.id == "cline" and surface in {"cli", "desktop"}
     qoder_agent = spec.id == "qoder" and surface in {"cli", "ide"}
+    antigravity_skill_agent = spec.id == "antigravity" and surface in {"cli", "desktop"}
     if (allowed_skills and opencode_catalog is None and copilot_catalog is None
-            and not (cline_configured_agent or qoder_agent)):
-        raise WeaverError("Agent Skill selection requires Cline CLI/Desktop, Qoder, or an OpenCode V2 or Copilot SDK catalog")
+            and not (cline_configured_agent or qoder_agent or antigravity_skill_agent)):
+        raise WeaverError("Agent Skill selection requires Antigravity CLI/App, Cline CLI/Desktop, Qoder, "
+                          "or an OpenCode V2 or Copilot SDK catalog")
     if allowed_mcp and not qoder_agent:
         raise WeaverError("Agent MCP references require a Qoder CLI or IDE custom-agent target")
     if allowed_mcp_tools and ((spec.id, surface) != ("qoder", "cli") or not allowed_mcp):
@@ -570,7 +574,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     qoder_digest: str | None = None
     cursor_digest: str | None = None
     copilot_models: list[str] | None = None
-    skill_ids = selected_portable_skill_ids(root, allowed_skills) if qoder_agent and allowed_skills else ()
+    skill_ids = (selected_portable_skill_ids(root, allowed_skills)
+                 if allowed_skills and (qoder_agent or antigravity_skill_agent) else ())
     mcp_ids: tuple[str, ...] = ()
     if qoder_agent and allowed_mcp:
         profile = load_json(root / "profiles" / f"{mcp_profile}.json")
@@ -859,6 +864,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     if qoder_agent and skill_ids:
         lines.extend(["", "Qoder Skill IDs: " + ", ".join(skill_ids) + ".",
                       f"Stage matching portable Skill files with bundle --agent qoder --surface {surface} and each --skill ID."])
+    if antigravity_skill_agent and skill_ids:
+        lines.extend(["", "Antigravity Skill references: " + ", ".join(f"skills/{skill}" for skill in skill_ids) + ".",
+                      f"Stage the matching .agents/skills files with bundle --agent antigravity --surface {surface} "
+                      "and each --skill ID. Verify resolution in the target host, including any same-name Skills."])
     if qoder_agent and mcp_ids:
         lines.extend(["", "Qoder MCP references: " + ", ".join(mcp_ids) + ".",
                       "Review separately configured servers with these exact names in Qoder. The definition "

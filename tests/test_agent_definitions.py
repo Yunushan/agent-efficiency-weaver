@@ -596,6 +596,23 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             self.render("antigravity", "cli", model_id="flash", effort="high")
 
+    def test_antigravity_cli_and_app_stage_portable_skill_references(self):
+        names = ["security-review", "token-efficient-retrieval"]
+        for surface in ("cli", "desktop"):
+            with self.subTest(surface=surface):
+                path = NATIVE_PATHS["antigravity", surface]
+                original, _ = parse_definition(self.render("antigravity", surface, model_id="pro")[0].content, path)
+                definition, handoff = self.render("antigravity", surface, model_id="pro", allowed_skills=names)
+                data, _ = parse_definition(definition.content, path)
+                self.assertEqual(data, original | {"skills": [f"skills/{name}" for name in names]})
+                self.assertEqual(data["mcpServers"], [])
+                self.assertIn(f"bundle --agent antigravity --surface {surface}", handoff.content.decode())
+        for invalid in (["../security-review"], [names[0], names[0]], ["missing-skill"]):
+            with self.subTest(invalid=invalid), self.assertRaises(WeaverError):
+                self.render("antigravity", "cli", allowed_skills=invalid)
+        with self.assertRaises(WeaverError):
+            self.render("antigravity", "ide", allowed_skills=names)
+
     def test_selected_model_output_modalities_gate_native_language_agent_definitions(self):
         identifier = "fixture/selected-model"
         for product in ("codex", "opencode"):
