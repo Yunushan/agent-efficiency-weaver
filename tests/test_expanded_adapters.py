@@ -166,7 +166,7 @@ class ExpandedAdapterTests(unittest.TestCase):
                            "chatgpt", "lm-studio", "perplexity"):
             for surface in self.integrations[identifier].surfaces:
                 with self.subTest(product=identifier, surface=surface.id):
-                    for evidence in surface.capabilities.values():
+                    for capability, evidence in surface.capabilities.items():
                         self.assertFalse(evidence.runtime_checks)
                         if evidence.sources:
                             expected_date = {
@@ -174,6 +174,8 @@ class ExpandedAdapterTests(unittest.TestCase):
                                 ("qwen-code", "desktop"): "2026-11-13",
                                 ("qwen-code", "vscode"): "2026-11-13",
                             }.get((identifier, surface.id), "2026-10-26")
+                            if (identifier, surface.id) == ("jetbrains-air", "ide") and capability in {"mcp", "skills"}:
+                                expected_date = "2026-11-14"
                             self.assertEqual(evidence.checked_on, expected_date)
 
 

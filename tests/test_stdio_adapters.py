@@ -25,7 +25,7 @@ ARGS = ["--fixture-only", "not-an-installed-package"]
 STDIO = dict(kind="stdio", command=COMMAND, args=ARGS, default_enabled=False,
              description="Synthetic argv fixture; never installed or executed.")
 PLAIN = {"abacus", "amp", "antigravity", "claude-code", "cline", "devin", "junie", "kiro",
-         "pi", "qoder", "zed", "kimi-code", "qwen-code", "openhands"}
+         "pi", "qoder", "zed", "kimi-code", "qwen-code", "openhands", "jetbrains-air"}
 TYPE_STDIO = {"copilot", "cursor", "factory", "lm-studio"}
 LOCAL_ARRAY = {"kilo", "opencode"}
 SUPPORTED = PLAIN | TYPE_STDIO | LOCAL_ARRAY | {"codex", "goose", "hermes"}
@@ -347,14 +347,16 @@ class StdioConfigurationTests(unittest.TestCase):
                         self.assertNotIn(remote_field, entry)
                     self.assertNotIn("env", entry)
                     self.assertFalse(metadata[product]["runtime_checks"])
-                    self.assertEqual(metadata[product]["checked_on"], "2026-10-26")
+                    self.assertEqual(metadata[product]["checked_on"],
+                                     "2026-11-14" if product == "jetbrains-air" else "2026-10-26")
                     self.assertTrue(metadata[product]["sources"])
 
     def test_mixed_remote_and_stdio_keep_existing_http_shapes(self):
         golden = load_json(ROOT / "tests/fixtures/adapters/golden.json")
         for product in SUPPORTED:
             with self.subTest(product=product):
-                artifact = self.artifact(product, enabled=["context7", "synthetic-stdio"])
+                surface = "ide" if product == "jetbrains-air" else None
+                artifact = self.artifact(product, surface, enabled=["context7", "synthetic-stdio"])
                 parsed = tomllib.loads(artifact.content.decode()) if product == "codex" else json.loads(artifact.content)
                 expected = golden[product]["enabled"]
                 expected = tomllib.loads(expected) if product == "codex" else expected

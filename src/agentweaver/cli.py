@@ -321,6 +321,13 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.append('Abacus user-level same-name MCP entries override project entries.')
         if spec.id == 'devin':
             lines.append('This is current Devin Local configuration, not a legacy Cascade configuration migration.')
+        if (spec.id, surface) == ('jetbrains-air', 'ide'):
+            lines.extend([
+                'In AI > Air > MCP Servers, use Edit MCPs and merge only the reviewed entries into mcpServers.',
+                'Reload the server list and enable only the intended servers before starting a new session.',
+                'This user file supplies servers to compatible agents across projects. Review each URL or '
+                'command and its arguments before merging.',
+            ])
         if (spec.id, surface) == ('claude-code', 'desktop'):
             lines.extend([
                 'Use the staged .mcp.json in a local Code tab session and review project MCP approvals in the app.',

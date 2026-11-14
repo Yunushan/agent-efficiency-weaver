@@ -18,6 +18,7 @@ from agentweaver.skills import render_instruction_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 PRESETS = "https://www.jetbrains.com/help/air/air-in-ides-presets.html"
+EXTENSIONS = "https://www.jetbrains.com/help/air/air-in-ides-extend-agent-capabilities.html"
 
 
 class AirIdeTests(unittest.TestCase):
@@ -33,9 +34,14 @@ class AirIdeTests(unittest.TestCase):
         ide = self.spec.surface("ide")
         self.assertIsNone(ide.native_path_hint)
         self.assertEqual(ide.instruction_paths, ())
-        self.assertIsNone(ide.skills_path)
-        for name in ("mcp", "instructions", "skills"):
+        self.assertEqual(ide.skills_path, ".agents/skills")
+        self.assertEqual(ide.config_scope, "user")
+        self.assertEqual(ide.documented_location, "~/.jetbrains/mcp/mcp.json")
+        for name in ("mcp", "instructions"):
             self.assertEqual(ide.capabilities[name].state, "manual")
+        self.assertEqual(ide.capabilities["skills"].state, "available")
+        for name in ("mcp", "skills"):
+            self.assertIn(EXTENSIONS, ide.capabilities[name].sources)
         for name in ("provider", "os"):
             self.assertEqual(ide.capabilities[name].state, "unknown")
         self.assertEqual(set(ide.os_workflows.values()), {"unknown"})
@@ -50,16 +56,15 @@ class AirIdeTests(unittest.TestCase):
         self.assertEqual(host["availability"], "unknown")
         self.assertEqual(host["runtime_checks"], [])
 
-    def test_bundle_stages_manual_context_and_preset_instructions_without_registering_skills(self):
+    def test_bundle_stages_project_skills_with_manual_preset_instructions(self):
         artifacts = render_instruction_bundle(self.spec, "ide", self.profile,
                                               ["token-efficient-retrieval"], ROOT)
         self.assertEqual([(item.relative_path.as_posix(), item.kind) for item in artifacts], [
             ("jetbrains-air/handoff/INSTRUCTIONS.md", "handoff"),
-            ("jetbrains-air/read/token-efficient-retrieval.md", "read-file"),
+            ("jetbrains-air/.agents/skills/token-efficient-retrieval/SKILL.md", "skill"),
         ])
         text = artifacts[0].content.decode()
-        for token in ("Manage Presets", "Injected instructions", "Add > Project Files and Folders",
-                      "Add > Skills", "does not register", "not an IDE configuration path"):
+        for token in ("Manage Presets", "Injected instructions", "AI > Skills", "Add > Skills", ".agents/skills"):
             self.assertIn(token, text)
         self.assertEqual(artifacts[1].content,
                          (ROOT / ".agents/skills/token-efficient-retrieval/SKILL.md").read_bytes()
@@ -87,13 +92,29 @@ class AirIdeTests(unittest.TestCase):
             with self.subTest(override=override), self.assertRaises(WeaverError):
                 render_agent_definition(self.spec, "ide", **values, **override)
 
-    def test_unestablished_ide_mcp_and_openrouter_exports_fail_closed(self):
+    def test_ide_mcp_stages_only_explicit_https_and_stdio_entries_for_manual_merge(self):
+        catalog = {"servers": {
+            "remote-fixture": {"kind": "remote", "url": "https://example.test/mcp",
+                               "default_enabled": False, "description": "Remote fixture"},
+            "local-fixture": {"kind": "stdio", "command": "python", "args": ["-I", "read only.py"],
+                              "default_enabled": False, "description": "Local fixture"},
+        }}
+        profile = self.profile | {"allowed_mcp": list(catalog["servers"]), "max_mcp_servers": 2}
+        empty, = render_mcp(self.spec, "ide", profile, catalog, [])
+        self.assertEqual(json.loads(empty.content), {"mcpServers": {}})
+        artifact, = render_mcp(self.spec, "ide", profile, catalog, ["remote-fixture", "local-fixture"])
+        self.assertEqual(artifact.relative_path.as_posix(), "jetbrains-air/fragments/mcp.ide.json")
+        self.assertEqual(artifact.kind, "mcp-fragment")
+        self.assertEqual(json.loads(artifact.content), {"mcpServers": {
+            "remote-fixture": {"url": "https://example.test/mcp"},
+            "local-fixture": {"command": "python", "args": ["-I", "read only.py"]},
+        }})
         with self.assertRaises(WeaverError):
-            render_mcp(self.spec, "ide", self.profile, load_json(ROOT / "catalogs/mcp-servers.json"), [])
+            render_mcp(self.spec, "desktop", profile, catalog, ["local-fixture"])
         with self.assertRaises(WeaverError):
             render_provider_setup(self.spec, "ide", provider_id="openrouter", model_id="synthetic/model")
 
-    def test_cli_explicit_ide_dry_run_produces_only_manual_artifacts(self):
+    def test_cli_dry_runs_stage_skills_and_mcp_without_writing_settings(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "staged"
             env = os.environ.copy()
@@ -107,7 +128,18 @@ class AirIdeTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             manifest = json.loads(result.stdout)
-            self.assertEqual({item["kind"] for item in manifest["artifacts"]}, {"handoff", "read-file"})
+            self.assertEqual({item["kind"] for item in manifest["artifacts"]}, {"handoff", "skill"})
+            result = subprocess.run(
+                [sys.executable, "-m", "agentweaver", "render", "--root", str(ROOT),
+                 "--agent", "JetBrainsAir", "--surface", "ide", "--profile", "efficient",
+                 "--enable", "context7", "--output-dir", str(output), "--dry-run"],
+                cwd=ROOT, env=env, capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            artifacts = {item["kind"]: item for item in json.loads(result.stdout)["artifacts"]}
+            self.assertEqual(artifacts["mcp-fragment"]["path"], "jetbrains-air/fragments/mcp.ide.json")
+            self.assertIn("~/.jetbrains/mcp/mcp.json", artifacts["handoff"]["content"])
+            self.assertIn("Edit MCPs", artifacts["handoff"]["content"])
             self.assertFalse(output.exists())
 
 

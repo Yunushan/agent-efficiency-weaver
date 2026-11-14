@@ -12,6 +12,7 @@ _NAME, _URL = object(), object()
 _JSON_DIALECTS: dict[str, tuple[str, tuple[tuple[str, Any], ...]]] = {
     'mcp.type-remote': ('mcp', (('type', 'remote'), ('url', _URL))),
     'mcpServers.url': ('mcpServers', (('url', _URL),)),
+    'mcpServers.jetbrains-air-ide': ('mcpServers', (('url', _URL),)),
     'mcpServers.httpUrl': ('mcpServers', (('httpUrl', _URL),)),
     'mcpServers.type-streamableHttp': ('mcpServers', (('type', 'streamableHttp'), ('url', _URL))),
     'mcpServers.type-http': ('mcpServers', (('type', 'http'), ('url', _URL))),
@@ -37,6 +38,7 @@ _USER_FRAGMENTS = {
     'cline': 'cline_mcp_settings.json', 'openhands': 'mcp.json',
     'zed': 'settings.json', 'goose': 'config.yaml',
     'hermes': 'config.yaml', 'lm-studio': 'mcp.json',
+    'jetbrains-air': 'mcp.ide.json',
 }
 # UI-edited JSON has a documented schema but no documented persistent file path.
 _APP_FRAGMENTS = {('qoder', 'ide'): ('mcpServers.type-sse', 'mcp.ide.json')}
@@ -55,6 +57,8 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'devin': ('mcpServers.transport-http', 'command-args', 'https://docs.devin.ai/cli/extensibility/mcp/configuration'),
     'goose': ('extensions.uri-streamable_http', 'goose-stdio', 'https://goose-docs.ai/docs/guides/config-files/'),
     'junie': ('mcpServers.type-http', 'command-args', 'https://junie.jetbrains.com/docs/junie-cli-mcp-configuration.html'),
+    'jetbrains-air': ('mcpServers.jetbrains-air-ide', 'command-args',
+                      'https://www.jetbrains.com/help/air/air-in-ides-extend-agent-capabilities.html'),
     'kilo': ('mcp.type-remote', 'local-command-array', 'https://kilo.ai/docs/automate/mcp/using-in-cli'),
     'kiro': ('mcpServers.url', 'command-args', 'https://kiro.dev/docs/mcp/configuration/'),
     'opencode': ('mcp.type-remote', 'local-command-array', 'https://opencode.ai/docs/migrate-v1#mcp-servers'),
@@ -106,6 +110,7 @@ def stdio_inventory() -> dict[str, dict[str, Any]]:
         'pinned CLI 1.16.0 source confirms file loading. This fragment declares no environment '
         'or credentials and performs no installed-client check.'
     )
+    inventory['jetbrains-air'].update(checked_on='2026-11-14', fixture_tests=['tests/test_air_ide.py'])
     for (product, dialect), (shape, source, checked_on, test) in _STDIO_ADDITIONAL_ROUTES.items():
         inventory[product]['additional_routes'] = [
             {'mcp_dialect': dialect, 'schema': shape, 'sources': [source],

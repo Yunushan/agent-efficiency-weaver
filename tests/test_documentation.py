@@ -263,7 +263,7 @@ class DocumentationDriftTests(unittest.TestCase):
                       "1,024", "128 arguments", "4,096", "32,768", "environment maps", "variable expansion",
                       "never executes", "invokes a shell", "installs a package", "credential-looking",
                       "Perplexity Agent API", "LM Studio ephemeral", "remote HTTPS only", "reject selected stdio",
-                      "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "not installed-client evidence",
+                      "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "documentation and fixture evidence",
                       "manual user MCP fragment", "openhands mcp enable NAME"):
             self.assertIn(token, text)
         self.assertNotIn("OpenHands retain stdio file-export gaps", text)
@@ -532,12 +532,14 @@ class DocumentationDriftTests(unittest.TestCase):
     def test_air_ide_guide_preserves_manual_surface_and_exact_contract_sources(self):
         text = section(read_document("docs/compatibility.md"), "Air IDE manual handoffs")
         ide = self.integrations["jetbrains-air"].surface("ide")
-        self.assertEqual(ide.config_scope, "app")
+        self.assertEqual(ide.config_scope, "user")
         self.assertIsNone(ide.native_path_hint)
-        self.assertIsNone(ide.skills_path)
+        self.assertEqual(ide.skills_path, ".agents/skills")
+        self.assertEqual(ide.documented_location, "~/.jetbrains/mcp/mcp.json")
         self.assertEqual(ide.instruction_paths, ())
-        for capability in ("mcp", "instructions", "skills"):
+        for capability in ("mcp", "instructions"):
             self.assertEqual(ide.capabilities[capability].state, "manual")
+        self.assertEqual(ide.capabilities["skills"].state, "available")
         for capability in ("provider", "os"):
             self.assertEqual(ide.capabilities[capability].state, "unknown")
         self.assertEqual(set(ide.os_workflows.values()), {"unknown"})
@@ -557,10 +559,10 @@ class DocumentationDriftTests(unittest.TestCase):
                       "Manage Agents > Manage Presets > New Preset", "Advanced > Injected instructions",
                       "selected agent's own behavior", "not a native saved subagent file",
                       "ACP executable registration", "Weaver emits no `acp.json`",
-                      "jetbrains-air/read/<name>.md", "ordinary file context", "Add context > Skills",
-                      "Skills already exposed by the host", "portable Skill import loader",
+                      "jetbrains-air/.agents/skills/<name>/SKILL.md", "Add context > Skills",
+                      "jetbrains-air/fragments/mcp.ide.json", "~/.jetbrains/mcp/mcp.json", "Edit MCPs",
                       "allowed values require model-specific discovery", "arbitrary OpenRouter",
-                      "no established MCP file exporter", "runtime checks remain pending"):
+                      "compatible agents on new sessions", "runtime checks remain pending"):
             self.assertIn(token, text)
     def test_current_readiness_counts_follow_registry_without_rewriting_ci_history(self):
         text = section(read_document("docs/readiness.md"), "Separate evidence requirements")

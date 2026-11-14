@@ -4049,14 +4049,14 @@
         },
         {
           "id": "ide",
-          "mcp_dialect": null,
-          "config_fields": [],
-          "config_scope": "app",
+          "mcp_dialect": "mcpServers.jetbrains-air-ide",
+          "config_fields": ["mcpServers", "url", "command", "args"],
+          "config_scope": "user",
           "native_path_hint": null,
-          "documented_location": null,
+          "documented_location": "~/.jetbrains/mcp/mcp.json",
           "instruction_mode": "manual",
           "instruction_paths": [],
-          "skills_path": null,
+          "skills_path": ".agents/skills",
           "os_workflows": {
             "windows": "unknown",
             "macos": "unknown",
@@ -4071,10 +4071,11 @@
               "state": "manual",
               "sources": [
                 "https://www.jetbrains.com/help/air/air-in-ides-key-concepts.html",
-                "https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html"
+                "https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html",
+                "https://www.jetbrains.com/help/air/air-in-ides-extend-agent-capabilities.html"
               ],
-              "checked_on": "2026-10-27",
-              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. MCP use is agent-dependent; no native MCP configuration-file export contract is established.",
+              "checked_on": "2026-11-14",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP. The user MCP file supports HTTP and stdio. Tool access depends on the selected agent and its transport support.",
               "fixture_tests": [
                 "tests/test_air_ide.py"
               ],
@@ -4095,12 +4096,13 @@
               "runtime_checks": []
             },
             "skills": {
-              "state": "manual",
+              "state": "available",
               "sources": [
-                "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
+                "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html",
+                "https://www.jetbrains.com/help/air/air-in-ides-extend-agent-capabilities.html"
               ],
-              "checked_on": "2026-10-27",
-              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. Add context > Skills or a $ reference; no portable Skill discovery directory or import format is established.",
+              "checked_on": "2026-11-14",
+              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP. The shared project directory is .agents/skills. Agent-specific visibility depends on the selected agent and its settings.",
               "fixture_tests": [
                 "tests/test_air_ide.py",
                 "tests/test_skills.py",

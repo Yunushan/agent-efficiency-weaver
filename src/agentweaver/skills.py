@@ -418,11 +418,9 @@ def _instruction_text(
             "Choose an already installed agent, expand Advanced, and review this advisory content "
             "for the Injected instructions field. Saving a preset affects subsequent sessions. "
             "Model, effort, mode and authorization remain choices of the selected agent and account.",
-            "Selected read/ files can be attached through Add > Project Files and Folders as manual "
-            "file context. Add > Skills or a $ reference selects Skills already available to the host; "
-            "this bundle does not register those Skills or establish a native Skill discovery path. "
-            "An ACP executable registration is separate from a preset and a subagent definition. "
-            "The desktop app's .air/mcp.json is not an IDE configuration path.",
+            "Review the shared .agents/skills files under AI > Skills. Start a new session and use "
+            "Add > Skills to choose an available project Skill. Agent and IDE settings govern availability. "
+            "An ACP executable registration is separate from a preset and a subagent definition.",
         ])
     if spec.id == "chatgpt":
         lines.extend(
