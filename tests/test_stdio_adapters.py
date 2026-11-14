@@ -226,7 +226,7 @@ class StdioConfigurationTests(unittest.TestCase):
                                 {**base, "enabled": True} if product == "hermes" else base)
                     if product == "cline" or (product, surface.id) == ("kiro", "cli"):
                         expected["disabled"] = True
-                    if product == "zed":
+                    if product in {"zed", "openhands"}:
                         expected["enabled"] = False
                     self.assertEqual(entry, expected)
                     for remote_field in ("url", "serverUrl", "httpUrl", "uri"):
@@ -298,7 +298,7 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertEqual(artifact.relative_path.as_posix(), "openhands/fragments/mcp.json")
         self.assertEqual(artifact.kind, "mcp-fragment")
         self.assertEqual(json.loads(artifact.content), {
-            "mcpServers": {"synthetic-stdio": {"command": command, "args": args}}})
+            "mcpServers": {"synthetic-stdio": {"command": command, "args": args, "enabled": False}}})
         metadata = stdio_inventory()["openhands"]
         self.assertEqual(metadata["schema"], "command-args")
         self.assertTrue(any("mcp-servers.mdx" in source for source in metadata["sources"]))
@@ -327,6 +327,8 @@ class StdioConfigurationTests(unittest.TestCase):
             staged = next(item for item in json.loads(text)["artifacts"] if item["kind"] == "mcp-fragment")
             self.assertEqual(staged["path"], artifact.relative_path.as_posix())
             self.assertEqual(json.loads(staged["content"]), json.loads(artifact.content))
+            handoff = next(item for item in json.loads(text)["artifacts"] if item["kind"] == "handoff")
+            self.assertIn("openhands mcp enable NAME", handoff["content"])
             write_artifacts(output, [artifact])
             target = output / artifact.relative_path
             target.write_text("user edited configuration\n", encoding="utf-8")

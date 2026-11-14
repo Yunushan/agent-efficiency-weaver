@@ -1621,6 +1621,41 @@
           "evidence_sha256": "adbfdc470ddfc87dcd6ea038528825adbc170810168ca2cc9e6288de948ee9b4"
         }
       ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "cli",
+      "product_version": "1.16.0",
+      "engine_version": "1.21.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711:WSL2 Ubuntu 26.04.1",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "aaa9f087cfe00a4be9b8018cd361af4c54e76363",
+      "checks": [
+        {
+          "check": "openhands-headless-skill-invocation",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-headless-agent-task",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-headless-stdio-tool-call",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-named-profile-model-request",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        },
+        {
+          "check": "openhands-named-profile-effort-request",
+          "evidence_sha256": "21b0d0117a19eef2126463378951b1043fc61b6a8aca0a6d52ecf78416b2ebef"
+        }
+      ]
     }
   ]
 }

@@ -4,7 +4,7 @@
   "cline": {"path": "cline/fragments/cline_mcp_settings.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "streamableHttp", "url": "https://mcp.context7.com/mcp", "disabled": true}}}},
   "copilot": {"path": "copilot/.vscode/mcp.json", "empty": {"servers": {}}, "enabled": {"servers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}},
   "cursor": {"path": "cursor/.cursor/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
-  "openhands": {"path": "openhands/fragments/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},
+  "openhands": {"path": "openhands/fragments/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp", "enabled": false}}}},
   "zed": {"path": "zed/fragments/settings.json", "empty": {"context_servers": {}}, "enabled": {"context_servers": {"context7": {"url": "https://mcp.context7.com/mcp", "enabled": false}}}},
   "goose": {"path": "goose/fragments/config.yaml", "empty": {"extensions": {}}, "enabled": {"extensions": {"context7": {"type": "streamable_http", "name": "context7", "enabled": true, "uri": "https://mcp.context7.com/mcp"}}}},
   "kiro": {"path": "kiro/.kiro/settings/mcp.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}}}},

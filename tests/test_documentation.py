@@ -264,7 +264,7 @@ class DocumentationDriftTests(unittest.TestCase):
                       "never executes", "invokes a shell", "installs a package", "credential-looking",
                       "Perplexity Agent API", "LM Studio ephemeral", "remote HTTPS only", "reject selected stdio",
                       "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "not installed-client evidence",
-                      "manual user MCP fragment", "CLI 1.16.0 source"):
+                      "manual user MCP fragment", "openhands mcp enable NAME"):
             self.assertIn(token, text)
         self.assertNotIn("OpenHands retain stdio file-export gaps", text)
 

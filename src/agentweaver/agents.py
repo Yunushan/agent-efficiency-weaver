@@ -644,9 +644,9 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "The profile's allowed-tools is a true tool restriction. The same field on an inline "
                       "Skill has different auto-approval semantics and must not be substituted for this profile."])
     if row["format"] == "openhands-markdown":
-        lines.extend(["", "This route is scoped to the audited OpenHands CLI 1.16.0 source with its pinned "
-                      "SDK 1.28.1. CLI conversation setup reaches the SDK file-agent loader; this is source "
-                      "evidence, not installed-client or native-device verification.",
+        lines.extend(["", "The audited OpenHands CLI development source identifies itself as 1.16.0 with "
+                      "SDK 1.28.1. The published CLI 1.16.0 Linux binary bundles SDK 1.21.0. "
+                      "See the coverage report for versioned runtime checks.",
                       "Project discovery checks .agents/agents/*.md before .openhands/agents/*.md, then the "
                       "same directories under the user's home. Only top-level Markdown files are loaded; "
                       "readme.md is skipped. Existing registrations, including the CLI's built-in agents and "

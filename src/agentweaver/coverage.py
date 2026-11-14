@@ -349,6 +349,26 @@ _OBSERVATION_CHECKS = {
         "mcp", "The exact generated disabled entry and the absent entry sent no stdio messages. "
         "Enabling the fixture in disposable Zed user settings produced initialize and tools/list.",
     ),
+    "openhands-headless-skill-invocation": (
+        "skills", "The headless CLI included the generated project instructions and Skill in the "
+        "model context. Its invoke_skill tool returned the generated Skill body.",
+    ),
+    "openhands-headless-agent-task": (
+        "agents", "The headless task tool launched the generated file-based reviewer and returned its "
+        "result. The reviewer exposed its base finish and think tools.",
+    ),
+    "openhands-headless-stdio-tool-call": (
+        "mcp", "The generated disabled fixture and the absent control sent no messages. After explicit "
+        "enablement in disposable settings, the fixture initialized, listed its tool, and returned its sentinel.",
+    ),
+    "openhands-named-profile-model-request": (
+        "models", "The generated reviewer resolved its named local LLM profile and used its configured "
+        "model in the scripted loopback Responses request.",
+    ),
+    "openhands-named-profile-effort-request": (
+        "reasoning", "The scripted loopback Responses endpoint observed different configured reasoning "
+        "efforts from the parent and the generated reviewer.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -375,6 +395,7 @@ _OBSERVATION_INTERFACES = {
     ("kiro", "cli", "config-inventory"),
     ("hermes", "cli", "config-inventory"),
     ("zed", "ide", "editor-startup"),
+    ("openhands", "cli", "headless-loopback"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
@@ -532,6 +553,7 @@ def _load_observations(
             ("opencode", "cli"): {"isolated-release-loopback"},
             ("kilo", "cli"): {"isolated-release-loopback"},
             ("kilo", "ide"): {"isolated-release-loopback"},
+            ("openhands", "cli"): {"isolated-release-loopback"},
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("cline", "ide"): {"isolated-release-loopback"},

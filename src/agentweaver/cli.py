@@ -314,6 +314,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         if (spec.id, surface) == ('zed', 'ide'):
             lines.extend(['Zed entries are staged under context_servers with enabled: false.',
                           'Review and merge individual entries into Zed settings, then enable only the intended servers.'])
+        if (spec.id, surface) == ('openhands', 'cli'):
+            lines.extend(['OpenHands entries are staged under mcpServers with enabled: false.',
+                          'Review and merge individual entries into mcp.json, then run openhands mcp enable NAME for each intended server.'])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':

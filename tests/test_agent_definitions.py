@@ -633,7 +633,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         self.assertIn("Inspect the requested code", body)
         self.assertEqual(artifacts, self.render("openhands", model_id="inherit"))
         text = artifacts[1].content.decode()
-        for caveat in ("CLI 1.16.0", "SDK 1.28.1", "not installed-client", "Only top-level",
+        for caveat in ("CLI 1.16.0", "SDK 1.28.1", "SDK 1.21.0", "Only top-level",
                        ".agents/agents/*.md before .openhands/agents/*.md", "Base finish/think",
                        "named local LLM profile, not a provider model ID", "does not establish an OS sandbox"):
             self.assertIn(caveat, text)
