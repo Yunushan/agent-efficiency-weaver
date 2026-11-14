@@ -408,6 +408,15 @@ _OBSERVATION_CHECKS = {
     "kimi-web-stdio-tool-discovery": (
         "mcp", "Kimi's workspace registry loaded the project MCP entry after trust and initiated stdio tool discovery.",
     ),
+    "kimi-web-skill-activation": (
+        "skills", "The native session API activated the generated workspace Skill. The scripted loopback endpoint "
+        "received its full instructions. Withholding the Skill file made activation fail before a provider request.",
+    ),
+    "kimi-headless-project-stdio-call": (
+        "mcp", "The trusted headless CLI used the byte-for-byte generated project MCP file and returned a stdio "
+        "fixture result under an exact tool allow rule. An exact deny rule blocked the call. Untrusted and "
+        "missing-config runs left the fixture idle.",
+    ),
     "kimi-web-model-catalog": (
         "models", "The local Web API enumerated three configured fixture aliases with their advertised effort lists.",
     ),
@@ -652,6 +661,7 @@ _OBSERVATION_INTERFACES = {
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
     ("kimi-code", "cli", "local-web-api"),
+    ("kimi-code", "cli", "headless-loopback"),
     ("qoder", "cli", "config-inventory"),
     ("qoder", "cli", "acp-stdio"),
     ("qoder", "cli", "cli-help"),

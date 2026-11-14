@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 255)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 257)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -769,7 +769,7 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         kimi = next(item for item in report["requested_items"] if item["id"] == "kimi-code")
         target, = kimi["targets"]
-        observation, = target["runtime_observations"]
+        observation, skill_activation, headless = target["runtime_observations"]
         self.assertEqual(target["surface_id"], "cli")
         self.assertEqual(observation["product_version"], "2.6.2")
         self.assertEqual(observation["engine_version"], "2.6.2")
@@ -784,6 +784,17 @@ class RequestedCoverageTests(unittest.TestCase):
             "kimi-web-model-catalog": "models",
             "kimi-web-session-model-effort": "reasoning",
             "kimi-web-subagent-pool-effort": "reasoning",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(skill_activation[field], observation[field])
+        self.assertEqual({check["check"]: check["capability"] for check in skill_activation["checks"]}, {
+            "kimi-web-skill-activation": "skills",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(headless[field], observation[field])
+        self.assertEqual(headless["interface"], "headless-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in headless["checks"]}, {
+            "kimi-headless-project-stdio-call": "mcp",
         })
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 

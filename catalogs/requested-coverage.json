@@ -1103,6 +1103,44 @@
       ]
     },
     {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-web-api",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "6439b2d746e0eb660702f3227cd8779fef9bf60c",
+      "checks": [
+        {
+          "check": "kimi-web-skill-activation",
+          "evidence_sha256": "4e6e8382b9f486044f870edf770117719400de91110439bba9ec65bde7d8dae1"
+        }
+      ]
+    },
+    {
+      "product_id": "kimi-code",
+      "surface_id": "cli",
+      "product_version": "2.6.2",
+      "engine_version": "2.6.2",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "headless-loopback",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "6439b2d746e0eb660702f3227cd8779fef9bf60c",
+      "checks": [
+        {
+          "check": "kimi-headless-project-stdio-call",
+          "evidence_sha256": "31b3e2a50281ac03d0197c6389ee5909990ae23f04ab61e1210d8973d8a9a69a"
+        }
+      ]
+    },
+    {
       "product_id": "qoder",
       "surface_id": "cli",
       "product_version": "1.1.89",
