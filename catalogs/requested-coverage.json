@@ -1064,6 +1064,25 @@
       ]
     },
     {
+      "product_id": "factory",
+      "surface_id": "cli",
+      "product_version": "1.10.1",
+      "engine_version": "1.10.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "7285f41dfd134dffa57c66f88d1c350ab54166a8",
+      "interface": "mcp-cli-inventory",
+      "checks": [
+        {
+          "check": "factory-cli-context7-https-tool-inventory",
+          "evidence_sha256": "539d812ea855d22a96a4939640f4a8c49241c2c9b87c11c5023b6e99acac79d1"
+        }
+      ]
+    },
+    {
       "product_id": "kimi-code",
       "surface_id": "cli",
       "product_version": "2.6.2",

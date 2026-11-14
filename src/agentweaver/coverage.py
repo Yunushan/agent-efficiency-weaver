@@ -396,6 +396,11 @@ _OBSERVATION_CHECKS = {
     "factory-cli-skill-use": (
         "skills", "Droid called the project Skill and received the generated Skill instructions.",
     ),
+    "factory-cli-context7-https-tool-inventory": (
+        "mcp", "Droid connected to the exact generated project Context7 entry over Streamable HTTPS "
+        "and discovered both tools. The read-only exec inventory applied exact inclusion and exclusion "
+        "filters for the resolver. Withholding the config removed the server and both tools.",
+    ),
     "factory-cli-model-catalog": (
         "models", "The signed-out JSON-RPC catalog listed model IDs and their advertised reasoning efforts.",
     ),
@@ -665,6 +670,7 @@ _OBSERVATION_INTERFACES = {
     ("cline", "ide", "vscode-extension-host"),
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
+    ("factory", "cli", "mcp-cli-inventory"),
     ("kimi-code", "cli", "local-web-api"),
     ("kimi-code", "cli", "headless-loopback"),
     ("qoder", "cli", "config-inventory"),
@@ -831,7 +837,7 @@ def _load_observations(
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("cline", "ide"): {"isolated-release-loopback"},
-            ("factory", "cli"): {"isolated-release-loopback"},
+            ("factory", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("hermes", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
             ("lm-studio", "api"): {"isolated-release-loopback"},
