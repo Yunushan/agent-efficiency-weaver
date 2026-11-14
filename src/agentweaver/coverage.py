@@ -253,6 +253,24 @@ _OBSERVATION_CHECKS = {
     "signed-out-effort-options": (
         "reasoning", "The bundled executable advertised effort levels for the signed-out model aliases.",
     ),
+    "lmstudio-local-model-inventory": (
+        "models", "Weaver imported the local LLM and embedding model from the native inventory and retained the "
+        "loaded instance and its context length.",
+    ),
+    "lmstudio-local-reasoning-switch": (
+        "reasoning", "The generated on and off selectors changed the reasoning content returned by native chat. "
+        "Both Weaver and the server rejected high for this model.",
+    ),
+    "lmstudio-local-embedding-request": (
+        "models", "The generated embedding selector returned a vector from the local OpenAI-compatible endpoint.",
+    ),
+    "lmstudio-ephemeral-mcp-tool-call": (
+        "mcp", "The local model called Context7 over HTTPS from the generated native chat integration. The server "
+        "rejected a non-public address before connecting.",
+    ),
+    "lmstudio-compatible-chat-requests": (
+        "models", "The generated model selector worked with the local Chat Completions, Responses and Messages endpoints.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -282,6 +300,7 @@ _OBSERVATION_INTERFACES = {
     ("kimi-code", "cli", "local-web-api"),
     ("qoder", "cli", "config-inventory"),
     ("copilot", "cli", "prompt-mode"),
+    ("lm-studio", "api", "loopback-http"),
 }
 
 
@@ -432,6 +451,7 @@ def _load_observations(
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("factory", "cli"): {"isolated-release-loopback"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
+            ("lm-studio", "api"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
             ("claude-code", "cli"): {"isolated-signed-out", "isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})

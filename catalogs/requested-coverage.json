@@ -1387,6 +1387,41 @@
           "evidence_sha256": "5ba7c79468deec0ab2ee26b470188ef5833bc1222fdd8d39911a890e95898e24"
         }
       ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "d71b743eefc16b005f96c6aede7da545091684c3",
+      "checks": [
+        {
+          "check": "lmstudio-local-model-inventory",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-local-reasoning-switch",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-local-embedding-request",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-ephemeral-mcp-tool-call",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        },
+        {
+          "check": "lmstudio-compatible-chat-requests",
+          "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
+        }
+      ]
     }
   ]
 }
