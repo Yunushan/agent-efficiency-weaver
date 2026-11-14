@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 29)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 247)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 248)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -770,7 +770,7 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {target["surface_id"]: target for target in qoder["targets"]}
         self.assertEqual(targets["ide"]["runtime_observations"], [])
         records = {row["interface"]: row for row in targets["cli"]["runtime_observations"]}
-        self.assertEqual(set(records), {"acp-stdio", "config-inventory"})
+        self.assertEqual(set(records), {"acp-stdio", "cli-help", "config-inventory"})
         record = records["config-inventory"]
         self.assertEqual(record["product_version"], "1.1.89")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -789,6 +789,8 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(acp["environment"], "isolated-signed-out")
         check, = acp["checks"]
         self.assertEqual((check["check"], check["capability"]), ("qoder-cli-acp-authentication", "models"))
+        thinking, = records["cli-help"]["checks"]
+        self.assertEqual((thinking["check"], thinking["capability"]), ("qoder-cli-thinking-flag-discovery", "reasoning"))
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")

@@ -2347,6 +2347,18 @@
             "field": "model.reasoningEffort",
             "values": ["disabled", "off", "none", "low", "medium", "high", "xhigh", "max"],
             "model_dependent": true
+          },
+          {
+            "kind": "mode",
+            "field": "--thinking",
+            "values": ["auto", "adaptive", "enabled", "disabled"],
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "--thinking-budget",
+            "values": null,
+            "model_dependent": true
           }
         ],
         "sources": [

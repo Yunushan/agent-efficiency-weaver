@@ -8,6 +8,7 @@ from .config import WeaverError
 from .models import _json_artifact, _load_bounded_snapshot, _model_id, _strings, _text
 
 _DISABLED_EFFORTS = frozenset({"disabled", "off", "none"})
+_THINKING_MODES = frozenset({"auto", "adaptive", "enabled", "disabled"})
 
 
 def _record(value: object, label: str) -> dict[str, Any]:
@@ -132,7 +133,8 @@ def inspect_qoder_models(path: Path, *, model: str | None = None, effort: str | 
 
 
 def render_qoder_cli_model(model: str, effort: str | None, context_size: int | None, *,
-                           persistent: bool, catalog: Path | None = None) -> list[RenderedArtifact]:
+                           persistent: bool, catalog: Path | None = None,
+                           thinking_mode: str | None = None, thinking_budget: int | None = None) -> list[RenderedArtifact]:
     """Stage model settings using Qoder's CLI or settings-file vocabulary."""
     identifier = _model_id(model)
     efforts = {"low", "medium", "high", "xhigh", "max"}
@@ -142,9 +144,24 @@ def render_qoder_cli_model(model: str, effort: str | None, context_size: int | N
         raise WeaverError("Unsupported Qoder reasoning effort for the selected output")
     if context_size is not None and (type(context_size) is not int or context_size < 1):
         raise WeaverError("Qoder context window must be a positive integer")
+    if persistent and (thinking_mode is not None or thinking_budget is not None):
+        raise WeaverError("Qoder thinking mode and budget are session flags")
+    if thinking_mode is not None and thinking_mode not in _THINKING_MODES:
+        raise WeaverError("Unsupported Qoder thinking mode")
+    if thinking_budget is not None:
+        if type(thinking_budget) is not int or not 1 <= thinking_budget <= 2**53 - 1:
+            raise WeaverError("Qoder thinking budget must be a positive safe integer")
+        if thinking_mode not in {None, "enabled"}:
+            raise WeaverError("A Qoder fixed budget implies enabled thinking and conflicts with the selected mode")
     evidence = "Confirm the model, effort and context in the target account."
     if catalog is not None:
         report = inspect_qoder_models(catalog, model=identifier, effort=effort, context_size=context_size)
+        selected = report["selection"]
+        if thinking_mode == "disabled" and selected["thinking_disabled_advertised"] is False:
+            raise WeaverError("The Qoder catalog explicitly excludes disabled thinking for this model")
+        if ((thinking_mode in {"adaptive", "enabled"} or thinking_budget is not None)
+                and selected["thinking_enabled_advertised"] is False):
+            raise WeaverError("The Qoder catalog does not advertise enabled thinking for this model")
         evidence = f"Saved Qoder Agent SDK model catalog SHA-256: {report['snapshot_sha256']}"
 
     if persistent:
@@ -166,8 +183,15 @@ def render_qoder_cli_model(model: str, effort: str | None, context_size: int | N
             arguments.extend(["--reasoning-effort", effort])
         if context_size is not None:
             arguments.extend(["--context-window", str(context_size)])
+        if thinking_mode is not None:
+            arguments.extend(["--thinking", thinking_mode])
+        if thinking_budget is not None:
+            arguments.extend(["--thinking-budget", str(thinking_budget)])
         output = _json_artifact("qoder/model/session-arguments.json", arguments, "session-arguments")
         instructions = "Pass these arguments to qoder for one session."
+        if thinking_mode is not None or thinking_budget is not None:
+            instructions += (" Confirm that the selected model supports the requested thinking mode or fixed budget. "
+                             "A saved SDK catalog does not declare supported modes or fixed-budget ranges.")
     note = (
         "# Qoder CLI model setup\n\n"
         f"{instructions}\n\n"

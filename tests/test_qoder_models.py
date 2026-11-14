@@ -118,6 +118,35 @@ class QoderModelsTests(unittest.TestCase):
         self.save([self.listing[0] | {"isEnabled": False}])
         self.assertEqual(invoke(*args, *selector)[0], 2)
 
+    def test_cli_stages_thinking_modes_and_budget_as_session_arguments(self):
+        base = ("model", "--root", str(ROOT), "--agent", "qoder", "--surface", "cli", "--dry-run",
+                "--qoder-catalog", str(self.path))
+        for options, native in (
+            (("--reasoning-mode", "adaptive", "--reasoning-effort", "high"),
+             ["--reasoning-effort", "high", "--thinking", "adaptive"]),
+            (("--reasoning-mode", "disabled"), ["--thinking", "disabled"]),
+            (("--reasoning-budget", "2048"), ["--thinking-budget", "2048"]),
+        ):
+            with self.subTest(options=options):
+                code, out, err = invoke(*base, "--model", "fixture-nested", *options)
+                self.assertEqual(code, 0, err)
+                artifacts = {item["kind"]: item["content"] for item in json.loads(out)["artifacts"]}
+                self.assertEqual(json.loads(artifacts["session-arguments"]), ["--model", "fixture-nested", *native])
+                self.assertIn("does not declare supported modes or fixed-budget ranges", artifacts["model-setup"])
+        for model, options in (
+            ("fixture-flat", ("--reasoning-mode", "disabled")),
+            ("fixture-nested", ("--reasoning-mode", "invalid")),
+            ("fixture-nested", ("--reasoning-budget", "9007199254740992")),
+            ("fixture-nested", ("--reasoning-budget", "2048", "--reasoning-mode", "adaptive")),
+            ("fixture-nested", ("--reasoning-mode", "auto", "--qoder-settings")),
+            ("fixture-nested", ("--reasoning-budget", "2048", "--qoder-settings")),
+        ):
+            with self.subTest(model=model, options=options):
+                self.assertEqual(invoke(*base, "--model", model, *options)[0], 2)
+        self.save([{"value": "fixture-toggle-off", "isEnabled": True, "thinking_config": {"disabled": {}}}])
+        self.assertEqual(invoke(*base, "--model", "fixture-toggle-off", "--reasoning-mode", "enabled")[0], 2)
+        self.assertEqual(invoke(*base, "--model", "fixture-toggle-off", "--reasoning-budget", "2048")[0], 2)
+
     def test_ide_subagent_can_reference_selected_skills_and_allowlisted_servers(self):
         base = ("agent", "--root", str(ROOT), "--agent", "qoder", "--dry-run", "--name", "reviewer",
                 "--description", "Review code", "--instructions-file", str(self.prompt))

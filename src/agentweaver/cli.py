@@ -680,11 +680,12 @@ def _run(args: argparse.Namespace, root: Path) -> int:
 
         if args.zed_subagent or args.kiro_model_defaults or any(
             getattr(args, option) is not None for option in
-            ('provider', 'catalog', 'protocol', 'reasoning_budget', 'reasoning', 'reasoning_mode', 'batch_endpoint')
+            ('provider', 'catalog', 'protocol', 'reasoning', 'batch_endpoint')
         ):
-            raise WeaverError('Qoder CLI model staging uses a Qoder model ID, optional effort and context window')
+            raise WeaverError('Qoder CLI model staging uses a Qoder model ID and native reasoning and context controls')
         artifacts = render_qoder_cli_model(args.model, args.reasoning_effort, args.context_size,
-                                           persistent=args.qoder_settings, catalog=args.qoder_catalog)
+                                           persistent=args.qoder_settings, catalog=args.qoder_catalog,
+                                           thinking_mode=args.reasoning_mode, thinking_budget=args.reasoning_budget)
     elif args.cmd in ('provider', 'model'):
         from .providers import render_provider_setup
 

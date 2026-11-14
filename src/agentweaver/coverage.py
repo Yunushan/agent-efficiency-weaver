@@ -400,6 +400,10 @@ _OBSERVATION_CHECKS = {
         "models", "The signed-out CLI completed the ACP handshake and required authentication before creating "
         "a session. The probe sent no model prompt.",
     ),
+    "qoder-cli-thinking-flag-discovery": (
+        "reasoning", "CLI help listed thinking mode and fixed-budget flags. Generated session arguments reached "
+        "the sign-in requirement and an unknown-flag control failed during argument parsing. Effective thinking is unverified.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -622,6 +626,7 @@ _OBSERVATION_INTERFACES = {
     ("kimi-code", "cli", "local-web-api"),
     ("qoder", "cli", "config-inventory"),
     ("qoder", "cli", "acp-stdio"),
+    ("qoder", "cli", "cli-help"),
     ("copilot", "cli", "prompt-mode"),
     ("lm-studio", "api", "loopback-http"),
 }

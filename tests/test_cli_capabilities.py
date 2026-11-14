@@ -185,7 +185,7 @@ class CapabilityCliTests(unittest.TestCase):
             ('--model', 'auto', '--reasoning-effort', 'off'),
             ('--model', 'auto', '--context-size', '0'),
             ('--model', 'auto', '--provider', 'openrouter'),
-            ('--model', 'auto', '--reasoning-budget', '1024'),
+            ('--model', 'auto', '--reasoning-budget', '0'),
             ('--model', 'auto', '--kiro-model-defaults'),
         ):
             with self.subTest(options=options):
