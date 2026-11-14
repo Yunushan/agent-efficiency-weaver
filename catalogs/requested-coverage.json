@@ -2177,6 +2177,23 @@
       ]
     },
     {
+      "product_id": "antigravity",
+      "surface_id": "ide",
+      "product_version": "2.5.5",
+      "engine_version": "2.5.5",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-language-server",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "20990ba52418c89d7edc4395779bcc956ebe6b95",
+      "checks": [
+        {"check": "antigravity-ide-mcp-user-https-discovery", "evidence_sha256": "5d1d915b933f88c964c5bcbf4ca1b1f34219b47603c3535cbe4234916ca49888"},
+        {"check": "antigravity-ide-mcp-user-stdio-prompt", "evidence_sha256": "5d1d915b933f88c964c5bcbf4ca1b1f34219b47603c3535cbe4234916ca49888"}
+      ]
+    },
+    {
       "product_id": "openrouter",
       "surface_id": "gateway",
       "product_version": "1",

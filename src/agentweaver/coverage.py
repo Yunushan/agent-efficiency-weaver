@@ -83,6 +83,14 @@ _OBSERVATION_CHECKS = {
         "mcp", "The bundled IDE language server initialized the local stdio fixture from the generated user fragment and listed its tool. "
         "The fresh workspace-only and empty controls did not start the fixture.",
     ),
+    "antigravity-ide-mcp-user-https-discovery": (
+        "mcp", "The bundled IDE language server listed five public OpenAI Docs tools over Streamable HTTPS from the "
+        "generated user fragment. A fresh user profile without the fragment did not list the server.",
+    ),
+    "antigravity-ide-mcp-user-stdio-prompt": (
+        "mcp", "The bundled IDE language server retrieved a synthetic prompt from a local stdio fixture using the "
+        "generated user fragment. The server and prompt were absent in the control. No model request ran.",
+    ),
     "antigravity-ide-signed-out-model-inventory": (
         "models", "The isolated IDE language server returned empty model and configuration inventories without an account token.",
     ),
