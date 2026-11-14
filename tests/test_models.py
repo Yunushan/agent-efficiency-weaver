@@ -217,6 +217,27 @@ class SnapshotTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             self.read("openrouter", {"data": [], "links": {"next": "https://openrouter.ai/api/v1/models?api_key=private"}})
 
+    def test_openrouter_pagination_reports_unresolved_captures_with_no_next_link(self) -> None:
+        first = {"data": [{"id": "vendor/first"}], "total_count": 2,
+                 "links": {"next": "/api/v1/models?offset=1&limit=1"}}
+        last = {"data": [{"id": "vendor/last"}], "total_count": 2, "links": {"next": None}}
+        scenarios = (
+            ([first, last], False),
+            ([last], True),
+            ([last, first], True),
+            ([first, last | {"offset": 2}], True),
+            ([first, last | {"total_count": 3}], True),
+            ([first | {"links": {"next": "/api/v1/models?offset=2"}}, last], True),
+            ([{"data": last["data"], "links": {"previous": "/api/v1/models?offset=0"}}], True),
+            ([{"data": first["data"]}, {"data": last["data"]}], True),
+            ([{"data": [], "total_count": 0, "links": {"next": None}}], False),
+        )
+        for pages, unresolved in scenarios:
+            with self.subTest(pages=pages):
+                result = self.read("openrouter", {"pages": pages})
+                self.assertIs(result["pagination"]["has_unresolved_pages"], unresolved)
+                self.assertEqual(result["completeness"], "partial" if unresolved else "unknown")
+
     def test_openrouter_native_reasoning_subsets_and_mandatory_controls(self) -> None:
         snapshot = self.read("openrouter", {"data": [{"id": "vendor/model", "reasoning": {
             "supported_efforts": ["high", "low"], "default_effort": "high", "default_enabled": True,

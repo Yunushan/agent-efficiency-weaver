@@ -595,6 +595,34 @@ def _lmstudio_metadata(entry: dict[str, Any]) -> dict[str, Any]:
     return metadata
 
 
+def _openrouter_unresolved_pages(pages: list[dict[str, Any]], sizes: list[int]) -> bool:
+    """Check captured offsets and reported totals without asserting global completeness."""
+    first = pages[0]
+    first_links = first.get("links", {})
+    if first.get("offset", 0) or first_links.get("prev") or first_links.get("previous"):
+        return True
+    total = first.get("total_count")
+    if total is None:
+        return len(pages) > 1 or bool(first_links.get("next"))
+    if total != sum(sizes) or any(page.get("total_count") != total for page in pages):
+        return True
+    if len(pages) > 1 and not all(sizes):
+        return True
+    offset = 0
+    for page, size in zip(pages[:-1], sizes[:-1], strict=True):
+        if page.get("offset", offset) != offset:
+            return True
+        offset += size
+        next_link = page.get("links", {}).get("next")
+        if not next_link:
+            return True
+        next_offsets = [value for key, value in parse_qsl(urlsplit(next_link).query) if key == "offset"]
+        if next_offsets != [str(offset)]:
+            return True
+    last = pages[-1]
+    return last.get("offset", offset) != offset or bool(last.get("links", {}).get("next"))
+
+
 def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], digest: str) -> dict[str, Any]:
     _scan(raw)
     if raw.get("provider_id", provider_id) != provider_id:
@@ -606,6 +634,7 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
     models: list[dict[str, Any]] = []
     seen: set[str] = set()
     page_metadata: list[dict[str, Any]] = []
+    page_sizes: list[int] = []
     for page in pages:
         if not isinstance(page, dict):
             _fail("Invalid model snapshot page")
@@ -613,6 +642,7 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
         entries = page.get(field)
         if not isinstance(entries, list):
             _fail(f"Snapshot requires {field} array")
+        page_sizes.append(len(entries))
         page_info = {key: page[key] for key in ("has_more", "nextPageToken", "first_id", "last_id", "total_count", "offset", "limit") if key in page}
         if "has_more" in page_info and type(page_info["has_more"]) is not bool:
             _fail("Snapshot has_more must be boolean")
@@ -713,7 +743,11 @@ def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], d
                 item["pricing"] = pricing
             models.append(item)
     provenance = _snapshot_provenance(raw.get("provenance", {}))
-    incomplete = any(p.get("has_more") is True or p.get("nextPageToken") or p.get("links", {}).get("next") for p in page_metadata)
+    incomplete = any(p.get("has_more") is True or p.get("nextPageToken") for p in page_metadata)
+    if format_name == "openrouter":
+        incomplete = incomplete or _openrouter_unresolved_pages(page_metadata, page_sizes)
+    else:
+        incomplete = incomplete or any(p.get("links", {}).get("next") for p in page_metadata)
     return {"schema_version": 1, "provider_id": provider_id, "format": format_name,
             "models": models, "model_count": len(models), "pagination": {"pages": page_metadata,
             "page_count": len(pages), "has_unresolved_pages": bool(incomplete)},

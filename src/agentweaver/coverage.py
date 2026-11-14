@@ -29,6 +29,18 @@ LIMITATIONS = (
 )
 
 _OBSERVATION_CHECKS = {
+    "openrouter-public-model-catalog": (
+        "models", "The public v1 model-list API returned text, all-modality and reasoning-filtered lists without credentials. "
+        "Three offset pages matched the ordered model IDs, endpoints and reasoning metadata in the unpaginated all-modality response.",
+    ),
+    "openrouter-public-model-route-validation": (
+        "models", "Offline validation accepted the captured model IDs for their advertised endpoints. "
+        "This check did not invoke those endpoints.",
+    ),
+    "openrouter-public-reasoning-payload-validation": (
+        "reasoning", "Offline validation projected catalog-advertised reasoning controls into Chat Completions, "
+        "Responses and Messages payloads. No inference requests were sent.",
+    ),
     "antigravity-desktop-workspace-instructions": (
         "instructions", "The bundled language server read the generated workspace AGENTS.md. "
         "Withholding the file removed it from the inventory.",
@@ -565,6 +577,7 @@ _OBSERVATION_FIELDS = {
     "architecture", "interface", "environment", "checked_on", "source_commit", "checks",
 }
 _OBSERVATION_INTERFACES = {
+    ("openrouter", "gateway", "public-model-list"),
     ("antigravity", "cli", "headless-loopback"),
     ("antigravity", "cli", "acp-stdio"),
     ("antigravity", "desktop", "bundled-language-server"),
@@ -736,9 +749,13 @@ def _load_observations(
         os_id = _canonical_id(row["os_id"], "runtime observation OS")
         if os_id not in OS_IDS:
             raise WeaverError("Runtime observation: unknown OS")
+        public_catalog = (product, surface, row["interface"]) == ("openrouter", "gateway", "public-model-list")
+        engine_version = row["engine_version"]
+        if not public_catalog or engine_version is not None:
+            engine_version = _observation_field(engine_version, r"[0-9][A-Za-z0-9.+_-]{0,63}", "engine version")
         identity = {
             "product_version": _observation_field(row["product_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "product version"),
-            "engine_version": _observation_field(row["engine_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "engine version"),
+            "engine_version": engine_version,
             "os_id": os_id,
             "os_variant": _observation_field(row["os_variant"], rf"{os_id}:[A-Za-z0-9][A-Za-z0-9.() _:-]{{0,95}}", "OS variant"),
             "architecture": _observation_field(row["architecture"], r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}", "architecture"),
@@ -748,6 +765,7 @@ def _load_observations(
             "source_commit": _observation_field(row["source_commit"], r"[0-9a-f]{40}", "source commit"),
         }
         environments = {
+            ("openrouter", "gateway"): {"public-unauthenticated"},
             ("antigravity", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "desktop"): {"isolated-release-loopback"},

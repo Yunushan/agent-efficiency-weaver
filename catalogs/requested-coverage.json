@@ -2118,6 +2118,33 @@
           "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
         }
       ]
+    },
+    {
+      "product_id": "openrouter",
+      "surface_id": "gateway",
+      "product_version": "1",
+      "engine_version": null,
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "public-model-list",
+      "environment": "public-unauthenticated",
+      "checked_on": "2026-11-14",
+      "source_commit": "10004ec7be1bfec54c66de17b69e7932a6d68937",
+      "checks": [
+        {
+          "check": "openrouter-public-model-catalog",
+          "evidence_sha256": "3f1a29c91b8451a269f1bed3fe55257dea8599473385a145ce463857411f72a4"
+        },
+        {
+          "check": "openrouter-public-model-route-validation",
+          "evidence_sha256": "3f1a29c91b8451a269f1bed3fe55257dea8599473385a145ce463857411f72a4"
+        },
+        {
+          "check": "openrouter-public-reasoning-payload-validation",
+          "evidence_sha256": "3f1a29c91b8451a269f1bed3fe55257dea8599473385a145ce463857411f72a4"
+        }
+      ]
     }
   ]
 }

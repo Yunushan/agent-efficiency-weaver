@@ -27,7 +27,7 @@
       "discovery": {
         "endpoint": "/models",
         "format": "openrouter",
-        "auth": "Bearer API key documented for the current model-list route; no key is read by Weaver",
+        "auth": "Docs specify an API key in the Authorization header. A public capture returned without credentials. Weaver reads saved snapshots only.",
         "scope": "Public catalog defaults to text output; capture output_modalities=all for all exposed model types. Omit both offset and limit for the full filtered response, or capture every page. Public visibility is not account access or inference.",
         "pagination": "offset/limit and links/total_count; omitted offset/limit returns full filtered list; completeness remains unknown"
       },

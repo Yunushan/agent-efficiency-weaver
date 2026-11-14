@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 28)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 243)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 29)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 246)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -183,6 +183,20 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_openrouter_observations_are_scoped_to_public_catalog_discovery(self):
+        report = coverage_report(ROOT)
+        gateway = next(item for item in report["requested_items"] if item["id"] == "openrouter")["targets"][0]
+        observation, = gateway["runtime_observations"]
+        self.assertEqual(observation["product_version"], "1")
+        self.assertIsNone(observation["engine_version"])
+        self.assertEqual(observation["interface"], "public-model-list")
+        self.assertEqual(observation["environment"], "public-unauthenticated")
+        self.assertEqual({row["check"]: row["capability"] for row in observation["checks"]}, {
+            "openrouter-public-model-catalog": "models",
+            "openrouter-public-model-route-validation": "models",
+            "openrouter-public-reasoning-payload-validation": "reasoning",
+        })
 
     def test_antigravity_observations_distinguish_cli_and_desktop_windows_releases(self):
         report = coverage_report(ROOT)
@@ -776,7 +790,7 @@ class RequestedCoverageTests(unittest.TestCase):
         original = load_json(ROOT / "catalogs/requested-coverage.json")
         for field, value in (
             ("surface_id", "unknown-surface"), ("product_id", "aider"),
-            ("product_version", "C:/private/client"), ("engine_version", "latest"),
+            ("product_version", "C:/private/client"), ("engine_version", "latest"), ("engine_version", None),
             ("os_variant", "linux:22.04"), ("os_id", "unknown"), ("architecture", []),
             ("checked_on", "2026-02-31"), ("source_commit", "main"), ("interface", "desktop-ui"),
             ("interface", "bundled-runtime"), ("extension_version", "0.74.0"),
