@@ -324,6 +324,12 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         if (spec.id, surface) == ('openhands', 'cli'):
             lines.extend(['OpenHands entries are staged under mcpServers with enabled: false.',
                           'Review and merge individual entries into mcp.json, then run openhands mcp enable NAME for each intended server.'])
+        if (spec.id, surface) == ('cursor', 'cli'):
+            lines.extend([
+                'Review the project entries before running agent mcp list --workspace PROJECT.',
+                'Approve only the intended server with agent mcp enable NAME --workspace PROJECT.',
+                'Use agent mcp list-tools NAME --workspace PROJECT to verify discovery.',
+            ])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':
@@ -609,6 +615,16 @@ def _run(args: argparse.Namespace, root: Path) -> int:
                                     'reasoning_mode', 'context_size', 'batch_endpoint', 'qoder_catalog')):
             raise WeaverError('Kiro CLI model staging uses Kiro model IDs and an optional reasoning effort')
         artifacts = render_kiro_cli_model(args.model, args.reasoning_effort, persistent=args.kiro_model_defaults)
+    elif args.cmd == 'model' and (spec.id, surface) == ('cursor', 'cli'):
+        from .models import render_cursor_cli_model
+
+        if args.zed_subagent or args.kiro_model_defaults or args.qoder_settings or any(
+            getattr(args, option) is not None for option in
+            ('provider', 'catalog', 'protocol', 'reasoning_effort', 'reasoning_budget', 'reasoning',
+             'reasoning_mode', 'context_size', 'batch_endpoint', 'qoder_catalog')
+        ):
+            raise WeaverError('Cursor CLI session staging accepts an explicit Cursor model ID')
+        artifacts = render_cursor_cli_model(args.model)
     elif args.cmd == 'model' and (spec.id, surface) == ('qoder', 'cli'):
         from .qoder_models import render_qoder_cli_model
 

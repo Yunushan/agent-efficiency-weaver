@@ -995,6 +995,21 @@ def _json_artifact(path: str, value: object, kind: str) -> RenderedArtifact:
     return RenderedArtifact(PurePosixPath(path), (json.dumps(value, indent=2, ensure_ascii=True) + "\n").encode(), kind)
 
 
+def render_cursor_cli_model(model: str) -> list[RenderedArtifact]:
+    """Stage an explicit Cursor account model as one argument value."""
+    identifier = _model_id(model)
+    return [
+        _json_artifact("cursor/model/session-arguments.json", ["--model", identifier], "session-arguments"),
+        RenderedArtifact(PurePosixPath("cursor/model/model-setup.md"), (
+            "# Cursor CLI model setup\n\n"
+            "Run agent --list-models in your signed-in CLI to confirm the exact model ID. "
+            "Pass the staged argument list to agent for one session. Account and team settings "
+            "control availability. Weaver stages these arguments offline.\n\n"
+            "- https://cursor.com/docs/cli/reference/parameters\n"
+        ).encode(), "model-setup"),
+    ]
+
+
 def render_kiro_cli_model(model: str, effort: str | None, *, persistent: bool = False) -> list[RenderedArtifact]:
     """Stage Kiro service model settings using the documented V3 controls."""
     identifier = _model_id(model)

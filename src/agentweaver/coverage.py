@@ -29,6 +29,14 @@ LIMITATIONS = (
 )
 
 _OBSERVATION_CHECKS = {
+    "cursor-cli-mcp-approval-and-tool-discovery": (
+        "mcp", "The signed-out CLI read the exact generated MCP file, started the stdio fixture only "
+        "after individual approval, and listed its tool. Disabling the server stopped launches, and "
+        "withholding the file removed the entry.",
+    ),
+    "cursor-cli-catalog-authentication": (
+        "models", "The isolated signed-out CLI required authentication before listing account models.",
+    ),
     "skill-discovery": ("skills", "The client listed the enabled generated project Skill."),
     "agent-discovery": ("agents", "The runtime discovered the generated project agent and loaded its prompt."),
     "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
@@ -446,6 +454,7 @@ _OBSERVATION_INTERFACES = {
     ("zed", "ide", "editor-startup"),
     ("openhands", "cli", "headless-loopback"),
     ("openhands", "canvas", "local-agent-server-asgi"),
+    ("cursor", "cli", "mcp-cli-inventory"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),

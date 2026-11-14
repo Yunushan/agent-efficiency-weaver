@@ -41,6 +41,7 @@ NATIVE_PATHS = {
     ("qwen-code", "vscode"): ".qwen/agents/reviewer.md",
     ("kimi-code", "cli"): ".kimi-code/agents/reviewer.md",
     ("cursor", "ide"): ".cursor/agents/reviewer.md",
+    ("cursor", "cli"): ".cursor/agents/reviewer.md",
     ("kiro", "cli"): ".kiro/agents/reviewer.json",
     ("kiro", "ide"): ".kiro/agents/reviewer.json",
     ("qoder", "cli"): ".qoder/agents/reviewer.md",
@@ -91,6 +92,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
                                  ("openhands", "canvas"): "2026-11-14",
+                                 ("cursor", "cli"): "2026-11-14",
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",

@@ -1605,6 +1605,97 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "cli",
+          "mcp_dialect": "mcpServers.url",
+          "config_fields": [
+            "mcpServers",
+            "url",
+            "type",
+            "command",
+            "args"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".cursor/mcp.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".cursor/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/cli/using",
+                "https://cursor.com/docs/mcp",
+                "https://cursor.com/docs/cli/reference/parameters"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/cli/using"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/skills",
+                "https://cursor.com/docs/cli/changelog"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "unknown",
+              "sources": [
+                "https://cursor.com/docs/cli/reference/authentication",
+                "https://cursor.com/docs/cli/reference/configuration",
+                "https://cursor.com/docs/cli/reference/parameters"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://cursor.com/docs/cli/installation"
+              ],
+              "checked_on": "2026-11-14",
+              "version_constraint": "Native Windows and macOS/Linux routes are documented, with WSL also listed for Windows.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
         }
       ]
     },

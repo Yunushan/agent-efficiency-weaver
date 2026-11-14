@@ -1002,6 +1002,47 @@
       "availability": "unknown"
     },
     {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Use the signed-in CLI to list available model IDs and select an exact ID for the session.",
+        "fields": [
+          "model"
+        ],
+        "commands": [
+          "agent --list-models",
+          "agent --model",
+          "/model"
+        ],
+        "ui_steps": [],
+        "sources": [
+          "https://cursor.com/docs/cli/reference/parameters",
+          "https://cursor.com/docs/cli/reference/configuration"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Subagent model ID [effort=value]",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://cursor.com/docs/subagents"
+        ]
+      },
+      "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
       "product_id": "devin",
       "surface_id": "desktop-local",
       "selection": {

@@ -20,11 +20,25 @@ from agentweaver.models import (
     render_model_setup,
 )
 from agentweaver.providers import render_provider_setup
+from tests.test_cli_exports import invoke
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class ModelHostTests(unittest.TestCase):
+    def test_cursor_cli_stages_account_model_without_provider_configuration(self) -> None:
+        args = ("model", "--root", str(ROOT), "--agent", "cursor", "--surface", "cli",
+                "--model", "account-model", "--dry-run")
+        code, output, errors = invoke(*args)
+        self.assertEqual(code, 0, errors)
+        arguments, handoff, _ = json.loads(output)["artifacts"]
+        self.assertEqual(arguments["path"], "cursor/model/session-arguments.json")
+        self.assertEqual(json.loads(arguments["content"]), ["--model", "account-model"])
+        self.assertIn("agent --list-models", handoff["content"])
+        for unsupported in (("--provider", "openrouter"), ("--reasoning-effort", "high")):
+            with self.subTest(unsupported=unsupported):
+                self.assertEqual(invoke(*args, *unsupported)[0], 2)
+
     def catalog(self) -> dict:
         return json.loads((ROOT / "catalogs/model-hosts.json").read_text(encoding="utf-8"))
 

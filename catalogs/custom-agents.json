@@ -664,7 +664,7 @@
       "effort_field": null,
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Reasoning is inherited; no native effort override is established.",
+      "reasoning_behavior": "Cursor accepts model-dependent effort options in a bracketed model selector. Weaver stages a bare model or inherit.",
       "permission_behavior": "readonly: true restricts file edits and state-changing shell commands. Parent tools including MCP remain subject to host policy; no OS sandbox is asserted.",
       "reserved_names": [
         "explore",
@@ -675,6 +675,35 @@
           "https://cursor.com/docs/subagents"
         ],
         "checked_on": "2026-10-26",
+        "version_constraint": null,
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "state": "native",
+      "format": "cursor-markdown",
+      "path_template": ".cursor/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Cursor accepts model-dependent effort options in a bracketed model selector. Weaver stages a bare model or inherit.",
+      "permission_behavior": "readonly: true restricts file edits and state-changing shell commands. Parent tools including MCP remain subject to host policy; no OS sandbox is asserted.",
+      "reserved_names": [
+        "explore",
+        "browser"
+      ],
+      "evidence": {
+        "sources": [
+          "https://cursor.com/docs/subagents"
+        ],
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"

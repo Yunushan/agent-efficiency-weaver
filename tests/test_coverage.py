@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 25)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 207)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 26)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 209)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -172,6 +172,22 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_cursor_cli_inventory_is_bound_to_the_signed_out_windows_release(self):
+        report = coverage_report(ROOT)
+        cursor = next(item for item in report["requested_items"] if item["id"] == "cursor")
+        targets = {row["surface_id"]: row for row in cursor["targets"]}
+        self.assertEqual(set(targets), {"ide", "cli"})
+        self.assertFalse(targets["ide"]["runtime_observations"])
+        record, = targets["cli"]["runtime_observations"]
+        self.assertEqual(record["product_version"], "2026.11.13-eacade1")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
+            "cursor-cli-mcp-approval-and-tool-discovery": "mcp",
+            "cursor-cli-catalog-authentication": "models",
+        })
 
     def test_openhands_observation_uses_the_released_sdk_and_wsl_variant(self):
         report = coverage_report(ROOT)

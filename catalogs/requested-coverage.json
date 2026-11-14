@@ -47,7 +47,7 @@
     },
     {
       "id": "cursor", "label": "Cursor", "aliases": ["cursor"],
-      "targets": [{"product_id": "cursor", "surface_id": "ide"}]
+      "targets": [{"product_id": "cursor", "surface_id": "ide"}, {"product_id": "cursor", "surface_id": "cli"}]
     },
     {
       "id": "openhands", "label": "OpenHands", "aliases": ["openhands", "Open Hands", "OpenHands Agent Canvas", "Agent Canvas"],
@@ -1747,6 +1747,29 @@
         {
           "check": "canvas-conversation-context7-tool-call",
           "evidence_sha256": "b237d12c3f1b4c1744cdf7c97af9c247672778fcd50c8791a72f33b07fcc6041"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "mcp-cli-inventory",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "32d90eb1e285c73b392cedb1d49a38838355e3e6",
+      "checks": [
+        {
+          "check": "cursor-cli-mcp-approval-and-tool-discovery",
+          "evidence_sha256": "709473558f6722a81cfbaa95ca2394af4f07e5c21166d0378a8ace0bf6502de4"
+        },
+        {
+          "check": "cursor-cli-catalog-authentication",
+          "evidence_sha256": "709473558f6722a81cfbaa95ca2394af4f07e5c21166d0378a8ace0bf6502de4"
         }
       ]
     }

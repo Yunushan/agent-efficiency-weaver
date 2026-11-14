@@ -121,6 +121,7 @@ ADAPTER_SURFACES = {
     ("cline", "ide"),
     ("copilot", "vscode"),
     ("cursor", "ide"),
+    ("cursor", "cli"),
     ("openhands", "cli"),
     ("zed", "ide"),
     ("junie", "cli"),
@@ -483,6 +484,8 @@ class IntegrationRegistryTests(unittest.TestCase):
                     if (integration.id, surface.id) == ("kiro", "cli") else
                     ("tests/test_adapters.py", "tests/test_stdio_adapters.py")
                     if (integration.id, surface.id) in {("copilot", "vscode"), ("openhands", "cli")} else
+                    ("tests/test_stdio_adapters.py",)
+                    if (integration.id, surface.id) == ("cursor", "cli") else
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
                     else ()

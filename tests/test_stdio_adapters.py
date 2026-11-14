@@ -202,6 +202,18 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertIn("context_servers with enabled: false", handoff["content"])
         self.assertIn("enable only the intended servers", handoff["content"])
 
+    def test_cursor_cli_handoff_documents_individual_workspace_approvals(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "cursor", "--surface", "cli",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        config, guide = json.loads(output)["artifacts"]
+        self.assertEqual(config["path"], "cursor/.cursor/mcp.json")
+        self.assertEqual(json.loads(config["content"]), {
+            "mcpServers": {"context7": {"url": "https://mcp.context7.com/mcp"}},
+        })
+        self.assertIn("agent mcp enable NAME --workspace PROJECT", guide["content"])
+        self.assertIn("agent mcp list-tools NAME --workspace PROJECT", guide["content"])
+
     def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
         spec = self.integrations["openhands"]
         requests = render_mcp(spec, "canvas", self.profile, self.catalog, ["synthetic-stdio", "context7"])
