@@ -130,6 +130,8 @@ def _parser() -> argparse.ArgumentParser:
                                  help='Stage selected servers as disabled OpenCode V2 project entries')
             render_route.add_argument('--copilot-portable', action='store_true',
                                       help='Stage portable MCP configuration for the VS Code Copilot harness')
+            render_route.add_argument('--antigravity-user-mcp', action='store_true',
+                                      help='Stage a user MCP fragment for Antigravity Desktop')
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
         elif name in ('provider', 'model'):
@@ -260,7 +262,7 @@ def _selection(args: argparse.Namespace, root: Path) -> tuple[IntegrationSpec, s
 
 def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
              *, mcp: bool = False, label: str | None = None, opencode_v2: bool = False,
-             copilot_portable: bool = False) -> RenderedArtifact:
+             copilot_portable: bool = False, antigravity_user_mcp: bool = False) -> RenderedArtifact:
     target = spec.surface(surface)
     workflow = describe_workflow(spec, target_os, host_os, surface_id=surface)
     sources = list(dict.fromkeys(source for evidence in target.capabilities.values() for source in evidence.sources))
@@ -273,7 +275,13 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
         if (spec.id, surface) in {('cline', 'cli'), ('cline', 'desktop'), ('kiro', 'cli')}:
             lines.extend(['Every staged server is disabled. Review each transport and its tool access.',
                           'Merge selected entries into the MCP settings and explicitly enable approved servers.'])
-        if target.config_scope == 'user':
+        if antigravity_user_mcp:
+            lines.extend([
+                'After review, merge individual server entries into ~/.gemini/config/mcp_config.json.',
+                'This file applies to every App project for this user. Preserve existing entries and settings.',
+                'Selected servers can start when the App refreshes this file. Review their tool access before merging.',
+            ])
+        elif target.config_scope == 'user':
             lines.extend(['User-scope fragment only: use the vendor settings interface to review and manually merge',
                           f'the selected entries at {target.documented_location or "the documented user settings location"}.',
                           'Do not copy this fragment into a project or replace the entire user configuration.'])
@@ -345,8 +353,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
                 'CLI permissions: https://antigravity.google/docs/cli/permissions',
             ])
         if (spec.id, surface) == ('antigravity', 'desktop'):
+            if not antigravity_user_mcp:
+                lines.append('Review and merge individual entries into .agents/mcp_config.json for a folder in the App project.')
             lines.extend([
-                'Review and merge individual entries into .agents/mcp_config.json for a folder in the App project.',
                 'Inspect the selected servers under Customizations > Installed > MCP Servers in the Antigravity App.',
                 'App MCP settings: https://antigravity.google/docs/mcp',
             ])
@@ -363,7 +372,7 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
     lines.extend(['', 'Profile retrieval and production-write advice is advisory, not an enforced permission system.',
                   'Do not enable remote listeners, open ports, install agents or weaken authentication to use this bundle.',
                   '', 'Documentation sources:', *[f'- {source}' for source in sources], ''])
-    name = label or ('MCP' if mcp else 'OS')
+    name = label or ('MCP-USER' if antigravity_user_mcp else 'MCP' if mcp else 'OS')
     return RenderedArtifact(PurePosixPath(spec.id, f'{name}-HANDOFF.md'),
                             '\n'.join(lines).encode('utf-8'), 'handoff')
 
@@ -546,7 +555,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
         if args.cmd == 'render':
             catalog = load_json(root / 'catalogs/mcp-servers.json')
             artifacts = render_mcp(spec, surface, profile, catalog, args.enable,
-                                   opencode_v2=args.opencode_v2, copilot_portable=args.copilot_portable)
+                                   opencode_v2=args.opencode_v2, copilot_portable=args.copilot_portable,
+                                   antigravity_user_mcp=args.antigravity_user_mcp)
         else:
             from .skills import render_instruction_bundle
 
@@ -725,7 +735,8 @@ def _run(args: argparse.Namespace, root: Path) -> int:
     artifacts.append(_handoff(spec, surface, target_os, host_os, mcp=args.cmd == 'render',
                               label={'provider': 'PROVIDER-OS', 'model': 'MODEL-OS', 'agent': 'AGENT-OS'}.get(args.cmd),
                               opencode_v2=args.cmd == 'render' and args.opencode_v2,
-                              copilot_portable=args.cmd == 'render' and args.copilot_portable))
+                              copilot_portable=args.cmd == 'render' and args.copilot_portable,
+                              antigravity_user_mcp=args.cmd == 'render' and args.antigravity_user_mcp))
     _emit(args, artifacts)
     return 0
 

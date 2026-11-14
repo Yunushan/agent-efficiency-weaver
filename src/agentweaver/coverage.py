@@ -49,6 +49,18 @@ _OBSERVATION_CHECKS = {
         "models", "The isolated bundled language server reported no signed-in account and returned no model "
         "entries or model reasoning configuration.",
     ),
+    "antigravity-desktop-mcp-user-stdio-prompt": (
+        "mcp", "The bundled language server loaded the generated fragment from a disposable user configuration, "
+        "listed the stdio fixture tool and retrieved the fixture prompt. Removing the file removed the server.",
+    ),
+    "antigravity-desktop-mcp-user-https-discovery": (
+        "mcp", "The bundled language server reached OpenAI Docs over Streamable HTTPS from the exact user fragment "
+        "and listed its tools. Removing the file removed the server.",
+    ),
+    "antigravity-desktop-mcp-workspace-refresh-boundary": (
+        "mcp", "Tracking a disposable project and refreshing MCP through the signed-out language server's "
+        "MCP manager did not launch the fixture when it was configured only at workspace scope.",
+    ),
     "antigravity-cli-account-catalog-authentication": (
         "models", "The signed-out account model listing requested sign-in. The Gemini-compatible mode listed "
         "its bundled selectors with a loopback endpoint and a synthetic key.",

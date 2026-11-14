@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 28)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 240)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 243)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -222,7 +222,7 @@ class RequestedCoverageTests(unittest.TestCase):
             "antigravity-cli-acp-model-inventory": "models",
             "antigravity-cli-acp-variant-requests": "reasoning",
         })
-        desktop, = targets["desktop"]["runtime_observations"]
+        desktop, desktop_mcp = targets["desktop"]["runtime_observations"]
         self.assertEqual(desktop["product_version"], "2.32.0")
         self.assertEqual(desktop["engine_version"], "2.32.0")
         self.assertEqual(desktop["os_variant"], "windows:11:10.0.26300.9711")
@@ -235,6 +235,14 @@ class RequestedCoverageTests(unittest.TestCase):
             "antigravity-desktop-workspace-agent": "agents",
             "antigravity-desktop-mcp-inventory": "mcp",
             "antigravity-desktop-signed-out-model-boundary": "models",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(desktop_mcp[field], desktop[field])
+        self.assertNotEqual(desktop_mcp["source_commit"], desktop["source_commit"])
+        self.assertEqual({row["check"]: row["capability"] for row in desktop_mcp["checks"]}, {
+            "antigravity-desktop-mcp-user-stdio-prompt": "mcp",
+            "antigravity-desktop-mcp-user-https-discovery": "mcp",
+            "antigravity-desktop-mcp-workspace-refresh-boundary": "mcp",
         })
 
     def test_cursor_cli_inventory_is_bound_to_the_signed_out_windows_release(self):

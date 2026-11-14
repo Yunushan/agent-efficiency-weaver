@@ -2091,6 +2091,33 @@
           "evidence_sha256": "3bc57914602f42309d04eb6dee5a4d62e68555b98e702e11b21c33562067a8e7"
         }
       ]
+    },
+    {
+      "product_version": "2.32.0",
+      "engine_version": "2.32.0",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-language-server",
+      "source_commit": "34b047f7e21df1a04aa6224d5ec5c6033d3f5959",
+      "product_id": "antigravity",
+      "surface_id": "desktop",
+      "os_id": "windows",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "checks": [
+        {
+          "check": "antigravity-desktop-mcp-user-stdio-prompt",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        },
+        {
+          "check": "antigravity-desktop-mcp-user-https-discovery",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        },
+        {
+          "check": "antigravity-desktop-mcp-workspace-refresh-boundary",
+          "evidence_sha256": "feac8976a8e4022549f4c8f6dee38d12a0c9232ee763a197f8ea31161e37b41f"
+        }
+      ]
     }
   ]
 }
