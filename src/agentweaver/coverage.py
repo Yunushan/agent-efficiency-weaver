@@ -105,6 +105,14 @@ _OBSERVATION_CHECKS = {
     "named-profile-effort-precedence": (
         "reasoning", "The scripted endpoint observed the profile effort and the higher-priority command-line override.",
     ),
+    "codex-lmstudio-local-generation": (
+        "models", "The signed-out CLI used the generated named profile and completed a Responses turn with "
+        "a locally loaded LM Studio model. The temporary endpoint only forwarded requests to the local server.",
+    ),
+    "claude-lmstudio-local-generation": (
+        "models", "The CLI used a temporary copy of the generated settings with a loopback port override and "
+        "completed a Messages turn with a locally loaded LM Studio model.",
+    ),
     "agent-metadata-discovery": (
         "agents", "The bundled executable listed the generated project agent with its authored model selector.",
     ),
@@ -451,6 +459,7 @@ _OBSERVATION_INTERFACES = {
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
     ("claude-code", "cli", "stream-json"),
+    ("claude-code", "cli", "print-json"),
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
     ("qwen-code", "desktop", "bundled-daemon-http"),

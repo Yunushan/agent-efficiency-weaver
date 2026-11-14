@@ -441,6 +441,25 @@
       ]
     },
     {
+      "product_id": "codex",
+      "surface_id": "cli",
+      "product_version": "0.167.0-alpha.4.1",
+      "engine_version": "0.167.0-alpha.4.1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "exec-loopback",
+      "environment": "isolated-signed-out",
+      "source_commit": "024d7cf45e41a4423efb3be4f11096f105b42927",
+      "checks": [
+        {
+          "check": "codex-lmstudio-local-generation",
+          "evidence_sha256": "859a74b450d1cb5587a80ac3bffb3083357460b3b9ec47fdc0e6ea4efadea95b"
+        }
+      ]
+    },
+    {
       "product_id": "claude-code",
       "surface_id": "vscode",
       "product_version": "1.146.0",
@@ -1377,6 +1396,25 @@
         {
           "check": "claude-cli-default-child-model",
           "evidence_sha256": "c89e6ad461ec276f3169e12bf42cff456757d979cc73cc13f3906b21ea6dbc7f"
+        }
+      ]
+    },
+    {
+      "product_id": "claude-code",
+      "surface_id": "cli",
+      "product_version": "2.1.325",
+      "engine_version": "2.1.325",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "checked_on": "2026-11-14",
+      "interface": "print-json",
+      "environment": "isolated-loopback",
+      "source_commit": "024d7cf45e41a4423efb3be4f11096f105b42927",
+      "checks": [
+        {
+          "check": "claude-lmstudio-local-generation",
+          "evidence_sha256": "d75b32c09bf7a29a39e65759741421be83b468274dc67ca2761f7e1d1a95ede4"
         }
       ]
     },

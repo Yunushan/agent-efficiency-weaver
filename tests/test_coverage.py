@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 26)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 212)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 214)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -164,6 +164,12 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(profile["product_version"], "0.167.0-alpha.4.1")
         self.assertEqual({check["check"]: check["capability"] for check in profile["checks"]},
                          {"named-profile-model-request": "models", "named-profile-effort-precedence": "reasoning"})
+        local_generation, = [record for record in exec_records
+                             if record["checks"][0]["check"] == "codex-lmstudio-local-generation"]
+        self.assertEqual(local_generation["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(local_generation["product_version"], profile["product_version"])
+        self.assertEqual(local_generation["environment"], "isolated-signed-out")
+        self.assertEqual(local_generation["checks"][0]["capability"], "models")
         agent, = [record for record in exec_records if record["checks"][0]["check"] == "agent-load"]
         for field in ("product_version", "engine_version", "environment", "architecture"):
             self.assertEqual(agent[field], profile[field])
@@ -435,7 +441,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_claude_standalone_observations_scope_catalog_and_tool_calls(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
         cli = next(target for target in item["targets"] if target["surface_id"] == "cli")
-        inventory, execution = cli["runtime_observations"]
+        inventory, execution, local_generation = cli["runtime_observations"]
         for record in (inventory, execution):
             self.assertEqual(record["interface"], "stream-json")
             self.assertEqual(record["product_version"], "2.1.325")
@@ -466,6 +472,11 @@ class RequestedCoverageTests(unittest.TestCase):
             "claude-cli-catalog-effort-requests": "reasoning",
             "claude-cli-default-child-model": "models",
         })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(local_generation[field], execution[field])
+        self.assertEqual(local_generation["interface"], "print-json")
+        check, = local_generation["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("claude-lmstudio-local-generation", "models"))
 
     def test_qwen_release_daemon_observations_identify_each_packaged_runtime(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
