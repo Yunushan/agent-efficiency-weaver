@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 25)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 206)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 207)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -201,8 +201,8 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         openhands = next(item for item in report["requested_items"] if item["id"] == "openhands")
         canvas = next(row for row in openhands["targets"] if row["surface_id"] == "canvas")
-        record, conversation = canvas["runtime_observations"]
-        for observation in (record, conversation):
+        record, conversation, https = canvas["runtime_observations"]
+        for observation in (record, conversation, https):
             self.assertEqual(observation["product_version"], "1.40.0")
             self.assertEqual(observation["engine_version"], "1.62.0")
             self.assertEqual(observation["interface"], "local-agent-server-asgi")
@@ -225,6 +225,10 @@ class RequestedCoverageTests(unittest.TestCase):
             "canvas-conversation-model-request": "models",
             "canvas-conversation-effort-request": "reasoning",
         })
+        self.assertNotEqual(https["source_commit"], conversation["source_commit"])
+        result, = https["checks"]
+        self.assertEqual(result["check"], "canvas-conversation-context7-tool-call")
+        self.assertEqual(result["capability"], "mcp")
         self.assertEqual(canvas["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_zed_observation_covers_editor_mcp_startup(self):

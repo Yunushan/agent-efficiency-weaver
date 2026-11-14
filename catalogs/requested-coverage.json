@@ -1730,6 +1730,25 @@
           "evidence_sha256": "08c50fa983d78bc309389c46ba720abfed48c89a4253d3601fcd2109f27e0281"
         }
       ]
+    },
+    {
+      "product_id": "openhands",
+      "surface_id": "canvas",
+      "product_version": "1.40.0",
+      "engine_version": "1.62.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "local-agent-server-asgi",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "a665bd5a3a6abfdb96783d9739e43524c400bf38",
+      "checks": [
+        {
+          "check": "canvas-conversation-context7-tool-call",
+          "evidence_sha256": "b237d12c3f1b4c1744cdf7c97af9c247672778fcd50c8791a72f33b07fcc6041"
+        }
+      ]
     }
   ]
 }

@@ -405,6 +405,11 @@ _OBSERVATION_CHECKS = {
         "mcp", "The generated disabled stdio entry sent no fixture messages. The conversation launched "
         "after explicit enablement discovered and called the fixture and received its sentinel.",
     ),
+    "canvas-conversation-context7-tool-call": (
+        "mcp", "The saved profile sent no HTTPS requests with the generated Context7 entry disabled. "
+        "After explicit enablement, the conversation called resolve-library-id over Streamable HTTPS "
+        "and received the public React library ID.",
+    ),
     "canvas-conversation-model-request": (
         "models", "The local conversation sent the named LLM profile's model in every scripted "
         "Chat Completions turn.",
