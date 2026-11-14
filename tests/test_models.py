@@ -333,13 +333,18 @@ class SnapshotTests(unittest.TestCase):
     def test_lmstudio_nonchat_staging_requires_matching_type_and_decision_instance(self) -> None:
         snapshot = self.read("lm-studio", {"models": [
             {"key": "fixture/embed", "type": "embedding", "loaded_instances": []},
-            {"key": "fixture/classifier", "type": "decision", "loaded_instances": [
+            {"key": "fixture/classifier", "type": "decision", "decision_type": "lfm3-d1",
+             "has_vision_adapter": False, "loaded_instances": [
                 {"id": "decision-run", "config": {"context_length": 2048}},
             ]},
             {"key": "fixture/chat", "type": "llm", "loaded_instances": [
                 {"id": "chat-run", "config": {}},
             ]},
         ]})
+        decision = snapshot["models"][1]["lm_studio"]
+        self.assertEqual(decision["decision_type"], "lfm3-d1")
+        self.assertIs(decision["has_vision_adapter"], False)
+        self.assertNotIn("has_vision_adapter", snapshot["models"][0]["lm_studio"])
         spec = get_integration("lm-studio", ROOT)
         cases = [
             ("openai-embeddings", "fixture/embed", "embeddings"),
@@ -370,6 +375,11 @@ class SnapshotTests(unittest.TestCase):
                        {"loaded_instances": [{"id": "run", "config": {}}, {"id": "run", "config": {}}]}):
             with self.subTest(fields=fields), self.assertRaises(WeaverError):
                 self.read("lm-studio", {"models": [{"key": "fixture/local", **fields}]})
+
+    def test_lmstudio_rejects_malformed_decision_metadata(self) -> None:
+        for fields in ({"decision_type": ""}, {"has_vision_adapter": 0}):
+            with self.subTest(fields=fields), self.assertRaises(WeaverError):
+                self.read("lm-studio", {"models": [{"key": "fixture/decision", "type": "decision", **fields}]})
 
     def test_input_limit_is_not_promoted_to_total_context_window(self) -> None:
         snapshot = self.read("anthropic", {"data": [{"id": "custom-claude", "max_input_tokens": 64000}]})

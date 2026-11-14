@@ -579,9 +579,20 @@ def _lmstudio_metadata(entry: dict[str, Any]) -> dict[str, Any]:
             _fail("Invalid LM Studio reasoning capabilities")
         options = _strings(native_reasoning.get("allowed_options"), "LM Studio reasoning options",
                            allowed=_LM_STUDIO_REASONING_OPTIONS)
-    return {"type": None if model_type is None else _text(model_type, "LM Studio model type"),
-            "variants": variant_ids, "selected_variant": selected_id,
-            "loaded_instances": instances, "native_reasoning_options": options}
+    metadata: dict[str, Any] = {
+        "type": None if model_type is None else _text(model_type, "LM Studio model type"),
+        "variants": variant_ids, "selected_variant": selected_id,
+        "loaded_instances": instances, "native_reasoning_options": options,
+    }
+    if model_type == "decision":
+        if "decision_type" in entry:
+            metadata["decision_type"] = _text(entry["decision_type"], "LM Studio decision model type")
+        if "has_vision_adapter" in entry:
+            has_vision_adapter = entry["has_vision_adapter"]
+            if type(has_vision_adapter) is not bool:
+                _fail("Invalid LM Studio decision vision adapter flag")
+            metadata["has_vision_adapter"] = has_vision_adapter
+    return metadata
 
 
 def _snapshot(raw: dict[str, Any], provider_id: str, provider: dict[str, Any], digest: str) -> dict[str, Any]:

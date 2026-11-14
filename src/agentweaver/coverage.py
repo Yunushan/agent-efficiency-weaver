@@ -271,6 +271,14 @@ _OBSERVATION_CHECKS = {
     "lmstudio-compatible-chat-requests": (
         "models", "The generated model selector worked with the local Chat Completions, Responses and Messages endpoints.",
     ),
+    "lmstudio-decision-instance-inventory": (
+        "models", "Weaver retained the decision model type, vision-adapter flag, loaded alias and context length. "
+        "Staging rejected the alias after the model was unloaded.",
+    ),
+    "lmstudio-local-decision-requests": (
+        "models", "Both local decision endpoints accepted the generated instance selector and returned typed "
+        "answers. Requests for a missing instance failed.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",

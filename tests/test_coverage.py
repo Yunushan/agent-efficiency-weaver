@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 18)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 167)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 169)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -177,19 +177,23 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         studio = next(item for item in report["requested_items"] if item["id"] == "lm-studio")
         targets = {target["surface_id"]: target for target in studio["targets"]}
-        api, = targets["api"]["runtime_observations"]
-        self.assertEqual(api["product_version"], "0.0.27+1")
-        self.assertEqual(api["engine_version"], "2.66.0")
-        self.assertEqual(api["os_variant"], "windows:11:10.0.26300.9711")
-        self.assertEqual(api["architecture"], "x64")
-        self.assertEqual(api["interface"], "loopback-http")
-        self.assertEqual(api["environment"], "isolated-release-loopback")
-        self.assertEqual({check["check"]: check["capability"] for check in api["checks"]}, {
+        observations = targets["api"]["runtime_observations"]
+        self.assertEqual(len(observations), 2)
+        for api in observations:
+            self.assertEqual(api["product_version"], "0.0.27+1")
+            self.assertEqual(api["engine_version"], "2.66.0")
+            self.assertEqual(api["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(api["architecture"], "x64")
+            self.assertEqual(api["interface"], "loopback-http")
+            self.assertEqual(api["environment"], "isolated-release-loopback")
+        self.assertEqual({check["check"]: check["capability"] for api in observations for check in api["checks"]}, {
             "lmstudio-local-model-inventory": "models",
             "lmstudio-local-reasoning-switch": "reasoning",
             "lmstudio-local-embedding-request": "models",
             "lmstudio-ephemeral-mcp-tool-call": "mcp",
             "lmstudio-compatible-chat-requests": "models",
+            "lmstudio-decision-instance-inventory": "models",
+            "lmstudio-local-decision-requests": "models",
         })
         self.assertEqual(targets["desktop"]["runtime_observations"], [])
         self.assertEqual(targets["bionic"]["runtime_observations"], [])

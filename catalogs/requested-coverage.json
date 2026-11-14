@@ -1422,6 +1422,29 @@
           "evidence_sha256": "d7bfd85364289d24bef2094ae5065413c7f1af0071af5938b48876be6d333b21"
         }
       ]
+    },
+    {
+      "product_id": "lm-studio",
+      "surface_id": "api",
+      "product_version": "0.0.27+1",
+      "engine_version": "2.66.0",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "loopback-http",
+      "environment": "isolated-release-loopback",
+      "checked_on": "2026-11-14",
+      "source_commit": "a09da9e7915f5d8d6214580024744b0c604d377f",
+      "checks": [
+        {
+          "check": "lmstudio-decision-instance-inventory",
+          "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
+        },
+        {
+          "check": "lmstudio-local-decision-requests",
+          "evidence_sha256": "7ad6ad4b2b5aa2c3ab417f4e83800871e92a503d87c2beca8fb484c277312153"
+        }
+      ]
     }
   ]
 }
