@@ -37,6 +37,14 @@ _OBSERVATION_CHECKS = {
     "cursor-cli-catalog-authentication": (
         "models", "The isolated signed-out CLI required authentication before listing account models.",
     ),
+    "cursor-cli-bundled-subagent-load": (
+        "agents", "The CLI package's bundled loader read the exact generated name, prompt, readonly mode, and "
+        "parameterized model string. Withholding the file removed the agent. The loader was invoked directly.",
+    ),
+    "cursor-cli-bundled-skill-load": (
+        "skills", "The CLI package's bundled loader read the exact generated Skill. Withholding the Skill file "
+        "removed it from discovery. The loader was invoked directly.",
+    ),
     "skill-discovery": ("skills", "The client listed the enabled generated project Skill."),
     "agent-discovery": ("agents", "The runtime discovered the generated project agent and loaded its prompt."),
     "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
@@ -455,6 +463,8 @@ _OBSERVATION_INTERFACES = {
     ("openhands", "cli", "headless-loopback"),
     ("openhands", "canvas", "local-agent-server-asgi"),
     ("cursor", "cli", "mcp-cli-inventory"),
+    ("cursor", "cli", "bundled-subagent-loader"),
+    ("cursor", "cli", "bundled-skill-loader"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),
@@ -614,6 +624,7 @@ def _load_observations(
             ("kilo", "ide"): {"isolated-release-loopback"},
             ("openhands", "cli"): {"isolated-release-loopback"},
             ("openhands", "canvas"): {"isolated-release-loopback"},
+            ("cursor", "cli"): {"isolated-signed-out", "isolated-native-loader"},
             ("cline", "cli"): {"isolated-release-loopback"},
             ("cline", "desktop"): {"isolated-release-loopback"},
             ("cline", "ide"): {"isolated-release-loopback"},

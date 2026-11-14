@@ -348,6 +348,11 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     elif format_name == "kimi-markdown":
         fields_any.update(tools=["Read", "Grep", "Glob"], subagents=[], override=False)
     elif format_name == "cursor-markdown":
+        if row["surface_id"] == "cli":
+            # The bundled CLI loader reads literal values after the first colon on each line.
+            # The name, model and single-line description have already been validated.
+            return (f"---\nname: {name}\ndescription: {description}\nmodel: {model or 'inherit'}\n"
+                    f"readonly: true\n---\n\n{instructions}\n").encode("utf-8")
         fields_any.update(model=model or "inherit", readonly=True)
     elif opencode_v2:
         fields_any.pop("name")

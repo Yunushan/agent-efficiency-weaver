@@ -170,7 +170,13 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         for (product, surface), path in NATIVE_PATHS.items():
             with self.subTest(product=product, surface=surface):
                 artifact = self.render(product, surface, description=description, instructions=instructions)[0]
-                parsed, body = parse_definition(artifact.content, path)
+                if (product, surface) == ("cursor", "cli"):
+                    header, body = artifact.content.decode("utf-8")[4:].split("\n---\n", 1)
+                    parsed = {key: value.strip() for key, value in
+                              (line.split(":", 1) for line in header.splitlines())}
+                    body = body.lstrip("\n")
+                else:
+                    parsed, body = parse_definition(artifact.content, path)
                 self.assertEqual(parsed["description"], description)
                 if product == "codex":
                     self.assertEqual(parsed["developer_instructions"], normalized)

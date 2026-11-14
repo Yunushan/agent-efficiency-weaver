@@ -67,12 +67,25 @@ class CursorModelTests(unittest.TestCase):
                 self.assertEqual(code, 0, errors)
                 definition, handoff, _ = json.loads(output)["artifacts"]
                 self.assertEqual(definition["path"], "cursor/.cursor/agents/reviewer.md")
-                fields = yaml.safe_load(definition["content"].split("---", 2)[1])
+                header = definition["content"].split("---", 2)[1]
+                if surface == "cli":
+                    # Cursor CLI reads the value after the first colon without YAML unquoting.
+                    self.assertEqual(header, "\nname: reviewer\ndescription: Fixture reviewer\n"
+                                             "model: reasoning-model[effort=high]\nreadonly: true\n")
+                fields = yaml.safe_load(header)
                 self.assertEqual(fields["model"], "reasoning-model[effort=high]")
                 self.assertNotIn("effort", fields)
                 self.assertTrue(fields["readonly"])
                 self.assertIn(hashlib.sha256(self.snapshot.read_bytes()).hexdigest(), handoff["content"])
                 self.assertEqual(invoke(*args, "--model", "reasoning-model", "--reasoning-effort", "high")[0], 2)
+
+    def test_cursor_cli_preserves_description_punctuation_and_inherited_model(self):
+        code, output, errors = invoke("agent", "--root", str(ROOT), "--agent", "cursor", "--surface", "cli",
+                                      "--name", "reviewer", "--description", "Review: avoid #secrets",
+                                      "--instructions-file", str(self.instructions), "--dry-run")
+        self.assertEqual(code, 0, errors)
+        content = json.loads(output)["artifacts"][0]["content"]
+        self.assertIn("\ndescription: Review: avoid #secrets\nmodel: inherit\nreadonly: true\n", content)
 
     def test_rejects_ambiguous_unsupported_and_unsafe_selections(self):
         failures = [

@@ -1772,6 +1772,44 @@
           "evidence_sha256": "709473558f6722a81cfbaa95ca2394af4f07e5c21166d0378a8ace0bf6502de4"
         }
       ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-subagent-loader",
+      "environment": "isolated-native-loader",
+      "checked_on": "2026-11-14",
+      "source_commit": "9e217eb39ad1d22edbc535b4a058dd5cf00073fe",
+      "checks": [
+        {
+          "check": "cursor-cli-bundled-subagent-load",
+          "evidence_sha256": "8ceee40360ff6984a4950f4a6d730dd8d1daea9801f7de6eca9063f85147c86b"
+        }
+      ]
+    },
+    {
+      "product_id": "cursor",
+      "surface_id": "cli",
+      "product_version": "2026.11.13-eacade1",
+      "engine_version": "2026.11.13-eacade1",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "bundled-skill-loader",
+      "environment": "isolated-native-loader",
+      "checked_on": "2026-11-14",
+      "source_commit": "9e217eb39ad1d22edbc535b4a058dd5cf00073fe",
+      "checks": [
+        {
+          "check": "cursor-cli-bundled-skill-load",
+          "evidence_sha256": "3893c32b381393dca9ecb88399b81b31ae779d80a753ebeccd947f1926cc6ef7"
+        }
+      ]
     }
   ]
 }

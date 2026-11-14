@@ -110,7 +110,7 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
         self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 26)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 209)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 211)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -179,7 +179,9 @@ class RequestedCoverageTests(unittest.TestCase):
         targets = {row["surface_id"]: row for row in cursor["targets"]}
         self.assertEqual(set(targets), {"ide", "cli"})
         self.assertFalse(targets["ide"]["runtime_observations"])
-        record, = targets["cli"]["runtime_observations"]
+        records = {item["interface"]: item for item in targets["cli"]["runtime_observations"]}
+        self.assertEqual(set(records), {"mcp-cli-inventory", "bundled-subagent-loader", "bundled-skill-loader"})
+        record = records["mcp-cli-inventory"]
         self.assertEqual(record["product_version"], "2026.11.13-eacade1")
         self.assertEqual(record["architecture"], "x64")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -188,6 +190,16 @@ class RequestedCoverageTests(unittest.TestCase):
             "cursor-cli-mcp-approval-and-tool-discovery": "mcp",
             "cursor-cli-catalog-authentication": "models",
         })
+        for interface, check_id, capability in (
+            ("bundled-subagent-loader", "cursor-cli-bundled-subagent-load", "agents"),
+            ("bundled-skill-loader", "cursor-cli-bundled-skill-load", "skills"),
+        ):
+            loader = records[interface]
+            self.assertEqual(loader["product_version"], record["product_version"])
+            self.assertEqual(loader["os_variant"], record["os_variant"])
+            self.assertEqual(loader["environment"], "isolated-native-loader")
+            check, = loader["checks"]
+            self.assertEqual((check["check"], check["capability"]), (check_id, capability))
 
     def test_openhands_observation_uses_the_released_sdk_and_wsl_variant(self):
         report = coverage_report(ROOT)
