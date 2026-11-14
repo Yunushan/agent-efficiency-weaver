@@ -66,6 +66,11 @@ def _parser() -> argparse.ArgumentParser:
     codex_models.add_argument('--input', type=Path, required=True)
     codex_models.add_argument('--model')
     codex_models.add_argument('--reasoning-effort')
+    cursor_models = subs.add_parser('cursor-models', help='Inspect a saved Cursor SDK models.list() array')
+    cursor_models.add_argument('--input', type=Path, required=True)
+    cursor_models.add_argument('--model')
+    cursor_models.add_argument('--reasoning-effort')
+    cursor_models.add_argument('--cursor-param', action='append', help='Select a parameter as ID=VALUE')
     copilot_models = subs.add_parser('copilot-models', help='Inspect a saved Copilot SDK listModels() array')
     copilot_models.add_argument('--input', type=Path, required=True)
     copilot_models.add_argument('--model', action='append', help='Model ID to check; repeat to check fallbacks')
@@ -171,6 +176,8 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument('--provider')
             command.add_argument('--catalog', type=Path)
             command.add_argument('--codex-catalog', type=Path, help='Saved Codex app-server model/list reply or pages')
+            command.add_argument('--cursor-catalog', type=Path, help='Saved Cursor SDK models.list() array')
+            command.add_argument('--cursor-param', action='append', help='Select a Cursor subagent parameter as ID=VALUE')
             command.add_argument('--claude-catalog', type=Path, help='Saved Claude Code Agent SDK ModelInfo array')
             command.add_argument('--copilot-catalog', type=Path, help='Saved Copilot SDK listModels() JSON array')
             command.add_argument('--factory-catalog', type=Path, help='Saved Factory Droid SDK listModels() array')
@@ -682,6 +689,7 @@ def _run(args: argparse.Namespace, root: Path) -> int:
             kilo_catalog=args.kilo_catalog,
             factory_catalog=args.factory_catalog,
             qoder_catalog=args.qoder_catalog, claude_catalog=args.claude_catalog,
+            cursor_catalog=args.cursor_catalog, cursor_parameters=args.cursor_param,
             qwen_auth_type=args.qwen_auth_type,
             allowed_skills=args.allow_skill,
             hermes_profile=args.hermes_profile, profile_skills=args.profile_skill,
@@ -721,6 +729,13 @@ def main(argv: list[str] | None = None) -> int:
             from .codex_models import inspect_codex_models
 
             result = inspect_codex_models(args.input, model=args.model, effort=args.reasoning_effort)
+            print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
+        if args.cmd == 'cursor-models':
+            from .cursor_models import inspect_cursor_models
+
+            result = inspect_cursor_models(args.input, model=args.model, effort=args.reasoning_effort,
+                                           parameters=args.cursor_param)
             print(json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False))
             return 0
         if args.cmd == 'copilot-models':

@@ -19,6 +19,7 @@ from .claude_models import inspect_claude_models
 from .codex_models import CODEX_EFFORTS, validate_codex_selection
 from .config import WeaverError, load_json, safe_https_url, safe_name
 from .copilot_models import validate_copilot_selection
+from .cursor_models import inspect_cursor_models
 from .factory_models import inspect_factory_models
 from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
@@ -73,7 +74,8 @@ _EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh", "max"}
 _EFFORT_FIELDS = {"codex-toml": "model_reasoning_effort", "claude-markdown": "effort",
                   "factory-markdown": "reasoningEffort", "opencode-markdown": "reasoningEffort",
                   "qoder-markdown": "effort", "vscode-markdown": "reasoning-effort",
-                  "copilot-cli-markdown": "reasoning-effort", "kilo-markdown": "variant"}
+                  "copilot-cli-markdown": "reasoning-effort", "kilo-markdown": "variant",
+                  "cursor-markdown": "model"}
 
 
 def _text(value: object, label: str, *, multiline: bool = False, maximum: int = 500) -> str:
@@ -190,7 +192,10 @@ def _load_definitions(root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise WeaverError("Local profile selection requires the documented OpenHands custom-agent format")
         efforts = _strings(row["efforts"], "Agent effort choices")
         allowed_efforts = CODEX_EFFORTS if format_name == "codex-toml" else _EFFORTS
-        catalog_efforts = format_name in {"vscode-markdown", "kilo-markdown"} and row["effort_field"] is not None
+        catalog_efforts = (
+            format_name in {"vscode-markdown", "kilo-markdown", "cursor-markdown"}
+            and row["effort_field"] is not None
+        )
         if (set(efforts) - allowed_efforts or (catalog_efforts and efforts)
                 or (not catalog_efforts and bool(efforts) != (row["effort_field"] is not None))):
             raise WeaverError("Invalid custom-agent effort declaration")
@@ -394,7 +399,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             factory_catalog: Path | None = None,
                             qoder_catalog: Path | None = None,
                             qwen_auth_type: str | None = None,
-                            claude_catalog: Path | None = None) -> list[RenderedArtifact]:
+                            claude_catalog: Path | None = None, cursor_catalog: Path | None = None,
+                            cursor_parameters: list[str] | None = None) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
@@ -404,6 +410,15 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             _text(value, label, maximum=250)
     if snapshot is not None and not isinstance(snapshot, Mapping):
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
+    if cursor_parameters and cursor_catalog is None:
+        raise WeaverError("Cursor model parameters require --cursor-catalog")
+    if cursor_catalog is not None:
+        if spec.id != "cursor" or surface not in {"cli", "ide"} or hermes_profile:
+            raise WeaverError("A Cursor SDK catalog requires the local Cursor CLI or IDE target")
+        if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog, opencode_catalog,
+                                               copilot_catalog, kilo_catalog, factory_catalog, qoder_catalog,
+                                               claude_catalog)):
+            raise WeaverError("A Cursor SDK catalog conflicts with other model discovery options")
     if model_variant is not None and opencode_catalog is None and kilo_catalog is None:
         raise WeaverError("A model variant requires a saved OpenCode V2 or Kilo model catalog")
     qwen_protocol = None
@@ -514,9 +529,17 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     kilo_digest: str | None = None
     factory_digest: str | None = None
     qoder_digest: str | None = None
+    cursor_digest: str | None = None
     copilot_models: list[str] | None = None
     skill_ids: tuple[str, ...] = ()
-    if claude_catalog is not None:
+    if cursor_catalog is not None:
+        if row["format"] != "cursor-markdown" or row["effort_field"] != "model" or model_id in {None, "inherit"}:
+            raise WeaverError("A Cursor SDK catalog requires an explicit model for a native Cursor subagent")
+        cursor_report = inspect_cursor_models(cursor_catalog, model=model_id, effort=effort,
+                                              parameters=cursor_parameters)
+        model, checked = cursor_report["selection"]["subagent_selector"], None
+        cursor_digest = cursor_report["snapshot_sha256"]
+    elif claude_catalog is not None:
         if row["format"] != "claude-markdown" or row["model_field"] != "model" or model_id in {None, "inherit"}:
             raise WeaverError("A Claude Code custom-agent catalog requires an explicit model selector")
         if effort is not None and effort not in row["efforts"]:
@@ -598,6 +621,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A local LLM profile reference conflicts with model, provider, effort or catalog overrides")
         model, checked = _llm_profile(llm_profile), None
     else:
+        if effort is not None and row["format"] == "cursor-markdown":
+            raise WeaverError("Cursor custom-agent effort requires --cursor-catalog")
         if effort is not None and row["format"] in {"vscode-markdown", "copilot-cli-markdown"}:
             raise WeaverError("Copilot custom-agent effort requires --copilot-catalog")
         if cline_configured_agent and model_id not in {None, "inherit"} and provider_id not in {"openrouter", "anthropic"}:
@@ -713,6 +738,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "and falls back to the parent model when that setting cannot be resolved.",
                       "Review the destination and its credentials before using the agent. Configure model-dependent "
                       "reasoning through the selected Qwen provider entry or the session controls."])
+    if cursor_digest is not None:
+        lines.extend(["", f"Saved Cursor SDK models.list() SHA-256: {cursor_digest}",
+                      "The selected options are encoded in the subagent's model string. Confirm access in "
+                      "the destination account and team. Cursor can fall back when the configured model is unavailable."])
     if claude_digest is not None:
         if model_id == "default":
             lines.extend(["", "The authored default selector pins the model resolved by the saved session. "
@@ -788,6 +817,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         path = row["path_template"].replace("{name}", identifier)
         native_model = copilot_models if copilot_models and len(copilot_models) > 1 else model
         native_effort = model_variant if kilo_digest is not None else effort
+        if cursor_digest is not None:
+            native_effort = None
         content = _native(row, identifier, summary, prompt, native_model, native_effort,
                           opencode_v2=opencode_digest is not None, skill_ids=skill_ids,
                           copilot_catalog=copilot_digest is not None,

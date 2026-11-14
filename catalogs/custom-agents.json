@@ -661,10 +661,10 @@
       "path_template": ".cursor/agents/{name}.md",
       "model_field": "model",
       "model_style": "bare",
-      "effort_field": null,
+      "effort_field": "model",
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Cursor accepts model-dependent effort options in a bracketed model selector. Weaver stages a bare model or inherit.",
+      "reasoning_behavior": "A saved Cursor SDK catalog validates model-specific parameters and effort for the bracketed model selector.",
       "permission_behavior": "readonly: true restricts file edits and state-changing shell commands. Parent tools including MCP remain subject to host policy; no OS sandbox is asserted.",
       "reserved_names": [
         "explore",
@@ -672,12 +672,14 @@
       ],
       "evidence": {
         "sources": [
-          "https://cursor.com/docs/subagents"
+          "https://cursor.com/docs/subagents",
+          "https://cursor.com/docs/sdk/typescript#cursormodelslist"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
-          "tests/test_agent_definitions.py"
+          "tests/test_agent_definitions.py",
+          "tests/test_cursor_models.py"
         ],
         "runtime_checks": []
       }
@@ -690,10 +692,10 @@
       "path_template": ".cursor/agents/{name}.md",
       "model_field": "model",
       "model_style": "bare",
-      "effort_field": null,
+      "effort_field": "model",
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
-      "reasoning_behavior": "Cursor accepts model-dependent effort options in a bracketed model selector. Weaver stages a bare model or inherit.",
+      "reasoning_behavior": "A saved Cursor SDK catalog validates model-specific parameters and effort for the bracketed model selector.",
       "permission_behavior": "readonly: true restricts file edits and state-changing shell commands. Parent tools including MCP remain subject to host policy; no OS sandbox is asserted.",
       "reserved_names": [
         "explore",
@@ -701,12 +703,14 @@
       ],
       "evidence": {
         "sources": [
-          "https://cursor.com/docs/subagents"
+          "https://cursor.com/docs/subagents",
+          "https://cursor.com/docs/sdk/typescript#cursormodelslist"
         ],
         "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
-          "tests/test_agent_definitions.py"
+          "tests/test_agent_definitions.py",
+          "tests/test_cursor_models.py"
         ],
         "runtime_checks": []
       }

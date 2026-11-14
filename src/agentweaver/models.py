@@ -58,7 +58,7 @@ _PROTOCOLS = {
 } | _LM_STUDIO_NONCHAT.keys() | _OPENROUTER_TASK_ENDPOINTS.keys()
 _SECRET_KEYS = {"api_key", "apikey", "authorization", "credentials", "credential", "secret", "access_token",
                 "refresh_token", "password", "headers", "apiKey", "token"}
-_SECRET = re.compile(r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})",
+_SECRET = re.compile(r"(?:sk-(?:or-|ant-|proj-)?[A-Za-z0-9_-]{8,}|crsr_[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{15,}|gh[pousr]_[A-Za-z0-9_]{12,}|Bearer\s+[A-Za-z0-9._~-]{12,})",
                      re.IGNORECASE)
 _MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 _OPENROUTER_PRICE_FIELDS = {

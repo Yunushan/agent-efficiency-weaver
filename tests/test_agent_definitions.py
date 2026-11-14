@@ -93,6 +93,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
                                  ("openhands", "canvas"): "2026-11-14",
                                  ("cursor", "cli"): "2026-11-14",
+                                 ("cursor", "ide"): "2026-11-14",
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
