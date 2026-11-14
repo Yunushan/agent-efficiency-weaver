@@ -243,6 +243,9 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         if spec.id == 'cline' or (spec.id, surface) == ('kiro', 'cli'):
             for entry in document['mcpServers'].values():
                 entry['disabled'] = True
+        if (spec.id, surface) == ('zed', 'ide'):
+            for entry in document['context_servers'].values():
+                entry['enabled'] = False
         content = json_bytes(document)
     kind = ('mcp-request' if target.config_scope == 'request' else
             'mcp-fragment' if target.config_scope in ('user', 'app') else 'mcp')

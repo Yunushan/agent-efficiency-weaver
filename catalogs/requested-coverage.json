@@ -1602,6 +1602,25 @@
           "evidence_sha256": "722d185cfaa4e6238e9d01c1849a0e64bd3614432f2cd5c3546ac7579fbc1d25"
         }
       ]
+    },
+    {
+      "product_id": "zed",
+      "surface_id": "ide",
+      "product_version": "1.28.1",
+      "engine_version": "1.28.1+stable.390.e8bc16acee5ae1937600d571d441c4b5d7b0d288",
+      "os_id": "windows",
+      "os_variant": "windows:11:10.0.26300.9711",
+      "architecture": "x64",
+      "interface": "editor-startup",
+      "environment": "isolated-signed-out",
+      "checked_on": "2026-11-14",
+      "source_commit": "a71863ffd9719e4c619c94f0d5b5d8693c67a390",
+      "checks": [
+        {
+          "check": "zed-stdio-explicit-activation",
+          "evidence_sha256": "adbfdc470ddfc87dcd6ea038528825adbc170810168ca2cc9e6288de948ee9b4"
+        }
+      ]
     }
   ]
 }

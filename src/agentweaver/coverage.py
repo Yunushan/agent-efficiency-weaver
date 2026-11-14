@@ -345,6 +345,10 @@ _OBSERVATION_CHECKS = {
     "hermes-profile-effort-resolution": (
         "reasoning", "The native resolver applied the generated OpenRouter model-specific high effort override.",
     ),
+    "zed-stdio-explicit-activation": (
+        "mcp", "The exact generated disabled entry and the absent entry sent no stdio messages. "
+        "Enabling the fixture in disposable Zed user settings produced initialize and tools/list.",
+    ),
 }
 _OBSERVATION_FIELDS = {
     "product_id", "surface_id", "product_version", "engine_version", "os_id", "os_variant",
@@ -370,6 +374,7 @@ _OBSERVATION_INTERFACES = {
     ("kiro", "cli", "acp-stdio"),
     ("kiro", "cli", "config-inventory"),
     ("hermes", "cli", "config-inventory"),
+    ("zed", "ide", "editor-startup"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
     ("cline", "desktop", "desktop-sidecar"),

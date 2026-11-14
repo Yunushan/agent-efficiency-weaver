@@ -193,6 +193,15 @@ class StdioConfigurationTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             select_servers(zero, self.catalog, ["synthetic-stdio"])
 
+    def test_zed_user_fragment_handoff_requires_explicit_activation(self):
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "zed", "--surface", "ide",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertFalse(json.loads(fragment["content"])["context_servers"]["context7"]["enabled"])
+        self.assertIn("context_servers with enabled: false", handoff["content"])
+        self.assertIn("enable only the intended servers", handoff["content"])
+
     def test_each_supported_host_uses_its_documented_native_shape(self):
         metadata = stdio_inventory()
         self.assertEqual(set(metadata), SUPPORTED)
@@ -217,6 +226,8 @@ class StdioConfigurationTests(unittest.TestCase):
                                 {**base, "enabled": True} if product == "hermes" else base)
                     if product == "cline" or (product, surface.id) == ("kiro", "cli"):
                         expected["disabled"] = True
+                    if product == "zed":
+                        expected["enabled"] = False
                     self.assertEqual(entry, expected)
                     for remote_field in ("url", "serverUrl", "httpUrl", "uri"):
                         self.assertNotIn(remote_field, entry)

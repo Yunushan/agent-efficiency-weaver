@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 22)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 189)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 23)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 190)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -172,6 +172,20 @@ class RequestedCoverageTests(unittest.TestCase):
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
         self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+
+    def test_zed_observation_covers_editor_mcp_startup(self):
+        report = coverage_report(ROOT)
+        zed = next(item for item in report["requested_items"] if item["id"] == "zed")
+        target, = zed["targets"]
+        record, = target["runtime_observations"]
+        self.assertEqual(target["surface_id"], "ide")
+        self.assertEqual(record["product_version"], "1.28.1")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["interface"], "editor-startup")
+        self.assertEqual(record["environment"], "isolated-signed-out")
+        check, = record["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("zed-stdio-explicit-activation", "mcp"))
 
     def test_hermes_cli_observation_scopes_disposable_profile_loading(self):
         report = coverage_report(ROOT)

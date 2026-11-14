@@ -311,6 +311,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
                           'Merge only after review. OpenCode V2 replaces same-name server entries as a whole.',
                           'Enable each desired server explicitly in OpenCode after reviewing its URL or launch arguments.',
                           'V2 configuration: https://opencode.ai/docs/mcp-servers/'])
+        if (spec.id, surface) == ('zed', 'ide'):
+            lines.extend(['Zed entries are staged under context_servers with enabled: false.',
+                          'Review and merge individual entries into Zed settings, then enable only the intended servers.'])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':
