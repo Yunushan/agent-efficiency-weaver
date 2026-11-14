@@ -131,7 +131,7 @@ def _parser() -> argparse.ArgumentParser:
             render_route.add_argument('--copilot-portable', action='store_true',
                                       help='Stage portable MCP configuration for the VS Code Copilot harness')
             render_route.add_argument('--antigravity-user-mcp', action='store_true',
-                                      help='Stage a user MCP fragment for Antigravity Desktop')
+                                      help='Stage a user MCP fragment for Antigravity Desktop or IDE')
         elif name == 'bundle':
             command.add_argument('--skill', action='append', default=[])
         elif name in ('provider', 'model'):
@@ -283,10 +283,11 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
             lines.extend(['Every staged server is disabled. Review each transport and its tool access.',
                           'Merge selected entries into the MCP settings and explicitly enable approved servers.'])
         if antigravity_user_mcp:
+            client = 'App' if surface == 'desktop' else 'IDE'
             lines.extend([
                 'After review, merge individual server entries into ~/.gemini/config/mcp_config.json.',
-                'This file applies to every App project for this user. Preserve existing entries and settings.',
-                'Selected servers can start when the App refreshes this file. Review their tool access before merging.',
+                f'This file applies to every {client} project for this user. Preserve existing entries and settings.',
+                f'Selected servers can start when the {client} refreshes this file. Review their tool access before merging.',
             ])
         elif target.config_scope == 'user':
             lines.extend(['User-scope fragment only: use the vendor settings interface to review and manually merge',
@@ -366,6 +367,9 @@ def _handoff(spec: IntegrationSpec, surface: str, target_os: str, host_os: str,
                 'Inspect the selected servers under Customizations > Installed > MCP Servers in the Antigravity App.',
                 'App MCP settings: https://antigravity.google/docs/mcp',
             ])
+        if antigravity_user_mcp and surface == 'ide':
+            lines.extend(['Open MCP Servers > Manage MCP Servers in the IDE agent panel to review the merged entries.',
+                          'IDE MCP settings: https://antigravity.google/docs/mcp?tab=ide'])
     lines.extend(['', f'Workflow: {workflow["workflow"]["mode"]}.',
                   'Pending native runtime evidence: record product/surface/version, exact OS variant and artifact hashes.'])
     if target_os == 'ios':

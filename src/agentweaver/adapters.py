@@ -196,15 +196,15 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     if copilot_portable and (opencode_v2 or (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
             'copilot', 'vscode', 'servers.type-http', 'project', '.vscode/mcp.json')):
         raise WeaverError('Portable Copilot MCP staging requires the VS Code Copilot project target')
-    if antigravity_user_mcp and (opencode_v2 or copilot_portable or (spec.id, surface, dialect) != (
-            'antigravity', 'desktop', 'mcpServers.serverUrl')):
-        raise WeaverError('Antigravity user MCP staging requires the Desktop surface')
+    if antigravity_user_mcp and (opencode_v2 or copilot_portable or spec.id != 'antigravity'
+                                 or surface not in {'desktop', 'ide'} or dialect != 'mcpServers.serverUrl'):
+        raise WeaverError('Antigravity user MCP staging requires the Desktop or IDE surface')
     if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT, 'openhands-canvas.settings-mcp')
             or target.capabilities['mcp'].state not in ('available', 'manual')):
         raise WeaverError('Native MCP export unavailable on this surface; use bundle for instruction handoff')
     selected = select_servers(profile, catalog, enabled)
     if antigravity_user_mcp:
-        return [RenderedArtifact(PurePosixPath(spec.id, 'fragments', 'mcp.desktop.user.json'),
+        return [RenderedArtifact(PurePosixPath(spec.id, 'fragments', f'mcp.{surface}.user.json'),
                                  json_bytes(_json_document(dialect, selected, spec.id)), 'mcp-fragment')]
     if dialect == 'openhands-canvas.settings-mcp':
         if ((spec.id, surface, target.config_scope) != ('openhands', 'canvas', 'request')

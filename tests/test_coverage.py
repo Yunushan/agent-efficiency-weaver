@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 29)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 248)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 252)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -203,7 +203,18 @@ class RequestedCoverageTests(unittest.TestCase):
         antigravity = next(item for item in report["requested_items"] if item["id"] == "antigravity")
         targets = {row["surface_id"]: row for row in antigravity["targets"]}
         self.assertEqual(set(targets), {"ide", "cli", "desktop"})
-        self.assertFalse(targets["ide"]["runtime_observations"])
+        ide, = targets["ide"]["runtime_observations"]
+        self.assertEqual((ide["product_version"], ide["engine_version"]), ("2.5.5", "2.5.5"))
+        self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(ide["architecture"], "x64")
+        self.assertEqual(ide["interface"], "bundled-language-server")
+        self.assertEqual(ide["environment"], "isolated-signed-out")
+        self.assertEqual({row["check"]: row["capability"] for row in ide["checks"]}, {
+            "antigravity-ide-workspace-instructions": "instructions",
+            "antigravity-ide-workspace-skill": "skills",
+            "antigravity-ide-mcp-user-stdio-discovery": "mcp",
+            "antigravity-ide-signed-out-model-inventory": "models",
+        })
         record, https, acp = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "1.5.9")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")

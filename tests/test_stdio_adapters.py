@@ -267,8 +267,25 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertIn("~/.gemini/config/mcp_config.json", handoff["content"])
         self.assertIn("applies to every App project", handoff["content"])
         self.assertNotIn("Project target", handoff["content"])
-        for surface in ("cli", "ide"):
-            self.assertEqual(invoke(*common, "--surface", surface)[0], 2)
+        self.assertEqual(invoke(*common, "--surface", "cli")[0], 2)
+
+    def test_antigravity_ide_user_mcp_stages_separately_from_its_workspace(self):
+        spec = self.integrations["antigravity"]
+        selected = ["context7", "synthetic-stdio"]
+        user, = render_mcp(spec, "ide", self.profile, self.catalog, selected, antigravity_user_mcp=True)
+        project, = render_mcp(spec, "ide", self.profile, self.catalog, selected)
+        self.assertEqual(user.kind, "mcp-fragment")
+        self.assertEqual(user.relative_path.as_posix(), "antigravity/fragments/mcp.ide.user.json")
+        self.assertEqual(user.content, project.content)
+        code, output, errors = invoke("render", "--root", str(ROOT), "--agent", "antigravity", "--surface", "ide",
+                                      "--profile", "efficient", "--enable", "context7", "--dry-run", "--antigravity-user-mcp")
+        self.assertEqual(code, 0, errors)
+        fragment, handoff = json.loads(output)["artifacts"]
+        self.assertEqual(fragment["path"], user.relative_path.as_posix())
+        self.assertEqual(handoff["path"], "antigravity/MCP-USER-HANDOFF.md")
+        self.assertIn("~/.gemini/config/mcp_config.json", handoff["content"])
+        self.assertIn("applies to every IDE project", handoff["content"])
+        self.assertNotIn("Project target", handoff["content"])
 
     def test_openhands_canvas_stages_one_disabled_request_per_selected_server(self):
         spec = self.integrations["openhands"]

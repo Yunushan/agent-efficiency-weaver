@@ -73,6 +73,19 @@ _OBSERVATION_CHECKS = {
         "mcp", "Tracking a disposable project and refreshing MCP through the signed-out language server's "
         "MCP manager did not launch the fixture when it was configured only at workspace scope.",
     ),
+    "antigravity-ide-workspace-instructions": (
+        "instructions", "The bundled IDE language server returned the generated workspace AGENTS.md. Its absence removed it from inventory.",
+    ),
+    "antigravity-ide-workspace-skill": (
+        "skills", "The bundled IDE language server returned the generated Skill from its exact workspace path. Its absence removed it from inventory.",
+    ),
+    "antigravity-ide-mcp-user-stdio-discovery": (
+        "mcp", "The bundled IDE language server initialized the local stdio fixture from the generated user fragment and listed its tool. "
+        "The fresh workspace-only and empty controls did not start the fixture.",
+    ),
+    "antigravity-ide-signed-out-model-inventory": (
+        "models", "The isolated IDE language server returned empty model and configuration inventories without an account token.",
+    ),
     "antigravity-cli-account-catalog-authentication": (
         "models", "The signed-out account model listing requested sign-in. The Gemini-compatible mode listed "
         "its bundled selectors with a loopback endpoint and a synthetic key.",
@@ -589,6 +602,7 @@ _OBSERVATION_INTERFACES = {
     ("antigravity", "cli", "headless-loopback"),
     ("antigravity", "cli", "acp-stdio"),
     ("antigravity", "desktop", "bundled-language-server"),
+    ("antigravity", "ide", "bundled-language-server"),
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
     ("codex", "desktop", "app-server-stdio"),
