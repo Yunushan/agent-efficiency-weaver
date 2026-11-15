@@ -81,19 +81,31 @@ class DistributionIntegrityTests(unittest.TestCase):
             canonical = Path(directory).resolve()
             alias = canonical.parent / (canonical.name + "-system-temp-alias")
             original_resolve = Path.resolve
+            new_directory = tempfile.TemporaryDirectory
+            installations = []
 
             def resolve_alias(path, *args, **kwargs):
                 return canonical if path == alias else original_resolve(path, *args, **kwargs)
 
             def install(_wheel, base, label):
-                self.assertEqual(base, canonical)
+                self.assertEqual(base.parent, canonical)
+                self.assertTrue(base.is_dir())
+                self.assertTrue(all(not previous.exists() for previous in installations))
+                installations.append(base)
                 return "fixture-python", base / f"{label}-cwd", {}
 
             allocation = mock.MagicMock()
             allocation.__enter__.return_value = str(alias)
+
+            def allocate(*, dir=None, **kwargs):
+                if dir is None:
+                    return allocation
+                self.assertEqual(dir, canonical)
+                return new_directory(dir=dir, **kwargs)
+
             rebuilt = canonical / "sdist-wheel/rebuilt.whl"
             with (redirect_stdout(io.StringIO()),
-                  mock.patch.object(distribution.tempfile, "TemporaryDirectory", return_value=allocation),
+                  mock.patch.object(distribution.tempfile, "TemporaryDirectory", side_effect=allocate),
                   mock.patch.object(Path, "resolve", new=resolve_alias),
                   mock.patch.object(distribution, "_read_tar", return_value=self.sdist),
                   mock.patch.object(distribution, "_read_wheel", return_value=self.wheel),
@@ -104,8 +116,10 @@ class DistributionIntegrityTests(unittest.TestCase):
                   mock.patch.object(distribution, "_smoke") as smoke):
                 result = distribution.main(["--sdist", "synthetic.tar.gz", "--wheel", "synthetic.whl"])
             self.assertEqual(result, 0)
+            self.assertEqual(len(installations), 2)
+            self.assertTrue(all(not base.exists() for base in installations))
             self.assertEqual([call.args[1] for call in smoke.call_args_list],
-                             [canonical / "original-cwd", canonical / "rebuilt-cwd"])
+                             [installations[0] / "original-cwd", installations[1] / "rebuilt-cwd"])
 
 
 if __name__ == '__main__':

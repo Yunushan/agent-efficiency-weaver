@@ -10,9 +10,13 @@ from agentweaver.resources import asset_paths, resource_root
 ROOT = Path(__file__).resolve().parents[1]
 
 CATALOGS = (
+    "catalogs/custom-agents.json",
     "catalogs/integrations.json",
     "catalogs/mcp-servers.json",
+    "catalogs/model-hosts.json",
+    "catalogs/model-providers.json",
     "catalogs/operating-systems.json",
+    "catalogs/requested-coverage.json",
 )
 PROFILES = (
     "profiles/balanced.json",

@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import os
 import platform
+import re
 import sys
 from collections.abc import Mapping, Sequence
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +59,9 @@ _EVIDENCE_FIELDS = (
     "checked_on",
     "artifact_sha256",
     "installed",
+    "os_variant",
+    "architecture",
+    "action",
 )
 _ROUTE_FIELDS = ("description", "source", "url", "steps", "instructions", "prerequisites", "reason")
 
@@ -158,6 +163,7 @@ def collect_host_facts() -> dict[str, Any]:
         "machine": platform.machine(),
         "sys_platform": sys_platform,
         "os_release_id": os_release.get("ID", ""),
+        "os_release_version_id": os_release.get("VERSION_ID", ""),
         "wsl": bool(os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSL_INTEROP")),
         "android": bool(
             os.environ.get("ANDROID_ROOT")
@@ -333,6 +339,8 @@ def _append_checks(target: list[dict[str, Any]], source: Any) -> None:
             for check in checks:
                 if isinstance(check, Mapping):
                     target.append(dict(check))
+        elif any(key in source for key in ("os", "target_os", "host_os")) and any(key in source for key in ("status", "result")):
+            target.append(dict(source))
     elif isinstance(source, Sequence) and not isinstance(source, (str, bytes)):
         for value in source:
             _append_checks(target, value)
@@ -385,29 +393,91 @@ def _check_matches(check_os: str, target: str, host: str) -> bool:
     return True
 
 
-def _native(surface: Any, entry: Any, target: str, host: str) -> dict[str, Any]:
+def _architecture(value: Any) -> str:
+    name = _text(value)
+    return {"amd64": "x86_64", "x64": "x86_64", "arm64": "aarch64"}.get(name, name)
+
+
+def _host_variant(host: str) -> str | None:
+    """Name the actual OS variant without hostnames, paths or a vendor lookup."""
+    facts = collect_host_facts()
+    if host == "unknown" or detect_host_os(facts) != host:
+        return None
+    family, _ = _os_parts(host)
+    if family == "linux":
+        name, version = facts.get("os_release_id"), facts.get("os_release_version_id")
+        return f"{host}:{name}:{version}" if name and version else None
+    if family == "macos":
+        version = platform.mac_ver()[0]
+        return f"macos:{version}" if version else None
+    release = facts.get("release")
+    if family == "windows":
+        version = facts.get("version")
+        return f"windows:{release}:{version}" if release and version else None
+    return f"{host}:{release}" if release else None
+
+
+def _complete_native_check(check: Mapping[str, Any], product: str, surface: str) -> bool:
+    """A status string or another client's result cannot establish consumption."""
+    if not isinstance(product, str) or not product or not isinstance(surface, str) or not surface:
+        return False
+    if check.get("product") != product or check.get("surface") != surface:
+        return False
+    if any(not isinstance(check.get(key), str) or not check[key].strip()
+           for key in ("product_version", "os_variant", "architecture", "checked_on")):
+        return False
+    if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+() -]{0,199}", check["product_version"]) or
+            not re.search(r"\d", check["product_version"]) or
+            not re.fullmatch(r"\d{4}-\d{2}-\d{2}", check["checked_on"])):
+        return False
+    if check.get("action") != "configuration-consumption" or type(check.get("installed")) is not bool:
+        return False
+    if not isinstance(check.get("artifact_sha256"), str) or not re.fullmatch(r"[0-9a-fA-F]{64}", check["artifact_sha256"]):
+        return False
+    try:
+        date.fromisoformat(check["checked_on"])
+    except ValueError:
+        return False
+    status = _text(check.get("status") or check.get("result"))
+    return status not in _SUCCESS or check["installed"] is True
+
+
+def _native(surface: Any, entry: Any, target: str, host: str, product: str) -> dict[str, Any]:
     workflow_state = _status(entry) if isinstance(entry, str) else _status(_get(entry, "state"))
     checks = _runtime_checks(surface, entry)
+    host_variant = _host_variant(host)
+    architecture = _architecture(platform.machine())
     matching: list[dict[str, Any]] = []
     for check in checks:
-        declared_os = check.get("target_os", check.get("os", check.get("host_os")))
-        check_os = _evidence_os(declared_os)
-        if check_os != "unknown" and _check_matches(check_os, target, host):
+        if not _complete_native_check(check, product, _get(surface, "id")):
+            continue
+        if (not host_variant or check["os_variant"] != host_variant or not architecture or
+                _architecture(check["architecture"]) != architecture):
+            continue
+        scopes = {_evidence_os(check[field]) for field in ("target_os", "os", "host_os") if field in check}
+        if len(scopes) != 1 or "unknown" in scopes:
+            continue
+        check_os = next(iter(scopes))
+        if _check_matches(check_os, target, host):
             sanitized = {name: check[name] for name in _EVIDENCE_FIELDS if name in check}
             sanitized["os"] = check_os
             sanitized["status"] = _text(check.get("status") or check.get("result")) or "unknown"
             matching.append(sanitized)
     successes = [check for check in matching if check["status"] in _SUCCESS]
     failures = [check for check in matching if check["status"] in _FAILURE]
-    installed_values = [check["installed"] for check in matching if isinstance(check.get("installed"), bool)]
-    if successes:
+    installed_values = {check["installed"] for check in matching if isinstance(check.get("installed"), bool)}
+    if successes and len(successes) == len(matching):
         status = "available"
         available: bool | None = True
-        reason = "Matching runtime evidence verifies vendor-native availability on the target OS."
-    elif failures:
+        reason = "Matching configuration-consumption evidence covers the recorded product version, OS variant and architecture."
+    elif failures and not successes:
         status = "unsupported"
         available = False
         reason = "Matching runtime evidence reports that the vendor-native route is unavailable."
+    elif successes:
+        status = "unknown"
+        available = None
+        reason = "Conflicting matching runtime observations must be resolved before availability can be established."
     elif workflow_state == "unsupported":
         status = "unsupported"
         available = False
@@ -419,9 +489,11 @@ def _native(surface: Any, entry: Any, target: str, host: str) -> dict[str, Any]:
     return {
         "status": status,
         "available": available,
-        "installed": installed_values[-1] if installed_values else None,
+        "installed": next(iter(installed_values)) if len(installed_values) == 1 else None,
         "target_os": target,
         "documented_state": workflow_state,
+        "host_variant": host_variant,
+        "host_architecture": architecture or None,
         "evidence": matching,
         "reason": reason,
     }
@@ -590,7 +662,7 @@ def describe_workflow(
         workflows = _get(agent, "os_workflows", {})
     entry = _workflow_entry(workflows, target)
     adapter = _adapter(surface, entry)
-    native = _native(surface, entry, target, host)
+    native = _native(surface, entry, target, host, _get(agent, "id"))
     manual = _route(entry, "manual")
     remote = _route(entry, "remote")
     core = _core_runtime(target)

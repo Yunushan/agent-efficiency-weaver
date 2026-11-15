@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 import subprocess
@@ -22,15 +23,15 @@ AGENT_SURFACES: dict[str, tuple[str, ...]] = {
     "aider": ("cli",),
     "amp": ("cli",),
     "antigravity": ("ide", "app-ui"),
-    "claude-code": ("cli",),
-    "cline": ("ide",),
+    "claude-code": ("cli", "vscode", "desktop"),
+    "cline": ("ide", "cli", "desktop"),
     "codex": ("cli",),
-    "copilot": ("vscode",),
+    "copilot": ("vscode", "cli", "desktop"),
     "cursor": ("ide",),
     "devin": ("desktop-local", "legacy-cascade"),
     "goose": ("cli",),
     "junie": ("cli",),
-    "kilo": ("cli", "ide"),
+    "kilo": ("cli", "ide", "desktop"),
     "kiro": ("ide", "cli"),
     "opencode": ("cli",),
     "openhands": ("cli",),
@@ -97,12 +98,13 @@ class ProviderRouteTests(unittest.TestCase):
     CASES: tuple[tuple[str, str, str, str], ...] = (
         ("kilo", "ide", "provider.openrouter.models", "https://kilo.ai/docs/ai-providers/openrouter"),
         ("kilo", "cli", "provider.openrouter.models", "https://kilo.ai/docs/getting-started/setup-authentication"),
+        ("kilo", "desktop", "Add AI Provider", "https://kilo.ai/docs/desktop/settings/ai"),
         ("opencode", "cli", "openrouter/anthropic/claude-sonnet-4", "https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration"),
         ("cline", "ide", "Model", "https://docs.cline.bot/provider-config/openrouter"),
         ("copilot", "vscode", "OpenRouter", "https://code.visualstudio.com/blogs/2026/06/18/byok-vscode"),
         ("cursor", "ide", "https://openrouter.ai/api/v1/cursor", "https://openrouter.ai/docs/cookbook/coding-agents/cursor-integration"),
         ("openhands", "cli", "openrouter/anthropic/claude-sonnet-4", "https://docs.openhands.dev/openhands/usage/llms/openrouter"),
-        ("zed", "ide", "openrouter/anthropic/claude-sonnet-4", "https://zed.dev/docs/ai/use-a-gateway"),
+        ("zed", "ide", "anthropic/claude-sonnet-4", "https://zed.dev/docs/ai/use-a-gateway"),
         ("junie", "cli", "JUNIE_OPENROUTER_API_KEY", "https://junie.jetbrains.com/docs/byok-openrouter.html"),
         ("goose", "cli", "GOOSE_PROVIDER", "https://goose-docs.ai/docs/getting-started/providers"),
         ("pi", "cli", "openrouter/anthropic/claude-sonnet-4", "https://pi.dev/docs/latest/providers.md"),
@@ -129,8 +131,28 @@ class ProviderRouteTests(unittest.TestCase):
                 self.assertIn("Staging handoff", text)
                 self.assertIn(expected_model_text, text)
                 self.assertIn(source, text)
-                self.assertIn(CHECKED_ON, text)
+                expected = "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON
+                if (agent_id, surface) == ("kilo", "desktop"):
+                    expected = "2026-11-15"
+                self.assertIn(expected, text)
                 self.assertNotIn("\r", text)
+
+    def test_standalone_copilot_stages_openrouter_config_without_credentials(self) -> None:
+        artifacts = render("copilot", "cli")
+        config = next(item for item in artifacts if item.kind == "provider-config")
+        self.assertEqual(config.relative_path.as_posix(), "copilot/provider/openrouter.providers.json")
+        document = json.loads(config.content)
+        [provider], [model] = document["providers"], document["models"]
+        self.assertEqual(provider, {"name": "weaver-openrouter", "type": "openai",
+                                    "baseUrl": "https://openrouter.ai/api/v1", "wireApi": "completions"})
+        self.assertEqual(model["wireModel"], MODEL)
+        self.assertEqual(model["provider"], provider["name"])
+        self.assertIn(f"copilot --model {provider['name']}/{model['id']}", setup_text(artifacts))
+        evidence = provider_evidence("copilot", "cli")
+        self.assertEqual(evidence["state"], "available")
+        self.assertTrue(all(source in setup_text(artifacts) for source in evidence["sources"]))
+        with self.assertRaisesRegex(WeaverError, "streaming model"):
+            render("copilot", "cli", model=f"{MODEL}:batch")
 
     def test_accepts_native_integration_spec_surface_mapping(self) -> None:
         surfaces: dict[str, SurfaceSpec] = {}
@@ -152,6 +174,19 @@ class ProviderRouteTests(unittest.TestCase):
         self.assertNotIn("--model openrouter/openrouter/", text)
         with self.assertRaises(WeaverError):
             render("aider", "cli", model="")
+
+    def test_openhands_handoff_uses_cli_settings_and_opt_in_temporary_environment(self) -> None:
+        artifacts = render("openhands", "cli", model="fixture/cli-model")
+        self.assertEqual([item.kind for item in artifacts], ["provider-setup"])
+        text = setup_text(artifacts)
+        for expected in ("`Ctrl+P`", "~/.openhands/agent_settings.json", "llm.model", "llm.base_url",
+                         "openrouter/fixture/cli-model", "LLM_MODEL", "LLM_BASE_URL", "LLM_API_KEY",
+                         "--override-with-envs", "not persisted", "separate interface", "saved LLM profile"):
+            self.assertIn(expected, text)
+        self.assertNotIn("Open Settings > LLM", text)
+        self.assertNotIn("use Advanced", text)
+        self.assertNotIn("OPENROUTER_API_KEY", text)
+        self.assertIn("2026-10-26", text)
 
     def test_codex_adds_native_toml_fragment_without_credentials(self) -> None:
         artifacts = render("codex", "cli", model="openai/gpt-5.2")
@@ -200,7 +235,8 @@ class ProviderRouteTests(unittest.TestCase):
         self.assertIn("openrouter/anthropic/claude-sonnet-4", opencode)
         zed = setup_text(render("zed", "ide"))
         self.assertIn("agent.default_model.model", zed)
-        self.assertIn("openrouter/anthropic/claude-sonnet-4", zed)
+        self.assertIn("anthropic/claude-sonnet-4", zed)
+        self.assertNotIn("openrouter/anthropic/claude-sonnet-4", zed)
         claude = setup_text(render("claude-code", "cli"))
         self.assertIn("openrouter/anthropic/claude-sonnet-4", claude)
         codex = setup_text(render("codex", "cli"))
@@ -240,8 +276,12 @@ class ProviderEvidenceTests(unittest.TestCase):
                 data = provider_evidence(agent_id, surface)
                 self.assertEqual(data["state"], "available" if agent_id == "codex" else "manual")
                 self.assertIn(source, data["sources"])
-                self.assertEqual(data["checked_on"], CHECKED_ON)
-                self.assertEqual(data["fixture_tests"], ["tests/test_providers.py"])
+                expected = "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON
+                if (agent_id, surface) == ("kilo", "desktop"):
+                    expected = "2026-11-15"
+                self.assertEqual(data["checked_on"], expected)
+                self.assertEqual(data["fixture_tests"], ["tests/test_providers.py", "tests/test_expanded_providers.py"]
+                                 if agent_id == "codex" else ["tests/test_providers.py"])
                 text = setup_text(render(agent_id, surface))
                 for url in data["sources"]:
                     self.assertIn(url, text)
@@ -308,7 +348,7 @@ class ProviderGapTests(unittest.TestCase):
 
     def test_unsupported_surfaces_and_agents_fail_clearly(self) -> None:
         with self.assertRaises(WeaverError):
-            render("kilo", "desktop")
+            render("kilo", "cloud")
         with self.assertRaises(WeaverError):
             render("claude-code", "ide")
         with self.assertRaises(WeaverError):

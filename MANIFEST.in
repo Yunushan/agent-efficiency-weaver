@@ -4,6 +4,10 @@ include build_helpers.py
 include catalogs/integrations.json
 include catalogs/mcp-servers.json
 include catalogs/operating-systems.json
+include catalogs/requested-coverage.json
+include catalogs/model-providers.json
+include catalogs/model-hosts.json
+include catalogs/custom-agents.json
 include profiles/balanced.json
 include profiles/efficient.json
 include profiles/enterprise-secure.json
