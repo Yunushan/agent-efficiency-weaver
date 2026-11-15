@@ -1,5 +1,7 @@
 import importlib.util
 import io
+import os
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -182,6 +184,31 @@ class BuildCommandTests(unittest.TestCase):
         with mock.patch.object(distribution, "_run", return_value=""):
             with self.assertRaises(distribution.CheckError):
                 distribution._build_root(self.dist)
+
+    def test_wheel_install_targets_the_disposable_environment(self):
+        wheel = self.dist / "test.whl"
+        for version, bootstrap in (("25.0.1", False), ("22.2.0", True), (None, True)):
+            with self.subTest(version=version):
+                with tempfile.TemporaryDirectory(dir=self.base) as folder:
+                    base = Path(folder)
+                    module = base / "installed/module.py"
+                    with (
+                        mock.patch.dict(os.environ, {"PIP_TARGET": str(self.dist / "wrong-target")}),
+                        mock.patch.object(distribution.metadata, "version", return_value=version,
+                                          side_effect=distribution.metadata.PackageNotFoundError if version is None else None),
+                        mock.patch.object(distribution.venv, "EnvBuilder") as builder,
+                        mock.patch.object(distribution, "_run", side_effect=["", str(module)]) as run,
+                    ):
+                        python, outside, _ = distribution._install(wheel, base, "original")
+                    builder.assert_called_once_with(with_pip=bootstrap, clear=True)
+                    command, cwd, environment = run.call_args_list[0].args
+                    self.assertEqual(cwd, outside)
+                    self.assertNotIn("PIP_TARGET", environment)
+                    self.assertEqual(environment["PIP_CONFIG_FILE"], os.devnull)
+                    expected = [str(python), "-m", "pip"] if bootstrap else [
+                        sys.executable, "-m", "pip", "--python", str(python),
+                    ]
+                    self.assertEqual(command, [*expected, "install", "--no-index", "--no-deps", "--no-cache-dir", str(wheel)])
 
 
 if __name__ == "__main__":

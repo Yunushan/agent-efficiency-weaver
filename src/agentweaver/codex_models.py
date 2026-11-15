@@ -8,6 +8,8 @@ from .config import WeaverError
 from .models import _load_bounded_snapshot, _model_id, _text
 
 CODEX_EFFORTS = frozenset({"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"})
+CODEX_REASONING_SUMMARIES = ("auto", "concise", "detailed", "none")
+CODEX_VERBOSITIES = ("low", "medium", "high")
 
 
 def _model_entry(row: object) -> dict[str, Any]:

@@ -4,6 +4,7 @@ import argparse
 import ast
 import hashlib
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -13,6 +14,7 @@ import tomllib
 import unicodedata
 import venv
 import zipfile
+from importlib import metadata
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -425,18 +427,29 @@ def _venv_python(directory):
     return directory / "bin/python"
 
 
+def _pip_can_target_venv():
+    try:
+        version = metadata.version("pip")
+    except metadata.PackageNotFoundError:
+        return False
+    release = re.match(r"^(\d+)\.(\d+)", version)
+    return release is not None and tuple(map(int, release.groups())) >= (22, 3)
+
+
 def _install(wheel, base, label):
     environment = _clean_environment()
     directory = base / label
-    venv.EnvBuilder(with_pip=True, clear=True).create(directory)
+    can_target_venv = _pip_can_target_venv()
+    venv.EnvBuilder(with_pip=not can_target_venv, clear=True).create(directory)
     python = _venv_python(directory)
     outside = base / f"{label}-cwd"
     outside.mkdir()
+    pip = [sys.executable, "-m", "pip", "--python", str(python)] if can_target_venv else [str(python), "-m", "pip"]
+    install_environment = {key: value for key, value in environment.items() if not key.upper().startswith("PIP_")}
+    install_environment.update(PIP_CONFIG_FILE=os.devnull, PIP_DISABLE_PIP_VERSION_CHECK="1", PIP_NO_INDEX="1")
     _run(
         [
-            str(python),
-            "-m",
-            "pip",
+            *pip,
             "install",
             "--no-index",
             "--no-deps",
@@ -444,7 +457,7 @@ def _install(wheel, base, label):
             str(wheel),
         ],
         outside,
-        environment,
+        install_environment,
     )
     module_path = _run(
         [str(python), "-c", "import agentweaver; print(agentweaver.__file__)"],
@@ -469,6 +482,9 @@ def _smoke(python, outside, environment, host_os):
         ["agents", "inventory", "--format", "json"],
         ["model", "--agent", "qwen-code", "--provider", "openai", "--model", "synthetic-model",
          "--dry-run"],
+        ["model", "--agent", "perplexity", "--surface", "agent-api", "--provider", "perplexity-agent",
+         "--model", "openai/gpt-6.1-sol", "--profile", "efficient", "--skill", "token-efficient-retrieval",
+         "--enable", "context7", "--perplexity-max-steps", "4", "--dry-run"],
         [
             "doctor",
             "--agent",
@@ -621,10 +637,10 @@ def main(argv=None):
             rebuilt_files = _read_wheel(rebuilt)
             _check_wheel(rebuilt_files, name, version, expected, modules)
             host_os = _host_os()
-            python, outside, environment = _install(wheel.resolve(), base, "original")
-            _smoke(python, outside, environment, host_os)
-            python, outside, environment = _install(rebuilt, base, "rebuilt")
-            _smoke(python, outside, environment, host_os)
+            for label, artifact in (("original", wheel.resolve()), ("rebuilt", rebuilt)):
+                with tempfile.TemporaryDirectory(dir=base) as install_directory:
+                    python, outside, environment = _install(artifact, Path(install_directory).resolve(), label)
+                    _smoke(python, outside, environment, host_os)
         print("Distribution checks passed")
         return 0
     except CheckError as exc:

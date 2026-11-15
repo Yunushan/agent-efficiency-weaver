@@ -194,6 +194,34 @@
       }
     },
     {
+      "product_id": "antigravity",
+      "surface_id": "sdk",
+      "state": "native",
+      "format": "antigravity-sdk-python",
+      "path_template": "sdk/agents/{name}/subagent_config.py",
+      "model_field": "model",
+      "model_style": "bare",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "Pass the subagent constructor result in the parent SDK configuration. An explicit model name uses the parent endpoint; omission inherits.",
+      "reasoning_behavior": "The SDK SubagentConfig has no per-definition thinking level.",
+      "permission_behavior": "The definition enables only file viewing and completion built-ins, adds no custom tools, and selects only explicitly staged Skill paths. Review parent policy and SDK behavior before use.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://antigravity.google/docs/sdk/subagents/",
+          "https://github.com/google-antigravity/antigravity-sdk-python/blob/75ba22bd00afae2f46393ff31f30c3f0df52982f/google/antigravity/types.py"
+        ],
+        "checked_on": "2026-11-15",
+        "version_constraint": "Google Antigravity SDK 0.1.23",
+        "fixture_tests": [
+          "tests/test_agent_definitions.py",
+          "tests/test_antigravity_sdk.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
       "product_id": "chatgpt",
       "surface_id": "desktop",
       "state": "manual",
@@ -205,13 +233,14 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions, or use the Workspace Agent builder handoff to draft a saved agent in an eligible workspace. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-15",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -231,13 +260,14 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions, or use the Workspace Agent builder handoff to draft a saved agent in an eligible workspace. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-15",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -257,13 +287,14 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions, or use the Workspace Agent builder handoff to draft a saved agent in an eligible workspace. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-15",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -283,13 +314,14 @@
       "efforts": [],
       "model_behavior": "Model selection remains with the parent or documented host UI.",
       "reasoning_behavior": "No per-definition effort field is exported.",
-      "permission_behavior": "Ask Work to delegate with explicit role instructions. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
+      "permission_behavior": "Ask Work to delegate with explicit role instructions, or use the Workspace Agent builder handoff to draft a saved agent in an eligible workspace. Custom standalone TOML definitions are documented for local Codex clients, not hosted Work; no local .codex discovery is claimed.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-15",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -519,7 +551,7 @@
         "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
+      "reasoning_behavior": "Explicit model_reasoning_effort needs model evidence. The optional model_reasoning_summary and model_verbosity fields stage documented values; effective behavior depends on the destination model and provider.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",
@@ -528,9 +560,10 @@
       ],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -558,7 +591,7 @@
         "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
+      "reasoning_behavior": "Explicit model_reasoning_effort needs model evidence. The optional model_reasoning_summary and model_verbosity fields stage documented values; effective behavior depends on the destination model and provider.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",
@@ -567,9 +600,10 @@
       ],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -597,7 +631,7 @@
         "ultra"
       ],
       "model_behavior": "Model is inherited unless explicitly set; model_provider and service tier follow the parent session.",
-      "reasoning_behavior": "model_reasoning_effort is optional and model-dependent; explicit effort needs provider model evidence or a saved Codex model/list response.",
+      "reasoning_behavior": "Explicit model_reasoning_effort needs model evidence. The optional model_reasoning_summary and model_verbosity fields stage documented values; effective behavior depends on the destination model and provider.",
       "permission_behavior": "Supported shell_tool/apps/plugins features are disabled. sandbox_mode, approval_policy and mcp_servers in a child file do not override the parent; no read-only OS sandbox is promised.",
       "reserved_names": [
         "default",
@@ -606,9 +640,10 @@
       ],
       "evidence": {
         "sources": [
-          "https://learn.chatgpt.com/docs/agent-configuration/subagents"
+          "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+          "https://learn.chatgpt.com/docs/config-file/config-reference"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -700,15 +735,16 @@
       "efforts": [],
       "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
       "reasoning_behavior": "The Copilot SDK catalog route can stage an initial effort advertised by every selected model. The active harness resolves effective reasoning.",
-      "permission_behavior": "Only read and search tools are selected; tool behavior depends on the selected VS Code harness and host policy.",
+      "permission_behavior": "Selects read and search by default. Exact profile-allowlisted MCP tools can be referenced for the Copilot harness. Configure servers separately and review effective session tools and host policy.",
       "reserved_names": [],
       "evidence": {
         "sources": [
           "https://code.visualstudio.com/docs/agent-customization/custom-agents",
           "https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference",
+          "https://docs.github.com/en/copilot/reference/custom-agents-configuration#tools",
           "https://github.com/github/copilot-sdk/blob/main/nodejs/src/types.ts"
         ],
-        "checked_on": "2026-10-26",
+        "checked_on": "2026-11-14",
         "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
@@ -824,7 +860,7 @@
       ],
       "model_behavior": "model: inherit follows the parent; explicit managed IDs or configured custom: IDs use Factory model configuration.",
       "reasoning_behavior": "reasoningEffort accepts low/medium/high only on a supporting explicit model. Pass --factory-catalog to validate the exact model and effort against a saved SDK list.",
-      "permission_behavior": "tools: read-only and mcpServers: [] narrow tools. Factory always includes TodoWrite and Skill; this is not an OS sandbox.",
+      "permission_behavior": "The default uses read-only tools and an empty MCP server list. With explicit tool selection, the definition lists Read, Grep, Glob and the requested MCP tool IDs. Factory always includes TodoWrite and Skill. Host policy and sandbox settings still apply.",
       "reserved_names": [],
       "evidence": {
         "sources": [
@@ -1067,6 +1103,68 @@
         ],
         "checked_on": "2026-11-13",
         "version_constraint": "Model list and task selection audited against Kilo v7.8.27 source.",
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "desktop",
+      "state": "native",
+      "format": "kilo-markdown",
+      "path_template": ".kilo/agents/{name}.md",
+      "model_field": "model",
+      "model_style": "provider/model",
+      "effort_field": "variant",
+      "efforts": [],
+      "model_behavior": "Omitting the model inherits the parent or host default; explicit IDs require a configured host route.",
+      "reasoning_behavior": "Supply --kilo-catalog and --model-variant to stage a named variant for an explicit model. The variant is model-dependent and may include settings beyond reasoning.",
+      "permission_behavior": "mode: subagent; edit/bash/task/webfetch/websearch/todowrite are denied and read/glob/grep allowed. Other ambient tools and merged settings require host review; no complete sandbox claim.",
+      "reserved_names": [
+        "code",
+        "plan",
+        "debug",
+        "ask",
+        "orchestrator",
+        "explore",
+        "general"
+      ],
+      "evidence": {
+        "sources": [
+          "https://kilo.ai/docs/desktop/overview",
+          "https://kilo.ai/docs/customize/marketplace",
+          "https://kilo.ai/docs/customize/custom-modes"
+        ],
+        "checked_on": "2026-11-15",
+        "version_constraint": "Project agent loading and variant fields exercised against bundled Kilo engine 7.8.27.",
+        "fixture_tests": [
+          "tests/test_agent_definitions.py"
+        ],
+        "runtime_checks": []
+      }
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "gateway",
+      "state": "unsupported",
+      "format": null,
+      "path_template": null,
+      "model_field": null,
+      "model_style": "none",
+      "effort_field": null,
+      "efforts": [],
+      "model_behavior": "The Gateway API accepts model IDs in requests.",
+      "reasoning_behavior": "Custom-agent settings are handled on Kilo's client surfaces.",
+      "permission_behavior": "The Gateway supplies remote model routing.",
+      "reserved_names": [],
+      "evidence": {
+        "sources": [
+          "https://kilo.ai/docs/gateway/api-reference"
+        ],
+        "checked_on": "2026-11-15",
+        "version_constraint": null,
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],
@@ -1437,24 +1535,24 @@
     {
       "product_id": "perplexity",
       "surface_id": "app",
-      "state": "unknown",
+      "state": "manual",
       "format": null,
       "path_template": null,
       "model_field": null,
       "model_style": "none",
       "effort_field": null,
       "efforts": [],
-      "model_behavior": "Reviewed Computer Skills and Project settings. Skills can dispatch specialist agents and Projects hold instructions, but a separate user-defined agent role/model schema is not established.",
-      "reasoning_behavior": "No custom-agent reasoning field is exported.",
-      "permission_behavior": "Skill upload and Project instruction controls do not establish a separate custom-agent tool or permission schema. No native custom-agent definition is exported.",
+      "model_behavior": "Choose the model in the Teammates web interface. The preview guide documents Claude Opus 5.5 as the default for new teammates. Its spawned agents use the teammate's model unless instructed otherwise. The available model list depends on the destination account.",
+      "reasoning_behavior": "The Teammates guide documents model choice. Teammate-specific reasoning values remain unknown.",
+      "permission_behavior": "Teammates use installed plugins and Skills and follow the permissions of their plugins and Projects. Review that access separately before creating a teammate.",
       "reserved_names": [],
       "evidence": {
         "sources": [
-          "https://www.perplexity.ai/help-center/en/articles/13914413-how-to-use-computer-skills",
-          "https://www.perplexity.ai/help-center/en/articles/10352961-what-are-projects"
+          "https://www.perplexity.ai/help-center/en/articles/2026102601-perplexity-teammates",
+          "https://www.perplexity.ai/changelog/teammates-fully-local-computer-on-mac-and-voice-mode"
         ],
-        "checked_on": "2026-10-26",
-        "version_constraint": null,
+        "checked_on": "2026-11-15",
+        "version_constraint": "Perplexity web research preview for individual Max accounts with access.",
         "fixture_tests": [
           "tests/test_agent_definitions.py"
         ],
@@ -1673,7 +1771,7 @@
       "efforts": [],
       "model_behavior": "Native subagents use the parent model or a shared subagent default. Use model --zed-subagent to stage the OpenRouter settings object.",
       "reasoning_behavior": "The shared subagent default can set thinking and model-specific effort in Zed settings. No per-definition effort field is exported.",
-      "permission_behavior": "Zed profiles configure a main-thread model and available tools through UI; they are not a documented persistent subagent prompt-file format.",
+      "permission_behavior": "Use model --zed-profile to stage a named native main-thread profile with a model and read tools. This route leaves persistent named subagent prompts as a manual handoff.",
       "reserved_names": [],
       "evidence": {
         "sources": [

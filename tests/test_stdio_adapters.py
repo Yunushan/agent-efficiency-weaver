@@ -122,6 +122,33 @@ class StdioConfigurationTests(unittest.TestCase):
             "synthetic-stdio": {"command": COMMAND, "args": ARGS, "disabled": True},
         }})
 
+    def test_kiro_stages_tool_filters_for_remote_and_stdio_servers(self):
+        for surface in ("cli", "ide"):
+            with self.subTest(surface=surface):
+                artifact, = render_mcp(self.integrations["kiro"], surface, self.profile, self.catalog,
+                                       ["context7", "synthetic-stdio"],
+                                       kiro_disabled_tools=["context7:query-docs", "synthetic-stdio:fixture_write",
+                                                            "synthetic-stdio:fixture_delete"])
+                self.assertEqual(artifact.relative_path.as_posix(), "kiro/.kiro/settings/mcp.json")
+                cli_default = {"disabled": True} if surface == "cli" else {}
+                self.assertEqual(json.loads(artifact.content), {"mcpServers": {
+                    "context7": {"url": "https://mcp.context7.com/mcp", "disabledTools": ["query-docs"], **cli_default},
+                    "synthetic-stdio": {"command": COMMAND, "args": ARGS,
+                                        "disabledTools": ["fixture_write", "fixture_delete"], **cli_default},
+                }})
+
+    def test_devin_can_stage_both_transports_disabled_and_hide_named_tools(self):
+        artifact, = render_mcp(self.integrations["devin"], "desktop-local", self.profile, self.catalog,
+                               ["context7", "synthetic-stdio"], devin_stage_disabled=True,
+                               devin_disabled_tools=["context7:query-docs", "synthetic-stdio:fixture_write"])
+        self.assertEqual(artifact.relative_path.as_posix(), "devin/.devin/mcp_config.json")
+        self.assertEqual(json.loads(artifact.content), {"mcpServers": {
+            "context7": {"transport": "http", "url": "https://mcp.context7.com/mcp",
+                         "disabled": True, "disabledTools": ["query-docs"]},
+            "synthetic-stdio": {"command": COMMAND, "args": ARGS, "disabled": True,
+                                "disabledTools": ["fixture_write"]},
+        }})
+
     def test_copilot_portable_stages_http_and_stdio_for_the_native_workspace_format(self):
         spec = self.integrations["copilot"]
         selected = ["context7", "synthetic-stdio"]
@@ -340,7 +367,7 @@ class StdioConfigurationTests(unittest.TestCase):
                                 {**base, "enabled": True} if product == "hermes" else base)
                     if product == "cline" or (product, surface.id) == ("kiro", "cli"):
                         expected["disabled"] = True
-                    if product in {"zed", "openhands"}:
+                    if product in {"zed", "openhands", "kilo"}:
                         expected["enabled"] = False
                     self.assertEqual(entry, expected)
                     for remote_field in ("url", "serverUrl", "httpUrl", "uri"):
@@ -373,8 +400,7 @@ class StdioConfigurationTests(unittest.TestCase):
                     self.assertEqual(yaml.safe_load(artifact.content), json.loads(artifact.content))
 
     def test_remote_only_request_and_unestablished_native_stdio_fail_closed(self):
-        for product, surface in (("perplexity", "agent-api"), ("lm-studio", "api"),
-                                 ("jetbrains-air", "desktop")):
+        for product, surface in (("perplexity", "agent-api"), ("lm-studio", "api")):
             with self.subTest(product=product), self.assertRaises(WeaverError) as raised:
                 self.artifact(product, surface)
             self.assertIn("stdio", str(raised.exception))
@@ -389,6 +415,16 @@ class StdioConfigurationTests(unittest.TestCase):
         self.assertEqual(kilo["mcp"]["synthetic-stdio"],
                          {"type": "local", "command": [COMMAND, *ARGS], "enabled": True})
         self.assertEqual(abacus["mcpServers"]["synthetic-stdio"], {"command": COMMAND, "args": ARGS})
+
+    def test_kilo_project_mcp_stages_both_transports_disabled(self):
+        for surface in ("cli", "ide", "desktop"):
+            with self.subTest(surface=surface):
+                artifact = self.artifact("kilo", surface, ["context7", "synthetic-stdio"])
+                self.assertEqual(artifact.relative_path.as_posix(), "kilo/.kilo/kilo.json")
+                self.assertEqual(json.loads(artifact.content), {"mcp": {
+                    "context7": {"type": "remote", "url": "https://mcp.context7.com/mcp", "enabled": False},
+                    "synthetic-stdio": {"type": "local", "command": [COMMAND, *ARGS], "enabled": False},
+                }})
 
     def test_unicode_quoted_arguments_and_executable_paths_round_trip_without_expansion(self):
         command = "C:\\Program Files\\synthetic-fixture\\server.exe"

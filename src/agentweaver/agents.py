@@ -10,14 +10,14 @@ import re
 import unicodedata
 from collections.abc import Mapping
 from datetime import date
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from .adapters import hermes_profile_mcp, json_bytes
 from .artifacts import RenderedArtifact
 from .claude_models import inspect_claude_models
-from .codex_models import CODEX_EFFORTS, validate_codex_selection
-from .config import WeaverError, load_json, safe_https_url, safe_name, select_servers
+from .codex_models import CODEX_EFFORTS, CODEX_REASONING_SUMMARIES, CODEX_VERBOSITIES, validate_codex_selection
+from .config import WeaverError, _stdio_command, _stdio_text, load_json, safe_https_url, safe_name, select_servers
 from .copilot_models import validate_copilot_selection
 from .cursor_models import inspect_cursor_models
 from .factory_models import inspect_factory_models
@@ -25,7 +25,7 @@ from .integrations import IntegrationSpec, load_integrations
 from .models import check_model, hermes_profile_model
 from .opencode_models import validate_kilo_selection, validate_opencode_selection
 from .qoder_models import inspect_qoder_models, validate_qoder_thinking_budget
-from .skills import selected_portable_skill_ids, stage_hermes_profile_skills
+from .skills import selected_portable_skill_ids, stage_portable_skills
 
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HOST_RESERVED_NAME = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
@@ -62,6 +62,7 @@ _PATHS = {
     "kiro-json": ".kiro/agents/{name}.json",
     "qoder-markdown": ".qoder/agents/{name}.md",
     "antigravity-markdown": ".agents/agents/{name}.md",
+    "antigravity-sdk-python": "sdk/agents/{name}/subagent_config.py",
     "devin-markdown": ".devin/agents/{name}.md",
     "openhands-markdown": ".agents/agents/{name}.md",
 }
@@ -308,14 +309,23 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
             model: str | list[str] | None, effort: str | int | None, *, opencode_v2: bool = False,
             skill_ids: tuple[str, ...] = (), mcp_ids: tuple[str, ...] = (), copilot_catalog: bool = False,
             mcp_tools: tuple[str, ...] = (),
-            cline_provider: str | None = None, copilot_model_policy: str | None = None) -> bytes:
+            cline_provider: str | None = None, copilot_model_policy: str | None = None,
+            codex_reasoning_summary: str | None = None, codex_verbosity: str | None = None) -> bytes:
     format_name = row["format"]
+    if format_name == "antigravity-sdk-python":
+        from .antigravity_sdk import sdk_subagent
+
+        return sdk_subagent(name, description, instructions, model if isinstance(model, str) else None, skill_ids)
     if format_name == "codex-toml":
         fields = {"name": name, "description": description, "developer_instructions": instructions}
         if isinstance(model, str):
             fields["model"] = model
         if isinstance(effort, str):
             fields["model_reasoning_effort"] = effort
+        if codex_reasoning_summary is not None:
+            fields["model_reasoning_summary"] = codex_reasoning_summary
+        if codex_verbosity is not None:
+            fields["model_verbosity"] = codex_verbosity
         lines = [f"{key} = {_quoted(value)}" for key, value in fields.items()]
         lines.extend(["", "[features]", "shell_tool = false", "apps = false", "plugins = false"])
         return ("\n".join(lines) + "\n").encode("utf-8")
@@ -329,10 +339,12 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
             fields_any["model"] = model
         return (json.dumps(fields_any, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
     if format_name == "factory-markdown":
-        fields_any.update(model=model or "inherit", tools="read-only", mcpServers=[])
+        fields_any.update(model=model or "inherit",
+                          tools=["Read", "Grep", "Glob", *mcp_tools] if mcp_tools else "read-only",
+                          mcpServers=[])
     elif format_name in {"vscode-markdown", "copilot-app-markdown"}:
-        fields_any["tools"] = ["read", "search"]
-        if copilot_catalog:
+        fields_any["tools"] = ["read", "search", *mcp_tools]
+        if copilot_catalog or mcp_tools:
             fields_any["target"] = "github-copilot"
             if copilot_model_policy is not None:
                 fields_any["model-policy"] = copilot_model_policy
@@ -356,12 +368,10 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     elif format_name == "kimi-markdown":
         fields_any.update(tools=["Read", "Grep", "Glob"], subagents=[], override=False)
     elif format_name == "cursor-markdown":
-        if row["surface_id"] == "cli":
-            # The bundled CLI loader reads literal values after the first colon on each line.
-            # The name, model and single-line description have already been validated.
-            return (f"---\nname: {name}\ndescription: {description}\nmodel: {model or 'inherit'}\n"
-                    f"readonly: true\n---\n\n{instructions}\n").encode("utf-8")
-        fields_any.update(model=model or "inherit", readonly=True)
+        # Both bundled loaders read literal values after the first colon on each line.
+        # The name, model and single-line description have already been validated.
+        return (f"---\nname: {name}\ndescription: {description}\nmodel: {model or 'inherit'}\n"
+                f"readonly: true\n---\n\n{instructions}\n").encode("utf-8")
     elif opencode_v2:
         fields_any.pop("name")
         rules = [{"action": "*", "resource": "*", "effect": "deny"}]
@@ -403,6 +413,64 @@ def _native(row: Mapping[str, Any], name: str, description: str, instructions: s
     return _markdown(fields_any, instructions)
 
 
+def render_acp_registration(
+    spec: IntegrationSpec, surface: str, *, name: str, command: str, arguments: list[str], target_os: str,
+    use_idea_mcp: bool = False, use_custom_mcp: bool = False,
+) -> list[RenderedArtifact]:
+    """Stage a JetBrains Air registration for an existing ACP executable."""
+    target = spec.surface(surface)
+    if spec.id != "jetbrains-air" or target.id not in {"desktop", "ide"}:
+        raise WeaverError("ACP registration staging requires the JetBrains Air desktop or IDE surface")
+    if target.id == "desktop" and (use_idea_mcp or use_custom_mcp):
+        raise WeaverError("The MCP permission switches apply to Air in IDEs only")
+    if not _stdio_text(name, empty=False) or name != name.strip():
+        raise WeaverError("Invalid ACP agent display name")
+    if not _stdio_command(command):
+        raise WeaverError("ACP command requires one credential-free executable without variable expansion")
+    path = PureWindowsPath(command) if target_os == "windows" else PurePosixPath(command)
+    if not path.is_absolute() or not path.name or ".." in path.parts:
+        raise WeaverError("ACP command must be an absolute executable path for the target environment")
+    if (not isinstance(arguments, list) or len(arguments) > 128
+            or any(not _stdio_text(argument) for argument in arguments)):
+        raise WeaverError("ACP arguments must be a bounded array of credential-free strings without variable expansion")
+    if sum(len(argument.encode("utf-8")) for argument in arguments) > 32768:
+        raise WeaverError("ACP argument bytes exceed the 32 KiB limit")
+
+    entry: dict[str, Any] = {"command": command, "args": arguments}
+    prefix = PurePosixPath(spec.id, "fragments")
+    if target.id == "ide":
+        entry.update(use_idea_mcp=use_idea_mcp, use_custom_mcp=use_custom_mcp)
+        handoff_name = "ACP-HANDOFF.md"
+        handoff = (
+            "# Register an ACP agent in Air in IDEs\n\n"
+            "Review the executable path and its ACP stdio arguments. Merge the staged entry into "
+            "`agent_servers` in `~/.jetbrains/acp.json` under an unused display name. Preserve the other entries. "
+            "Restart the target IDE, then choose the custom agent in its launch picker.\n\n"
+            "Review both MCP permissions before merging. The IDE MCP flag grants access to integrated IDE tools. "
+            "The custom MCP flag allows the agent to receive the MCP servers you enable in Air in IDEs. "
+            "This registration uses the installed agent's own model, reasoning and authorization settings.\n\n"
+            "[JetBrains Air in IDEs agent configuration]"
+            "(https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html#add-a-custom-acp-agent)\n"
+        )
+    else:
+        handoff_name = "ACP-DESKTOP-HANDOFF.md"
+        handoff = (
+            "# Register an ACP agent in standalone JetBrains Air\n\n"
+            "Review the executable path and its ACP stdio arguments. Locate `acp.json` in the standalone "
+            "Air app's configuration directory. Merge the staged entry into `agent_servers` under an unused "
+            "display name. Preserve the other entries and choose the agent in the app.\n\n"
+            "Review the standalone app's MCP settings before starting a session. The agent supplies the "
+            "available models, reasoning and authorization settings.\n\n"
+            "[JetBrains Air standalone ACP support]"
+            "(https://blog.jetbrains.com/air/2026/07/what-s-new-air-gets-more-agents-local-models-and-java-kotlin-code-intelligence/)\n"
+        )
+    return [
+        RenderedArtifact(prefix / f"acp.{target.id}.json", json_bytes({"agent_servers": {name: entry}}),
+                         "acp-registration"),
+        RenderedArtifact(prefix / handoff_name, handoff.encode("utf-8"), "handoff"),
+    ]
+
+
 def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, name: str,
                             description: str, instructions: str, model_id: str | None = None,
                             effort: str | None = None, reasoning_budget: int | None = None,
@@ -424,14 +492,27 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                             qoder_catalog: Path | None = None,
                             qwen_auth_type: str | None = None,
                             claude_catalog: Path | None = None, cursor_catalog: Path | None = None,
-                            cursor_parameters: list[str] | None = None) -> list[RenderedArtifact]:
+                            cursor_parameters: list[str] | None = None,
+                            cursor_variant: str | None = None,
+                            codex_reasoning_summary: str | None = None,
+                            codex_verbosity: str | None = None,
+                            chatgpt_workspace_agent: bool = False) -> list[RenderedArtifact]:
     """Render a reviewable definition plus limitations, without touching a live host."""
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
+    if chatgpt_workspace_agent and (spec.id != "chatgpt" or hermes_profile):
+        raise WeaverError("Workspace Agent builder staging requires a ChatGPT surface")
     _name(surface, "Agent surface id")
     for label, value in (("model_id", model_id), ("effort", effort), ("provider_id", provider_id)):
         if value is not None:
             _text(value, label, maximum=250)
+    if codex_reasoning_summary is not None or codex_verbosity is not None:
+        if spec.id != "codex" or surface not in {"cli", "desktop", "ide"} or hermes_profile:
+            raise WeaverError("Reasoning summary and verbosity require a native Codex custom agent")
+        if codex_reasoning_summary is not None and codex_reasoning_summary not in CODEX_REASONING_SUMMARIES:
+            raise WeaverError("Unsupported Codex reasoning summary")
+        if codex_verbosity is not None and codex_verbosity not in CODEX_VERBOSITIES:
+            raise WeaverError("Unsupported Codex model verbosity")
     if snapshot is not None and not isinstance(snapshot, Mapping):
         raise WeaverError("Custom-agent model snapshot must be normalized model metadata")
     if reasoning_budget is not None:
@@ -442,8 +523,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         if qoder_catalog is None:
             raise WeaverError("A Qoder subagent reasoning budget requires --qoder-catalog and an explicit model")
         validate_qoder_thinking_budget(reasoning_budget)
-    if cursor_parameters and cursor_catalog is None:
-        raise WeaverError("Cursor model parameters require --cursor-catalog")
+    if (cursor_parameters or cursor_variant is not None) and cursor_catalog is None:
+        raise WeaverError("Cursor model parameters and presets require --cursor-catalog")
     if cursor_catalog is not None:
         if spec.id != "cursor" or surface not in {"cli", "ide"} or hermes_profile:
             raise WeaverError("A Cursor SDK catalog requires the local Cursor CLI or IDE target")
@@ -485,22 +566,29 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                                                opencode_catalog, copilot_catalog, kilo_catalog)):
             raise WeaverError("A Factory Droid SDK catalog conflicts with other model discovery options")
     if kilo_catalog is not None:
-        if spec.id != "kilo" or surface not in {"cli", "ide"} or hermes_profile:
-            raise WeaverError("A Kilo catalog requires a Kilo CLI or VS Code custom-agent target")
+        if spec.id != "kilo" or hermes_profile:
+            raise WeaverError("A Kilo catalog requires a Kilo custom-agent target")
         if any(value is not None for value in (provider_id, snapshot, llm_profile, codex_catalog,
                                                opencode_catalog, copilot_catalog, effort)):
             raise WeaverError("A Kilo catalog conflicts with provider, catalog, profile or effort overrides")
     cline_configured_agent = spec.id == "cline" and surface in {"cli", "desktop"}
     qoder_agent = spec.id == "qoder" and surface in {"cli", "ide"}
+    copilot_vscode = (spec.id, surface) == ("copilot", "vscode")
+    factory_agent = (spec.id, surface) == ("factory", "cli")
+    can_reference_mcp = qoder_agent or copilot_vscode or factory_agent
     antigravity_skill_agent = spec.id == "antigravity" and surface in {"cli", "desktop"}
+    antigravity_sdk_agent = (spec.id, surface) == ("antigravity", "sdk")
     if (allowed_skills and opencode_catalog is None and copilot_catalog is None
-            and not (cline_configured_agent or qoder_agent or antigravity_skill_agent)):
-        raise WeaverError("Agent Skill selection requires Antigravity CLI/App, Cline CLI/Desktop, Qoder, "
-                          "or an OpenCode V2 or Copilot SDK catalog")
-    if allowed_mcp and not qoder_agent:
-        raise WeaverError("Agent MCP references require a Qoder CLI or IDE custom-agent target")
-    if allowed_mcp_tools and ((spec.id, surface) != ("qoder", "cli") or not allowed_mcp):
-        raise WeaverError("Agent MCP tool selection requires Qoder CLI and at least one --allow-mcp server")
+            and not (cline_configured_agent or qoder_agent or antigravity_skill_agent
+                     or antigravity_sdk_agent or chatgpt_workspace_agent)):
+        raise WeaverError("Agent Skill selection requires Antigravity CLI/App/SDK, Cline CLI/Desktop, Qoder, "
+                          "a ChatGPT Workspace Agent handoff, or an OpenCode V2 or Copilot SDK catalog")
+    if allowed_mcp and not can_reference_mcp:
+        raise WeaverError("Agent MCP references require Factory CLI, Qoder CLI, Qoder IDE, or VS Code Copilot")
+    if allowed_mcp_tools and (not (copilot_vscode or factory_agent or (spec.id, surface) == ("qoder", "cli"))
+                              or not allowed_mcp):
+        raise WeaverError("Agent MCP tool selection requires Factory CLI, Qoder CLI, or VS Code Copilot "
+                          "and an --allow-mcp server")
     if copilot_fallbacks and copilot_catalog is None:
         raise WeaverError("Copilot fallback models require --copilot-catalog")
     if copilot_model_policy is not None:
@@ -518,14 +606,14 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError("Profile context size requires --hermes-profile")
     if hermes_profile_route and not hermes_profile:
         raise WeaverError("Hermes profile routing requires --hermes-profile")
-    if profile_mcp or (mcp_profile is not None and not qoder_agent):
+    if profile_mcp or (mcp_profile is not None and not can_reference_mcp):
         if not hermes_profile:
             raise WeaverError("Profile MCP staging requires --hermes-profile")
         if not safe_name(mcp_profile) or not profile_mcp:
             raise WeaverError("Profile MCP staging requires a valid --mcp-profile and at least one --profile-mcp")
-    if qoder_agent and (mcp_profile is not None or allowed_mcp):
+    if can_reference_mcp and (mcp_profile is not None or allowed_mcp):
         if not safe_name(mcp_profile) or not allowed_mcp:
-            raise WeaverError("Qoder MCP references require --mcp-profile and at least one --allow-mcp")
+            raise WeaverError("Agent MCP references require --mcp-profile and at least one --allow-mcp")
     spec.surface(surface)
     registered = load_integrations(root).get(spec.id)
     if registered != spec:
@@ -563,6 +651,10 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         raise WeaverError(f"Custom-agent definition unavailable for {spec.id}/{surface}: {state}")
     if state == "manual" and any(value is not None for value in (model_id, effort, provider_id, snapshot)):
         raise WeaverError("Manual custom-agent handoff cannot apply or validate native model/effort overrides")
+    if chatgpt_workspace_agent:
+        if any(value is not None for value in (llm_profile, codex_catalog, opencode_catalog)):
+            raise WeaverError("Workspace Agent builder staging does not apply local model catalogs or profiles")
+        return _chatgpt_workspace_agent(root, surface, identifier, summary, prompt, allowed_skills or [])
     model: str | None
     checked: dict[str, Any] | None
     codex_digest: str | None = None
@@ -577,24 +669,33 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     skill_ids = (selected_portable_skill_ids(root, allowed_skills)
                  if allowed_skills and (qoder_agent or antigravity_skill_agent) else ())
     mcp_ids: tuple[str, ...] = ()
-    if qoder_agent and allowed_mcp:
+    if allowed_mcp:
         profile = load_json(root / "profiles" / f"{mcp_profile}.json")
         catalog = load_json(root / "catalogs/mcp-servers.json")
         mcp_ids = tuple(select_servers(profile, catalog, allowed_mcp))
     mcp_tools: list[str] = []
+    selected_tool_servers: set[str] = set()
     for selector in allowed_mcp_tools or []:
-        server, _, tool = _text(selector, "Qoder MCP tool selector", maximum=250).partition(":")
+        server, _, tool = _text(selector, "MCP tool selector", maximum=250).partition(":")
         if server not in mcp_ids or re.fullmatch(r"[A-Za-z0-9_.-]+", tool) is None:
             raise WeaverError("Use --allow-mcp-tool SERVER:TOOL with an exact tool name on a selected server")
-        tool_id = f"mcp__{server}__{tool}"
+        if copilot_vscode:
+            tool_id = f"{server}/{tool}"
+        elif factory_agent:
+            tool_id = f"{server}___{tool}"
+        else:
+            tool_id = f"mcp__{server}__{tool}"
         if tool_id in mcp_tools:
-            raise WeaverError("Duplicate Qoder MCP tool selection")
+            raise WeaverError("Duplicate MCP tool selection")
         mcp_tools.append(tool_id)
+        selected_tool_servers.add(server)
+    if (copilot_vscode or factory_agent) and set(mcp_ids) != selected_tool_servers:
+        raise WeaverError("Select at least one exact --allow-mcp-tool for each --allow-mcp server")
     if cursor_catalog is not None:
         if row["format"] != "cursor-markdown" or row["effort_field"] != "model" or model_id in {None, "inherit"}:
             raise WeaverError("A Cursor SDK catalog requires an explicit model for a native Cursor subagent")
         cursor_report = inspect_cursor_models(cursor_catalog, model=model_id, effort=effort,
-                                              parameters=cursor_parameters)
+                                              parameters=cursor_parameters, variant=cursor_variant)
         model, checked = cursor_report["selection"]["subagent_selector"], None
         cursor_digest = cursor_report["snapshot_sha256"]
     elif claude_catalog is not None:
@@ -630,8 +731,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("A Factory Droid SDK catalog requires an explicit custom-droid model")
         if effort is not None and effort not in row["efforts"]:
             raise WeaverError("Factory custom-agent effort is limited to low/medium/high")
-        model, checked = _model_selection(row, root, model_id, None, None, None)
         factory_report = inspect_factory_models(factory_catalog, model=model_id, effort=effort)
+        model, checked = factory_report["selection"]["id"], None
         factory_digest = factory_report["snapshot_sha256"]
     elif kilo_catalog is not None:
         if row["format"] != "kilo-markdown" or row["effort_field"] != "variant":
@@ -696,6 +797,8 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
             raise WeaverError("Explicit Cline agent models require a documented Cline provider: openrouter or anthropic")
         model, checked = _model_selection(row, root, model_id, effort, provider_id, snapshot, protocol=qwen_protocol)
         if cline_configured_agent and allowed_skills:
+            skill_ids = selected_portable_skill_ids(root, allowed_skills)
+        if antigravity_sdk_agent and allowed_skills:
             skill_ids = selected_portable_skill_ids(root, allowed_skills)
     if qwen_auth_type is not None:
         if row["format"] != "qwen-markdown" or model is None:
@@ -773,6 +876,17 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "registers external ACP executables separately; no registration or executable "
                       "is generated or launched here. The desktop app's .air/mcp.json is not an IDE "
                       "configuration path."])
+    if (spec.id, surface, state) == ("perplexity", "app", "manual"):
+        lines.extend(["", "## Manual Computer Teammate setup", "",
+                      "Use the Perplexity web research preview from an individual Max account with access. "
+                      "In the sidebar open Teammates > Create teammate, and enter the staged name in Name or role.",
+                      "Open Advanced and paste the reviewed role instructions from below. "
+                      "Review the configuration before choosing Create.",
+                      "Choose a model separately in the teammate's web interface. Review the installed Skills, "
+                      "plugins, connected accounts, and any shared Project permissions before assigning work.",
+                      "Stage matching portable Skill files separately with bundle --agent perplexity --surface app "
+                      "and each --skill ID. Review their import through Perplexity's Skills or Plugins UI.",
+                      "Starting tasks, recurring schedules, and connector authorization are separate decisions."])
     if spec.id == "perplexity" and surface == "agent-api" and state == "manual":
         lines.extend(["", "## Manual Agent API Profile", "",
                       "In the API Portal, open Profiles > Create profile. Set the model, system instructions, "
@@ -820,6 +934,16 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "This selection matches a picker-visible model in the caller-supplied Codex catalog. "
                       "The snapshot may be partial or stale. It does not prove account access, inference, or "
                       "compatibility with the target client. The parent's provider is unchanged."])
+    if row["format"] == "codex-toml" and effort == "ultra":
+        lines.extend(["", "Codex resolves the configured ultra mode to a model-specific reasoning effort for "
+                      "ordinary Responses requests. Check the effective setting in the target runtime."])
+    if codex_reasoning_summary is not None:
+        lines.append(f"Explicit Codex reasoning summary: {codex_reasoning_summary}")
+    if codex_verbosity is not None:
+        lines.append(f"Explicit Codex model verbosity: {codex_verbosity}")
+    if codex_reasoning_summary is not None or codex_verbosity is not None:
+        lines.append("Codex model/list does not advertise per-model support for these settings. "
+                     "The destination model and provider determine the effective request behavior.")
     if opencode_digest is not None:
         lines.extend(["", f"Saved OpenCode V2 GET /api/model response SHA-256: {opencode_digest}",
                       "This definition uses V2 model selectors and ordered permissions. Review the effective "
@@ -858,6 +982,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
         lines.extend(["", f"Saved Factory Droid SDK listModels() SHA-256: {factory_digest}",
                       "Verify the selected model in the target project and account before use. "
                       "This catalog snapshot does not prove current availability or inference."])
+    if factory_agent and mcp_tools:
+        lines.extend(["", "Factory Droid MCP tools: " + ", ".join(mcp_tools) + ".",
+                      "Verify the exact IDs with droid exec --list-tools in the target project. "
+                      "Configure the selected servers separately. Factory applies project and organization "
+                      "policy when resolving the tools. Review what each tool can do before using the droid."])
     if qoder_digest is not None:
         lines.extend(["", f"Saved Qoder Agent SDK model catalog SHA-256: {qoder_digest}",
                       "Verify the selection in the target Qoder project and account before use."])
@@ -876,6 +1005,11 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                       "contains names only. Server registration, trust, and permissions follow Qoder's settings."])
         if surface == "cli":
             lines.append("Qoder CLI MCP tool selection: " + (", ".join(mcp_tools) if mcp_tools else "none") + ".")
+    if copilot_vscode and mcp_tools:
+        lines.extend(["", "VS Code Copilot MCP tools: " + ", ".join(mcp_tools) + ".",
+                      "Configure the listed servers separately for the Copilot session and verify the canonical "
+                      "tool names in its inventory. This agent file contains tool references only. Workspace "
+                      "trust, server approval, and session permissions apply."])
     if cline_configured_agent and skill_ids:
         lines.extend(["", "Cline Skill IDs: " + ", ".join(skill_ids) + ".",
                       f"Stage matching files with bundle --agent cline --surface {surface} and each --skill ID."])
@@ -912,9 +1046,15 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
                           mcp_tools=tuple(mcp_tools),
                           copilot_catalog=copilot_digest is not None,
                           copilot_model_policy=copilot_model_policy,
+                          codex_reasoning_summary=codex_reasoning_summary, codex_verbosity=codex_verbosity,
                           cline_provider=provider_id if cline_configured_agent else None)
         artifacts.append(RenderedArtifact(PurePosixPath(spec.id, path), content, "agent-definition"))
-        lines.extend(["", f"Native project path: {path}"])
+        if antigravity_sdk_agent:
+            artifacts.extend(stage_portable_skills(root, list(skill_ids), PurePosixPath(spec.id, path).parent))
+            lines.extend(["", f"SDK module: {path}",
+                          "Call build_subagent() and pass its result in the parent SDK configuration's subagents list."])
+        else:
+            lines.extend(["", f"Native project path: {path}"])
     else:
         lines.extend(["", "No native definition path is established for this route. Apply the role through the "
                       "documented host workflow. This handoff is not a discoverable subagent file.",
@@ -922,6 +1062,44 @@ def render_agent_definition(spec: IntegrationSpec, surface: str, *, root: Path, 
     artifacts.append(RenderedArtifact(PurePosixPath(spec.id, "agents", identifier, "HANDOFF.md"),
                                       ("\n".join(lines) + "\n").encode("utf-8"), "agent-handoff"))
     return artifacts
+
+
+def _chatgpt_workspace_agent(
+    root: Path, surface: str, name: str, description: str, instructions: str, skills: list[str],
+) -> list[RenderedArtifact]:
+    prefix = PurePosixPath("chatgpt", "workspace-agents", surface, name)
+    skill_files = stage_portable_skills(root, skills, prefix) if skills else []
+    builder = [
+        "Draft a Workspace Agent with the following profile and instructions for review.", "",
+        f"Name: {name}", f"Description: {description}", "",
+        "Keep app connections, sharing, and triggers for a separate review.", "",
+        "## Instructions", "", instructions, "",
+    ]
+    handoff = [
+        "# ChatGPT Workspace Agent handoff", "",
+        "In the intended ChatGPT workspace, open Agents > Create > Create agent. This needs an eligible "
+        "workspace and permission to create agents. Review and paste BUILDER.md into the conversational "
+        "builder when you are ready to use it.", "",
+        "Review the draft's name, instructions, selected apps and individual actions. Review whether each "
+        "app uses the runner's connection or an authorized agent-owned account. Use the supported controls "
+        "in the target workspace for model and reasoning choices.", "",
+    ]
+    if skill_files:
+        handoff.extend([
+            "Use Add skill in the agent view to add the selected Skills. Review each folder before upload.", "",
+            *[f"- {item.relative_path.relative_to(prefix).as_posix()}" for item in skill_files], "",
+        ])
+    handoff.extend([
+        "This handoff stages a builder prompt and selected Skill files. Agent creation, Preview, and publishing "
+        "are separate actions in ChatGPT.", "",
+        "[Workspace Agent builder walkthrough]"
+        "(https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep)", "",
+    ])
+    return [
+        RenderedArtifact(prefix / "BUILDER.md", "\n".join(builder).encode("utf-8"), "agent-builder-prompt"),
+        *skill_files,
+        RenderedArtifact(prefix / "HANDOFF.md", "\n".join(handoff).encode("utf-8"), "agent-handoff"),
+    ]
 
 
 def _hermes_profile(root: Path, name: str, description: str, instructions: str,
@@ -942,7 +1120,7 @@ def _hermes_profile(root: Path, name: str, description: str, instructions: str,
         RenderedArtifact(prefix / "SOUL.md", (instructions + "\n").encode("utf-8"), "agent-definition"),
     ]
     if skills:
-        artifacts.extend(stage_hermes_profile_skills(root, skills, prefix))
+        artifacts.extend(stage_portable_skills(root, skills, prefix))
     if config:
         kind = "profile-config" if "model" in config else "mcp-fragment"
         artifacts.append(RenderedArtifact(prefix / "config.yaml", json_bytes(config), kind))

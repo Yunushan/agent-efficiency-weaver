@@ -1,5 +1,7 @@
 """Offline, documented MCP configuration dialects."""
 import json
+import re
+import shlex
 from collections.abc import Mapping
 from pathlib import PurePosixPath
 from typing import Any
@@ -40,6 +42,7 @@ _USER_FRAGMENTS = {
     'hermes': 'config.yaml', 'lm-studio': 'mcp.json',
     'jetbrains-air': 'mcp.ide.json',
 }
+_LM_STUDIO_RESPONSES_FIELDS = (('type', 'mcp'), ('server_label', _NAME), ('server_url', _URL))
 # UI-edited JSON has a documented schema but no documented persistent file path.
 _APP_FRAGMENTS = {('qoder', 'ide'): ('mcpServers.type-sse', 'mcp.ide.json')}
 _TOML_DIALECT = 'mcp_servers.toml-url'
@@ -73,6 +76,10 @@ _STDIO_ROUTES: dict[str, tuple[str, str, str]] = {
     'qwen-code': ('mcpServers.httpUrl', 'command-args', 'https://qwenlm.github.io/qwen-code-docs/en/users/features/mcp/'),
 }
 _STDIO_ADDITIONAL_ROUTES = {
+    ('antigravity', 'sdk.mcp_servers'): (
+        'McpStdioServer', 'https://antigravity.google/docs/sdk/mcp/',
+        '2026-11-15', 'tests/test_antigravity_sdk.py',
+    ),
     ('openhands', 'openhands-canvas.settings-mcp'): (
         'transport-stdio-disabled', 'https://github.com/OpenHands/OpenHands/blob/v1.40.0/src/utils/mcp-config.ts',
         '2026-11-14', 'tests/test_stdio_adapters.py',
@@ -80,6 +87,10 @@ _STDIO_ADDITIONAL_ROUTES = {
     ('copilot', 'mcpServers.copilot-portable'): (
         'copilot-portable-stdio', 'https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers',
         '2026-11-13', 'tests/test_stdio_adapters.py',
+    ),
+    ('jetbrains-air', 'mcpServers.url'): (
+        'command-args-disabled', 'https://data.services.jetbrains.com/products?code=AIR',
+        '2026-11-15', 'tests/test_air_ide.py',
     ),
     ('opencode', 'mcp.servers.type-remote'): (
         'local-command-array-disabled', 'https://opencode.ai/docs/mcp-servers/',
@@ -143,6 +154,8 @@ def _stdio_entry(agent_id: str | None, dialect: str, name: str, selection: Stdio
     entry: dict[str, Any] = {'command': command, 'args': args}
     if shape == 'type-stdio':
         entry = {'type': 'stdio', **entry}
+    elif shape == 'command-args-disabled':
+        entry['enabled'] = False
     elif shape == 'hermes-stdio':
         entry['enabled'] = True
     return entry
@@ -180,21 +193,132 @@ def hermes_profile_mcp(profile: dict[str, Any], catalog: dict[str, Any], servers
     return document
 
 
-def _request_document(dialect: str, selected: Mapping[str, MCPSelection]) -> dict[str, Any]:
-    if any(not isinstance(selection, str) for selection in selected.values()):
+def lmstudio_stdio_fragments(
+    name: str, command: str, args: list[str], tools: list[str],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    selected: dict[str, MCPSelection] = {name: {"kind": "stdio", "command": command, "args": args}}
+    configuration = _json_document("mcpServers.url", selected, "lm-studio")
+    request = _request_document("integrations.ephemeral-mcp-request", selected, lmstudio_plugins=True,
+                                lmstudio_tools=[f"{name}:{tool}" for tool in tools])
+    return configuration, request
+
+
+def _apply_tool_allowlist(entries: dict[str, dict[str, Any]], selectors: list[str], option: str, product: str) -> None:
+    for selector in selectors:
+        server, _, tool = selector.partition(':')
+        if server not in entries or re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', tool) is None:
+            raise WeaverError(f'Use {option} SERVER:TOOL with an exact tool name on a selected server')
+        tools = entries[server].setdefault('allowed_tools', [])
+        if tool in tools:
+            raise WeaverError(f'Duplicate {product} allowed tool selection')
+        tools.append(tool)
+
+
+def _request_document(dialect: str, selected: Mapping[str, MCPSelection], *,
+                      lmstudio_responses: bool = False, lmstudio_plugins: bool = False,
+                      lmstudio_tools: list[str] | None = None, perplexity_tools: list[str] | None = None,
+                      perplexity_deferred_servers: list[str] | None = None) -> dict[str, Any]:
+    if not lmstudio_plugins and any(not isinstance(selection, str) for selection in selected.values()):
         raise WeaverError('This MCP API request supports remote HTTPS servers only; stdio is unavailable')
     root_key, fields = _REQUEST_DIALECTS[dialect]
-    return {root_key: [{key: url if value is _URL else name if value is _NAME else value
-                        for key, value in fields} for name, url in selected.items()]}
+    if lmstudio_responses:
+        root_key, fields = 'tools', _LM_STUDIO_RESPONSES_FIELDS
+    entries: dict[str, dict[str, Any]]
+    if lmstudio_plugins:
+        entries = {name: {'type': 'plugin', 'id': f'mcp/{name}'} for name in selected}
+    else:
+        entries = {name: {key: url if value is _URL else name if value is _NAME else value for key, value in fields}
+                   for name, url in selected.items()}
+    if lmstudio_tools:
+        _apply_tool_allowlist(entries, lmstudio_tools, '--lmstudio-allow-tool', 'LM Studio')
+        if any('allowed_tools' not in entry for entry in entries.values()):
+            raise WeaverError('Select an exact tool for each selected LM Studio server when using --lmstudio-allow-tool')
+    if perplexity_tools:
+        _apply_tool_allowlist(entries, perplexity_tools, '--perplexity-allow-tool', 'Perplexity')
+    for server in perplexity_deferred_servers or ():
+        if server not in entries:
+            raise WeaverError('--perplexity-defer-tools requires a selected MCP server')
+        entries[server]['defer_loading'] = True
+    return {root_key: list(entries.values())}
+
+
+def _form_values(lines: list[str], name: str, fields: dict[str, Any]) -> None:
+    # Escape backticks in user-supplied strings to keep the Markdown fence intact.
+    values = json.dumps(fields, indent=2, ensure_ascii=False).replace('`', r'\u0060')
+    lines.extend(['', f'## {name}', '', '```json', values, '```'])
+
+
+def _perplexity_app_mcp(selected: Mapping[str, MCPSelection]) -> RenderedArtifact:
+    lines = ['# Perplexity custom MCP setup', '',
+             'Open Plugins > Add custom. For an account remote connector, choose Add MCP connector and Remote.',
+             'Organization-wide remote connectors are managed by administrators in Organization settings > Connectors.',
+             'Review the connector and its tools before adding or enabling it. Enter any credentials separately.']
+    if not selected:
+        lines.extend(['', 'No MCP servers were selected.'])
+    for name, selection in selected.items():
+        if isinstance(selection, str):
+            if len(name) > 64:
+                raise WeaverError('Perplexity remote connector names must be at most 64 characters')
+            _form_values(lines, name, {'Name': name, 'MCP server URL': selection})
+            lines.extend(['', 'Choose the transport and authentication required by the server in Advanced settings.'])
+        else:
+            argv = [selection['command'], *selection['args']]
+            _form_values(lines, name, {'Server Name': name, 'Command': shlex.join(argv)})
+            lines.extend(['', 'Use the Simple tab in the Perplexity macOS app with the PerplexityXPC helper installed.',
+                          'The command is shown using POSIX quoting. Review it and confirm the app accepts the '
+                          'arguments as intended before saving.'])
+    return RenderedArtifact(PurePosixPath('perplexity', 'mcp', 'app-setup.md'),
+                            ('\n'.join(lines) + '\n').encode('utf-8'), 'mcp-setup')
+
+
+def _apply_disabled_tools(servers: dict[str, Any], selectors: list[str], product: str) -> None:
+    for selector in selectors:
+        server, _, tool = selector.partition(':')
+        if server not in servers or re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', tool) is None:
+            raise WeaverError(f'Use --{product.lower()}-disable-tool SERVER:TOOL with an exact tool name '
+                              'on a selected server')
+        tools = servers[server].setdefault('disabledTools', [])
+        if tool in tools:
+            raise WeaverError(f'Duplicate {product} disabled tool selection')
+        tools.append(tool)
 
 
 def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
                catalog: dict[str, Any], enabled: list[str], *, opencode_v2: bool = False,
-               copilot_portable: bool = False, antigravity_user_mcp: bool = False) -> list[RenderedArtifact]:
+               copilot_portable: bool = False, antigravity_user_mcp: bool = False,
+               devin_stage_disabled: bool = False, devin_disabled_tools: list[str] | None = None,
+               kiro_disabled_tools: list[str] | None = None,
+               lmstudio_responses: bool = False, lmstudio_plugins: bool = False,
+               lmstudio_tools: list[str] | None = None, perplexity_tools: list[str] | None = None,
+               perplexity_deferred_servers: list[str] | None = None,
+               antigravity_sdk_tools: list[str] | None = None) -> list[RenderedArtifact]:
     if spec.kind not in ('agent', 'hybrid'):
         raise WeaverError('Provider gateways cannot host MCP; use the provider command')
     target = spec.surface(surface)
     dialect = target.mcp_dialect
+    sdk_target = (spec.id, surface) == ('antigravity', 'sdk')
+    if antigravity_sdk_tools and not sdk_target:
+        raise WeaverError('Antigravity SDK tool allowlists require the SDK surface')
+    if (lmstudio_responses or lmstudio_plugins or lmstudio_tools) and (spec.id, surface, dialect, target.config_scope) != (
+            'lm-studio', 'api', 'integrations.ephemeral-mcp-request', 'request'):
+        raise WeaverError('LM Studio MCP request options require the LM Studio API target')
+    if (perplexity_tools or perplexity_deferred_servers) and (spec.id, surface, dialect, target.config_scope) != (
+            'perplexity', 'agent-api', 'tools.mcp-request', 'request'):
+        raise WeaverError('Perplexity MCP request options require the Perplexity Agent API target')
+    if lmstudio_plugins and lmstudio_responses:
+        raise WeaverError('Preconfigured LM Studio MCP plugins require the native chat request')
+    if devin_stage_disabled or devin_disabled_tools:
+        if (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
+                'devin', 'desktop-local', 'mcpServers.transport-http', 'project', '.devin/mcp_config.json'):
+            raise WeaverError('Devin MCP controls require the Devin Desktop Local project target')
+        if not enabled:
+            raise WeaverError('Devin MCP controls require at least one server selected with --enable')
+    if kiro_disabled_tools:
+        if ((spec.id, dialect, target.config_scope, target.native_path_hint) !=
+                ('kiro', 'mcpServers.url', 'project', '.kiro/settings/mcp.json') or surface not in {'cli', 'ide'}):
+            raise WeaverError('Kiro MCP controls require a Kiro CLI or IDE project target')
+        if not enabled:
+            raise WeaverError('Kiro MCP controls require at least one server selected with --enable')
     if opencode_v2 and (spec.id, surface, dialect, target.config_scope, target.native_path_hint) != (
             'opencode', 'cli', 'mcp.type-remote', 'project', 'opencode.json'):
         raise WeaverError('OpenCode V2 MCP staging requires the OpenCode CLI project target')
@@ -204,6 +328,64 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     if antigravity_user_mcp and (opencode_v2 or copilot_portable or spec.id != 'antigravity'
                                  or surface not in {'desktop', 'ide'} or dialect != 'mcpServers.serverUrl'):
         raise WeaverError('Antigravity user MCP staging requires the Desktop or IDE surface')
+    if (sdk_target and dialect == 'sdk.mcp_servers' and target.capabilities['mcp'].state == 'manual'
+            and target.capabilities['mcp'].sources):
+        from .antigravity_sdk import SDK_PREFIX
+
+        entries = {name: {'url': server} if isinstance(server, str) else
+                   {'command': server['command'], 'args': server['args']}
+                   for name, server in select_servers(profile, catalog, enabled).items()}
+        _apply_tool_allowlist(entries, antigravity_sdk_tools or [], '--antigravity-sdk-allow-tool', 'Antigravity SDK')
+        if any('allowed_tools' not in fields for fields in entries.values()):
+            raise WeaverError('Select at least one exact tool for each Antigravity SDK MCP server')
+        if any(re.fullmatch(r'[A-Za-z0-9_-]+', name) is None for name in entries):
+            raise WeaverError('Antigravity SDK MCP server names require letters, digits, hyphens or underscores')
+        lines = ['"""Construct reviewed MCP server entries without connecting or starting processes."""']
+        if entries:
+            constructors = sorted({'McpStreamableHttpServer' if 'url' in fields else 'McpStdioServer'
+                                   for fields in entries.values()})
+            lines.append('from google.antigravity.types import ' + ', '.join(constructors))
+        lines.extend(['', '', 'def build_mcp_servers():', '    return ['])
+        for name, entry in entries.items():
+            constructor = 'McpStreamableHttpServer' if 'url' in entry else 'McpStdioServer'
+            arguments = ', '.join(f'{key}={value!r}' for key, value in entry.items() if key != 'allowed_tools')
+            lines.append(f'        {constructor}(name={name!r}, {arguments}, enabled_tools={entry["allowed_tools"]!r}),')
+        lines.extend(['    ]', ''])
+        return [RenderedArtifact(SDK_PREFIX / 'mcp_config.py', '\n'.join(lines).encode(), 'mcp-fragment')]
+    if (spec.id, target.id, target.config_scope, target.documented_location) == (
+        'perplexity', 'app', 'app', 'Plugins > Add custom',
+    ) and target.capabilities['mcp'].state == 'manual' and dialect is None:
+        return [_perplexity_app_mcp(select_servers(profile, catalog, enabled))]
+    if (spec.id, target.id, target.config_scope, target.documented_location) == (
+        'lm-studio', 'bionic', 'app', 'Settings > MCP > Add custom MCP',
+    ) and target.capabilities['mcp'].state == 'manual' and dialect is None:
+        selected = select_servers(profile, catalog, enabled)
+        lines = ['# LM Studio Bionic custom MCP setup', '',
+                 'In Settings > MCP, open Add custom MCP for each reviewed server.',
+                 'Review the server and tools before saving. Saving can connect to the URL or start the command.',
+                 'To save an entry paused, turn it off before selecting Add MCP.',
+                 'This handoff contains values for the form. Weaver uses no credentials and opens no connections.']
+        if not selected:
+            lines.extend(['', 'No MCP servers were selected.'])
+        for name, selection in selected.items():
+            fields: dict[str, Any] = {'Name': name}
+            if isinstance(selection, str):
+                fields.update({'Connection': 'Web address', 'URL': selection})
+            else:
+                if '' in selection['args']:
+                    raise WeaverError('Bionic drops empty MCP arguments in its custom server form')
+                fields.update({'Connection': 'On this computer', 'Command': selection['command'],
+                               'Arguments': selection['args']})
+            _form_values(lines, name, fields)
+            if isinstance(selection, str):
+                lines.extend(['', 'Review Authentication for the endpoint. Automatic is the default. '
+                              'Bionic prompts for browser sign-in when the server requires it. '
+                              'For Access token, supply the token separately in Bionic.'])
+            elif selection['args']:
+                lines.extend(['', 'Turn on Show advanced options, then use Add argument to enter each '
+                              'argument in its own field in the order shown.'])
+        return [RenderedArtifact(PurePosixPath(spec.id, 'mcp', 'bionic-setup.md'),
+                                 ('\n'.join(lines) + '\n').encode('utf-8'), 'mcp-setup')]
     if (dialect not in (*_JSON_DIALECTS, *_REQUEST_DIALECTS, _TOML_DIALECT, 'openhands-canvas.settings-mcp')
             or target.capabilities['mcp'].state not in ('available', 'manual')):
         raise WeaverError('Native MCP export unavailable on this surface; use bundle for instruction handoff')
@@ -242,7 +424,8 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
     if dialect in _REQUEST_DIALECTS:
         if target.config_scope != 'request':
             raise WeaverError('MCP request dialect requires request scope')
-        path = PurePosixPath(spec.id, 'requests', f'{target.id}.json')
+        filename = 'responses.json' if lmstudio_responses else 'chat-plugins.json' if lmstudio_plugins else f'{target.id}.json'
+        path = PurePosixPath(spec.id, 'requests', filename)
     elif target.config_scope == 'user':
         if spec.id not in _USER_FRAGMENTS:
             raise WeaverError('No documented safe user-scope fragment target')
@@ -257,7 +440,10 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
             raise WeaverError('Native project export has no documented safe target')
         path = PurePosixPath(spec.id, target.native_path_hint)
     if dialect in _REQUEST_DIALECTS:
-        content = json_bytes(_request_document(dialect, selected))
+        content = json_bytes(_request_document(dialect, selected, lmstudio_responses=lmstudio_responses,
+                                               lmstudio_plugins=lmstudio_plugins, lmstudio_tools=lmstudio_tools,
+                                               perplexity_tools=perplexity_tools,
+                                               perplexity_deferred_servers=perplexity_deferred_servers))
     elif dialect == _TOML_DIALECT:
         if selected:
             text = '\n'.join(
@@ -270,10 +456,14 @@ def render_mcp(spec: IntegrationSpec, surface: str, profile: dict[str, Any],
         if not isinstance(dialect, str):
             raise WeaverError('MCP dialect is not documented')
         document = _json_document(dialect, selected, spec.id)
-        if spec.id == 'cline' or (spec.id, surface) == ('kiro', 'cli'):
+        if devin_stage_disabled or spec.id == 'cline' or (spec.id, surface) == ('kiro', 'cli'):
             for entry in document['mcpServers'].values():
                 entry['disabled'] = True
-        if (spec.id, surface) in {('zed', 'ide'), ('openhands', 'cli')}:
+        if devin_disabled_tools:
+            _apply_disabled_tools(document['mcpServers'], devin_disabled_tools, 'Devin')
+        if kiro_disabled_tools:
+            _apply_disabled_tools(document['mcpServers'], kiro_disabled_tools, 'Kiro')
+        if spec.id == 'kilo' or (spec.id, surface) in {('zed', 'ide'), ('openhands', 'cli')}:
             for entry in next(iter(document.values())).values():
                 entry['enabled'] = False
         content = json_bytes(document)

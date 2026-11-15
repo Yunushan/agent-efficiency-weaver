@@ -109,8 +109,8 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_codex_observations_keep_interface_platform_and_check_scope(self):
         report = coverage_report(ROOT)
-        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 30)
-        self.assertEqual(report["summary"]["runtime_observation_checks"], 263)
+        self.assertEqual(report["summary"]["surfaces_with_runtime_observations"], 50)
+        self.assertEqual(report["summary"]["runtime_observation_checks"], 502)
         codex = next(item for item in report["requested_items"] if item["id"] == "codex")
         targets = {target["surface_id"]: target for target in codex["targets"]}
         versions = {"cli": "0.167.0-alpha.4.1", "desktop": "26.1106.6628.0", "ide": "1.146.0"}
@@ -182,12 +182,174 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({check["check"]: check["capability"] for check in agent["checks"]},
                          {"agent-load": "agents", "stdio-subagent-tool-approval": "mcp",
                           "agent-model-effort-selection": "reasoning"})
-        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 4)
+        for surface, target in targets.items():
+            records = [record for record in target["runtime_observations"]
+                       if record["checks"][0]["check"] == "codex-agent-model-effort-precedence"]
+            interfaces = {"app-server-stdio", "exec-loopback"} if surface == "cli" else {"app-server-stdio"}
+            self.assertEqual({record["interface"] for record in records}, interfaces)
+            startup_failure = [
+                record for record in target["runtime_observations"]
+                if record["checks"][0]["check"] == "codex-agent-mcp-startup-failure-isolation"
+            ]
+            self.assertEqual({record["interface"] for record in startup_failure}, interfaces)
+            for record in startup_failure:
+                self.assertEqual(record["environment"], "isolated-signed-out")
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                check, = record["checks"]
+                self.assertEqual(check["capability"], "mcp")
+                self.assertIn("exited before completing its MCP handshake", check["outcome"])
+            required_startup = [
+                record for record in target["runtime_observations"]
+                if record["checks"][0]["check"] == "codex-agent-mcp-required-startup-policy"
+            ]
+            self.assertEqual({record["interface"] for record in required_startup},
+                             interfaces if surface in {"cli", "desktop"} else set())
+            for record in required_startup:
+                self.assertEqual(record["environment"], "isolated-signed-out")
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                check, = record["checks"]
+                self.assertEqual(check["capability"], "mcp")
+                self.assertIn("before any model request", check["outcome"])
+            for record in records:
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                expected_checks = {
+                    "codex-agent-model-effort-precedence": "reasoning",
+                    "codex-agent-inherited-read-only-mcp": "mcp",
+                    "codex-picker-pair-request-matrix": "models",
+                    "codex-picker-ultra-request-resolution": "reasoning",
+                    "codex-picker-summary-verbosity-matrix": "reasoning",
+                }
+                if surface in {"cli", "desktop"}:
+                    expected_checks["codex-agent-model-only-preserves-spawn-effort"] = "reasoning"
+                    expected_checks["codex-agent-project-mcp-precedence"] = "mcp"
+                if record["interface"] == "exec-loopback":
+                    expected_checks["codex-agent-summary-inheritance"] = "reasoning"
+                actual = {check["check"]: check for check in record["checks"]}
+                self.assertEqual({name: check["capability"] for name, check in actual.items()}, expected_checks)
+                self.assertIn("all nine visible signed-out models", actual["codex-picker-summary-verbosity-matrix"]["outcome"])
+                if "codex-agent-summary-inheritance" in actual:
+                    self.assertNotEqual(actual["codex-agent-summary-inheritance"]["evidence_sha256"],
+                                        actual["codex-picker-summary-verbosity-matrix"]["evidence_sha256"])
+        for surface, interfaces in {
+            "cli": {"exec-loopback", "app-server-stdio"},
+            "desktop": {"app-server-stdio"},
+            "ide": set(),
+        }.items():
+            tool_filters = [record for record in targets[surface]["runtime_observations"]
+                            if record["checks"][0]["check"] == "codex-agent-mcp-project-tool-filters"]
+            self.assertEqual({record["interface"] for record in tool_filters}, interfaces)
+            for record in tool_filters:
+                self.assertEqual(record["product_version"], versions[surface])
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                self.assertEqual(record["architecture"], "x64")
+                self.assertEqual(record["environment"], "isolated-signed-out")
+                check, = record["checks"]
+                self.assertEqual(check["capability"], "mcp")
+                self.assertIn("did not reach the fixture", check["outcome"])
+        self.assertEqual(len(targets["desktop"]["runtime_observations"]), 11)
+
+    def test_codex_project_subagent_and_native_staging_observations(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "codex")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        capabilities = {
+            "codex-project-subagent-selection": "agents",
+            "codex-project-subagent-mcp-results": "mcp",
+            "codex-project-subagent-model-requests": "models",
+            "codex-project-subagent-effort-requests": "reasoning",
+        }
+        for surface, target in targets.items():
+            with self.subTest(surface=surface):
+                records = target["runtime_observations"]
+                grouped = [record for record in records if record["checks"][0]["check"] in capabilities]
+                interfaces = {"app-server-stdio", "exec-loopback"} if surface == "cli" else {"app-server-stdio"}
+                self.assertEqual(len(grouped), len(interfaces))
+                self.assertEqual({record["interface"] for record in grouped}, interfaces)
+                for record in grouped:
+                    self.assertEqual(record.get("extension_version"), "26.1106.51428" if surface == "ide" else None)
+                    self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                    self.assertEqual(record["environment"], "isolated-signed-out")
+                    self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, capabilities)
+                staging = [record for record in records
+                           if record["checks"][0]["check"] == "codex-generated-stdio-argument-roundtrip"]
+                self.assertEqual({record["interface"] for record in staging}, interfaces if surface != "ide" else set())
+                for record in staging:
+                    check, = record["checks"]
+                    self.assertEqual(check["capability"], "mcp")
+                    self.assertIn("literal quotes", check["outcome"])
+                for capability in ("mcp", "provider"):
+                    self.assertEqual(target["capabilities"][capability]["runtime_status"], "pending")
+        cli_inventory, = [record for record in targets["cli"]["runtime_observations"]
+                          if record["interface"] == "mcp-list"]
+        inventory_check, = cli_inventory["checks"]
+        self.assertEqual(inventory_check["check"], "codex-mcp-list-project-trust")
+        self.assertIn("Inventory did not start the server", inventory_check["outcome"])
+
+    def test_perplexity_web_observation_is_scoped_to_signed_out_ui(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "perplexity")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        app, = targets["app"]["runtime_observations"]
+        self.assertIsNone(app["product_version"])
+        self.assertEqual(app["engine_version"], "157.0.8103.79")
+        self.assertEqual(app["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(app["architecture"], "x64")
+        self.assertEqual(app["interface"], "public-web-ui")
+        self.assertEqual(app["environment"], "public-unauthenticated")
+        self.assertEqual({row["check"]: row["capability"] for row in app["checks"]}, {
+            "perplexity-public-plugin-skill-preview": "skills",
+            "perplexity-public-model-picker-sign-in": "models",
+        })
+        self.assertTrue(all(evidence["runtime_status"] == "pending"
+                            for evidence in targets["app"]["capabilities"].values()))
+
+    def test_perplexity_catalog_observations_record_only_the_unauthenticated_boundary(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "perplexity")
+        targets = {target["surface_id"]: target for target in item["targets"]}
+        for surface, checks in (
+            ("agent-api", {"perplexity-agent-catalog-authentication"}),
+            ("orchestrator", {"perplexity-orchestrator-catalog-authentication",
+                              "perplexity-orchestrator-model-lookup-authentication"}),
+        ):
+            with self.subTest(surface=surface):
+                observation, = [record for record in targets[surface]["runtime_observations"]
+                                if record["interface"] == "unauthenticated-catalog-http"]
+                self.assertEqual(observation["product_version"], "1")
+                self.assertIsNone(observation["engine_version"])
+                self.assertEqual(observation["interface"], "unauthenticated-catalog-http")
+                self.assertEqual(observation["environment"], "public-unauthenticated")
+                self.assertEqual({check["check"] for check in observation["checks"]}, checks)
+                for check in observation["checks"]:
+                    self.assertEqual(check["capability"], "models")
+                    self.assertIn("HTTP 401", check["outcome"])
+                self.assertTrue(all(evidence["runtime_status"] == "pending"
+                                    for evidence in targets[surface]["capabilities"].values()))
+
+    def test_orchestrator_tool_observations_scope_round_trips_to_mocked_sdks(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "perplexity")
+        target = next(row for row in item["targets"] if row["surface_id"] == "orchestrator")
+        observations = {row["interface"]: row for row in target["runtime_observations"]
+                        if row["environment"] == "isolated-sdk-mock"}
+        self.assertEqual(set(observations), {"openai-sdk", "anthropic-sdk"})
+        for sdk, version in (("openai", "3.51.0"), ("anthropic", "2.8.0")):
+            observation = observations[f"{sdk}-sdk"]
+            self.assertEqual(observation["engine_version"], version)
+            self.assertEqual(observation["architecture"], "x64")
+            checks = {check["check"]: check for check in observation["checks"]}
+            self.assertEqual(set(checks), {f"perplexity-orchestrator-{sdk}-{tool}-round-trip"
+                                          for tool in ("mcp", "skill")})
+            for route, capability in (("mcp", "mcp"), ("skill", "skills")):
+                check = checks[f"perplexity-orchestrator-{sdk}-{route}-round-trip"]
+                self.assertEqual(check["capability"], capability)
+                self.assertIn("mocked provider transport", check["outcome"])
+        for capability in ("mcp", "skills"):
+            self.assertEqual(target["capabilities"][capability]["state"], "manual")
+            self.assertEqual(target["capabilities"][capability]["runtime_status"], "pending")
 
     def test_openrouter_observations_are_scoped_to_public_catalog_discovery(self):
         report = coverage_report(ROOT)
         gateway = next(item for item in report["requested_items"] if item["id"] == "openrouter")["targets"][0]
-        observation, = gateway["runtime_observations"]
+        observations = {row["interface"]: row for row in gateway["runtime_observations"]}
+        self.assertEqual(set(observations), {"public-model-list", "public-provider-endpoint-list"})
+        observation = observations["public-model-list"]
         self.assertEqual(observation["product_version"], "1")
         self.assertIsNone(observation["engine_version"])
         self.assertEqual(observation["interface"], "public-model-list")
@@ -197,12 +359,22 @@ class RequestedCoverageTests(unittest.TestCase):
             "openrouter-public-model-route-validation": "models",
             "openrouter-public-reasoning-payload-validation": "reasoning",
         })
+        endpoints = observations["public-provider-endpoint-list"]
+        self.assertEqual(endpoints["product_version"], "1")
+        self.assertIsNone(endpoints["engine_version"])
+        self.assertEqual(endpoints["environment"], "public-unauthenticated")
+        check, = endpoints["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("openrouter-public-provider-endpoint-inventory", "models"))
 
     def test_antigravity_observations_distinguish_cli_and_desktop_windows_releases(self):
         report = coverage_report(ROOT)
         antigravity = next(item for item in report["requested_items"] if item["id"] == "antigravity")
         targets = {row["surface_id"]: row for row in antigravity["targets"]}
-        self.assertEqual(set(targets), {"ide", "cli", "desktop"})
+        self.assertEqual(set(targets), {"ide", "cli", "desktop", "sdk"})
+        sdk, = targets["sdk"]["runtime_observations"]
+        self.assertEqual((sdk["product_version"], sdk["interface"]), ("0.1.23", "python-config-constructor"))
+        self.assertEqual({row["capability"] for row in sdk["checks"]},
+                         {"instructions", "skills", "agents", "mcp", "models", "reasoning"})
         ide, ide_transports = targets["ide"]["runtime_observations"]
         self.assertEqual((ide["product_version"], ide["engine_version"]), ("2.5.5", "2.5.5"))
         self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
@@ -222,7 +394,7 @@ class RequestedCoverageTests(unittest.TestCase):
             "antigravity-ide-mcp-user-https-discovery": "mcp",
             "antigravity-ide-mcp-user-stdio-prompt": "mcp",
         })
-        record, https, acp, skill_read = targets["cli"]["runtime_observations"]
+        record, https, acp, skill_read, custom_model, gemini, adc = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "1.5.9")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
         self.assertEqual(record["architecture"], "x64")
@@ -259,6 +431,26 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({row["check"]: row["capability"] for row in skill_read["checks"]}, {
             "antigravity-cli-subagent-workspace-skill-read": "skills",
         })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(custom_model[field], record[field])
+        self.assertEqual({row["check"]: row["capability"] for row in custom_model["checks"]}, {
+            "antigravity-cli-custom-model-request": "models",
+            "antigravity-cli-custom-model-thinking": "reasoning",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(gemini[field], record[field])
+        self.assertEqual({row["check"]: row["capability"] for row in gemini["checks"]}, {
+            "antigravity-cli-gemini-provider-staging": "provider",
+            "antigravity-cli-gemini-built-in-reasoning": "reasoning",
+        })
+        self.assertEqual((adc["interface"], adc["environment"]), ("headless-adc", "isolated-signed-out"))
+        for field in ("product_version", "engine_version", "os_variant", "architecture"):
+            self.assertEqual(adc[field], record[field])
+        self.assertEqual({row["check"]: row["capability"] for row in adc["checks"]}, {
+            "antigravity-cli-adc-credential-boundary": "provider",
+        })
+        self.assertEqual(targets["cli"]["capabilities"]["provider"]["state"], "available")
+        self.assertEqual(targets["cli"]["capabilities"]["provider"]["runtime_status"], "pending")
         desktop, desktop_mcp = targets["desktop"]["runtime_observations"]
         self.assertEqual(desktop["product_version"], "2.32.0")
         self.assertEqual(desktop["engine_version"], "2.32.0")
@@ -282,16 +474,30 @@ class RequestedCoverageTests(unittest.TestCase):
             "antigravity-desktop-mcp-workspace-refresh-boundary": "mcp",
         })
 
-    def test_cursor_cli_inventory_is_bound_to_the_signed_out_windows_release(self):
+    def test_cursor_observations_are_bound_to_the_cli_and_ide_windows_releases(self):
         report = coverage_report(ROOT)
         cursor = next(item for item in report["requested_items"] if item["id"] == "cursor")
         targets = {row["surface_id"]: row for row in cursor["targets"]}
         self.assertEqual(set(targets), {"ide", "cli"})
-        self.assertFalse(targets["ide"]["runtime_observations"])
+        ide, = targets["ide"]["runtime_observations"]
+        self.assertEqual(ide["product_version"], "3.30.14")
+        self.assertEqual(ide["engine_version"], "3.30.14")
+        self.assertEqual(ide["architecture"], "x64")
+        self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(ide["interface"], "ide-bundled-config-loaders")
+        self.assertEqual(ide["environment"], "isolated-native-loader")
+        self.assertEqual({row["check"]: row["capability"] for row in ide["checks"]}, {
+            "cursor-ide-bundled-instruction-load": "instructions",
+            "cursor-ide-bundled-skill-load": "skills",
+            "cursor-ide-bundled-subagent-load": "agents",
+            "cursor-ide-bundled-selector-load": "reasoning",
+            "cursor-ide-bundled-mcp-inventory": "mcp",
+            "cursor-ide-bundled-mcp-stdio": "mcp",
+        })
         observations = targets["cli"]["runtime_observations"]
         record, context7 = (item for item in observations if item["interface"] == "mcp-cli-inventory")
-        records = {item["interface"]: item for item in observations}
-        self.assertEqual(set(records), {"mcp-cli-inventory", "bundled-subagent-loader", "bundled-skill-loader"})
+        self.assertEqual({item["interface"] for item in observations},
+                         {"mcp-cli-inventory", "bundled-subagent-loader", "bundled-skill-loader"})
         self.assertEqual(record["product_version"], "2026.11.13-eacade1")
         self.assertEqual(record["architecture"], "x64")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -307,9 +513,11 @@ class RequestedCoverageTests(unittest.TestCase):
         })
         for interface, check_id, capability in (
             ("bundled-subagent-loader", "cursor-cli-bundled-subagent-load", "agents"),
+            ("bundled-subagent-loader", "cursor-cli-bundled-preset-selector-load", "reasoning"),
             ("bundled-skill-loader", "cursor-cli-bundled-skill-load", "skills"),
         ):
-            loader = records[interface]
+            loader, = [item for item in observations if item["interface"] == interface
+                       and item["checks"][0]["check"] == check_id]
             self.assertEqual(loader["product_version"], record["product_version"])
             self.assertEqual(loader["os_variant"], record["os_variant"])
             self.assertEqual(loader["environment"], "isolated-native-loader")
@@ -374,11 +582,13 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(result["capability"], "mcp")
         self.assertEqual(canvas["capabilities"]["mcp"]["runtime_status"], "pending")
 
-    def test_zed_observation_covers_editor_mcp_startup(self):
+    def test_zed_observations_cover_editor_mcp_startup_and_lmstudio_catalog_request(self):
+        from agentweaver.models import load_model_hosts
+
         report = coverage_report(ROOT)
         zed = next(item for item in report["requested_items"] if item["id"] == "zed")
         target, = zed["targets"]
-        record, = target["runtime_observations"]
+        record, startup, settings_ui = target["runtime_observations"]
         self.assertEqual(target["surface_id"], "ide")
         self.assertEqual(record["product_version"], "1.28.1")
         self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -387,6 +597,22 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(record["environment"], "isolated-signed-out")
         check, = record["checks"]
         self.assertEqual((check["check"], check["capability"]), ("zed-stdio-explicit-activation", "mcp"))
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(startup[field], record[field])
+        self.assertEqual(startup["interface"], "editor-startup")
+        self.assertEqual({check["check"]: check["capability"] for check in startup["checks"]}, {
+            "zed-lmstudio-v0-catalog-request": "models",
+            "zed-public-https-mcp-tool-inventory": "mcp",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(settings_ui[field], record[field])
+        self.assertEqual(settings_ui["interface"], "editor-settings-ui")
+        check, = settings_ui["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("zed-settings-ui-disabled-mcp-inventory", "mcp"))
+        self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+        host = next(row for row in load_model_hosts(ROOT) if row["product_id"] == "zed" and row["surface_id"] == "ide")
+        self.assertEqual(host["availability"], "unknown")
+        self.assertEqual(host["runtime_checks"], [])
 
     def test_hermes_cli_observation_scopes_disposable_profile_loading(self):
         report = coverage_report(ROOT)
@@ -423,13 +649,124 @@ class RequestedCoverageTests(unittest.TestCase):
             "hermes-lmstudio-gateway-reasoning-off": "reasoning",
         })
 
-    def test_kiro_cli_observations_distinguish_local_discovery_from_model_availability(self):
+    def test_chatgpt_plugin_evidence_is_scoped_to_the_bundled_codex_desktop_reader(self):
+        report = coverage_report(ROOT)
+        codex = next(row for row in report["requested_items"] if row["id"] == "codex")
+        desktop = next(row for row in codex["targets"] if row["surface_id"] == "desktop")
+        record, = [row for row in desktop["runtime_observations"] if any(
+            check["check"] == "codex-desktop-chatgpt-plugin-skill-inventory" for check in row["checks"])]
+        self.assertEqual(record["interface"], "app-server-stdio")
+        self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertEqual(record["product_version"], "26.1106.6628.0")
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+            "codex-desktop-chatgpt-plugin-skill-inventory": "skills",
+            "codex-desktop-chatgpt-plugin-mcp-inventory": "mcp",
+            "codex-desktop-chatgpt-named-plugin-skills": "skills",
+            "codex-desktop-chatgpt-named-plugin-mcp": "mcp",
+        })
+        chatgpt = next(row for row in report["requested_items"] if row["id"] == "chatgpt")
+        chatgpt_checks = {check["check"] for target in chatgpt["targets"] for observation in target["runtime_observations"]
+                          for check in observation["checks"]}
+        self.assertTrue(chatgpt_checks.isdisjoint(check["check"] for check in record["checks"]))
+
+    def test_chatgpt_local_packages_record_discovery_for_the_two_staged_surfaces(self):
+        report = coverage_report(ROOT)
+        chatgpt = next(row for row in report["requested_items"] if row["id"] == "chatgpt")
+        targets = {target["surface_id"]: target for target in chatgpt["targets"]}
+        for surface in ("desktop", "work-local"):
+            with self.subTest(surface=surface):
+                record, = targets[surface]["runtime_observations"]
+                self.assertEqual(record["interface"], "desktop-bundled-plugin-reader")
+                self.assertEqual(record["environment"], "isolated-signed-out")
+                self.assertEqual(record["product_version"], "26.1106.6628.0")
+                self.assertEqual(record["engine_version"], "0.167.0-alpha.4.1")
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                self.assertEqual(record["architecture"], "x64")
+                self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+                    "chatgpt-local-plugin-skill-inventory": "skills",
+                    "chatgpt-local-plugin-mcp-inventory": "mcp",
+                })
+                self.assertTrue(all(evidence["runtime_status"] == "pending"
+                                    for evidence in targets[surface]["capabilities"].values()))
+
+    def test_chatgpt_hosted_observations_are_scoped_to_access_and_picker_controls(self):
+        chatgpt = next(row for row in coverage_report(ROOT)["requested_items"] if row["id"] == "chatgpt")
+        targets = {target["surface_id"]: target for target in chatgpt["targets"]}
+        for surface, expected in (
+            ("web", {"public-web-ui": {"mcp"}, "hosted-chat-ui": {"models", "reasoning", "skills"}}),
+            ("work-cloud", {"hosted-work-ui": {"models", "reasoning", "mcp"}}),
+        ):
+            with self.subTest(surface=surface):
+                records = {row["interface"]: row for row in targets[surface]["runtime_observations"]}
+                self.assertEqual(set(records), set(expected))
+                for interface, capabilities in expected.items():
+                    record = records[interface]
+                    self.assertIsNone(record["product_version"])
+                    self.assertEqual(record["engine_version"], "157.0.8103.79")
+                    self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                    self.assertEqual(record["architecture"], "x64")
+                    environment = "public-unauthenticated" if interface == "public-web-ui" else "existing-account-read-only"
+                    self.assertEqual(record["environment"], environment)
+                    self.assertEqual({check["capability"] for check in record["checks"]}, capabilities)
+                self.assertTrue(all(evidence["runtime_status"] == "pending"
+                                    for evidence in targets[surface]["capabilities"].values()))
+
+    def test_devin_desktop_observations_limit_claims_to_bundled_inventory(self):
+        report = coverage_report(ROOT)
+        devin = next(item for item in report["requested_items"] if item["id"] == "devin")
+        target, = devin["targets"]
+        self.assertEqual(target["surface_id"], "desktop-local")
+        records = {row["interface"]: row for row in target["runtime_observations"]}
+        self.assertEqual(set(records), {"desktop-bundled-acp-stdio", "desktop-bundled-config-inventory"})
+        for record in records.values():
+            self.assertEqual(record["product_version"], "3.12.59")
+            self.assertEqual(record["engine_version"], "3000.12.59")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+            self.assertEqual(record["environment"], "isolated-signed-out")
+        self.assertEqual(
+            {check["check"]: check["capability"] for check in records["desktop-bundled-acp-stdio"]["checks"]},
+            {
+                "devin-desktop-project-instructions-inventory": "instructions",
+                "devin-desktop-project-skill-inventory": "skills",
+                "devin-desktop-project-subagent-inventory": "agents",
+                "devin-desktop-project-stdio-handshake": "mcp",
+            },
+        )
+        mcp, = records["desktop-bundled-config-inventory"]["checks"]
+        self.assertEqual(mcp["capability"], "mcp")
+        self.assertIn("disabled tool names", mcp["outcome"])
+
+    def test_kiro_observations_distinguish_local_discovery_from_model_availability(self):
         report = coverage_report(ROOT)
         kiro = next(item for item in report["requested_items"] if item["id"] == "kiro")
         targets = {target["surface_id"]: target for target in kiro["targets"]}
-        self.assertEqual(targets["ide"]["runtime_observations"], [])
-        acp, inventory, thinking, output_limit = targets["cli"]["runtime_observations"]
-        for record in (acp, inventory, thinking, output_limit):
+        ide, public_https = targets["ide"]["runtime_observations"]
+        self.assertEqual(ide["product_version"], "1.4.178")
+        self.assertEqual(ide["engine_version"], "1.1.939")
+        self.assertEqual(ide["extension_version"], "1.1.939")
+        self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(ide["architecture"], "x64")
+        self.assertEqual(ide["interface"], "bundled-extension-loaders")
+        self.assertEqual(ide["environment"], "isolated-native-loader")
+        self.assertEqual({row["check"]: row["capability"] for row in ide["checks"]}, {
+            "kiro-ide-steering-load": "instructions",
+            "kiro-ide-skill-resource-load": "skills",
+            "kiro-ide-agent-profile-load": "agents",
+            "kiro-ide-agent-model-readback": "models",
+            "kiro-ide-mcp-declarations": "mcp",
+            "kiro-ide-mcp-stdio-tool-filter": "mcp",
+        })
+        for field in ("product_version", "engine_version", "extension_version", "os_variant",
+                      "architecture", "interface", "environment"):
+            self.assertEqual(public_https[field], ide[field])
+        self.assertEqual({row["check"]: row["capability"] for row in public_https["checks"]}, {
+            "kiro-ide-https-discovery-and-call": "mcp",
+            "kiro-ide-https-disabled-tool-status": "mcp",
+        })
+        self.assertEqual(targets["ide"]["capabilities"]["mcp"]["runtime_status"], "pending")
+        acp, inventory, thinking, output_limit, mcp_filters, effort_matrix, acp_model = targets["cli"]["runtime_observations"]
+        for record in targets["cli"]["runtime_observations"]:
             self.assertEqual(record["product_version"], "3.3.0")
             self.assertEqual(record["engine_version"], "3.3.0")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -454,13 +791,28 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({check["check"]: check["capability"] for check in output_limit["checks"]}, {
             "kiro-v3-workspace-output-limit-readback": "models",
         })
+        self.assertEqual(mcp_filters["interface"], "acp-stdio")
+        self.assertEqual({check["check"]: check["capability"] for check in mcp_filters["checks"]}, {
+            "kiro-v3-stdio-disabled-tool-status": "mcp",
+            "kiro-v3-https-disabled-tool-status": "mcp",
+        })
+        self.assertEqual(effort_matrix["interface"], "config-inventory")
+        self.assertEqual({check["check"]: check["capability"] for check in effort_matrix["checks"]}, {
+            "kiro-v3-documented-effort-matrix-readback": "reasoning",
+        })
+        self.assertEqual(acp_model["interface"], "acp-stdio")
+        self.assertEqual({check["check"]: check["capability"] for check in acp_model["checks"]}, {
+            "kiro-v3-acp-initial-model-selection": "models",
+            "kiro-v3-acp-signed-out-effort-boundary": "reasoning",
+        })
+        self.assertEqual(targets["cli"]["capabilities"]["provider"]["runtime_status"], "pending")
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_cline_ide_observations_keep_the_extension_host_scope(self):
         report = coverage_report(ROOT)
         cline = next(item for item in report["requested_items"] if item["id"] == "cline")
         targets = {target["surface_id"]: target for target in cline["targets"]}
-        ide, = targets["ide"]["runtime_observations"]
+        ide, approval = targets["ide"]["runtime_observations"]
         self.assertEqual(ide["interface"], "vscode-extension-host")
         self.assertEqual(ide["product_version"], "1.146.0")
         self.assertEqual(ide["extension_version"], "4.1.26")
@@ -473,13 +825,83 @@ class RequestedCoverageTests(unittest.TestCase):
             "cline-ide-local-model-selection": "models",
             "cline-ide-reasoning-effort-request": "reasoning",
         })
+        for field in ("product_version", "engine_version", "extension_version", "os_variant", "architecture",
+                      "environment"):
+            self.assertEqual(approval[field], ide[field])
+        self.assertEqual(approval["interface"], "vscode-extension-mcp-approval")
+        self.assertEqual({check["check"]: check["capability"] for check in approval["checks"]}, {
+            "cline-ide-mcp-category-auto-approval": "mcp",
+            "cline-ide-stdio-manual-approval": "mcp",
+            "cline-ide-public-https-tool-inventory": "mcp",
+            "cline-ide-public-https-tool-approval": "mcp",
+        })
 
-    def test_lmstudio_observations_apply_to_the_headless_api(self):
+    def test_lmstudio_observations_keep_api_bionic_and_bundled_desktop_scope_separate(self):
         report = coverage_report(ROOT)
         studio = next(item for item in report["requested_items"] if item["id"] == "lm-studio")
         targets = {target["surface_id"]: target for target in studio["targets"]}
+        bionic, picker, inference, mcp, https, settings, stdio_settings = targets["bionic"]["runtime_observations"]
+        self.assertEqual(bionic["product_version"], "1.2.0+2")
+        self.assertEqual(bionic["interface"], "bundled-bionic-probe")
+        self.assertEqual(bionic["environment"], "isolated-native-loader")
+        self.assertEqual(bionic["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(bionic["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in bionic["checks"]}, {
+            "lmstudio-bionic-skill-import": "skills",
+            "lmstudio-bionic-mcp-form-parse": "mcp",
+            "lmstudio-bionic-mcp-stdio-discovery": "mcp",
+        })
+        self.assertEqual(picker["product_version"], bionic["product_version"])
+        self.assertEqual(picker["os_variant"], bionic["os_variant"])
+        self.assertEqual(picker["architecture"], bionic["architecture"])
+        self.assertEqual(picker["interface"], "session-model-picker")
+        self.assertEqual({check["check"]: check["capability"] for check in picker["checks"]}, {
+            "lmstudio-bionic-local-model-picker": "models",
+            "lmstudio-bionic-local-reasoning-picker": "reasoning",
+        })
+        self.assertEqual(inference["product_version"], "1.2.0+2")
+        self.assertEqual(inference["engine_version"], "2.66.0")
+        self.assertEqual(inference["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(inference["architecture"], "x64")
+        self.assertEqual(inference["interface"], "session-local-inference")
+        self.assertEqual({check["check"]: check["capability"] for check in inference["checks"]}, {
+            "lmstudio-bionic-local-model-inference": "models",
+            "lmstudio-bionic-local-reasoning-output": "reasoning",
+        })
+        self.assertEqual(mcp["product_version"], "1.2.0+2")
+        self.assertEqual(mcp["engine_version"], "2.66.0")
+        self.assertEqual(mcp["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(mcp["architecture"], "x64")
+        self.assertEqual(mcp["interface"], "session-local-mcp")
+        self.assertEqual({check["check"]: check["capability"] for check in mcp["checks"]}, {
+            "lmstudio-bionic-session-stdio-tool-call": "mcp",
+            "lmstudio-bionic-session-mcp-disable": "mcp",
+        })
+        self.assertEqual(https["product_version"], bionic["product_version"])
+        self.assertEqual(https["engine_version"], bionic["engine_version"])
+        self.assertEqual(https["os_variant"], bionic["os_variant"])
+        self.assertEqual(https["architecture"], bionic["architecture"])
+        self.assertEqual(https["interface"], "settings-mcp-https")
+        self.assertEqual({check["check"]: check["capability"] for check in https["checks"]}, {
+            "lmstudio-bionic-settings-https-tool-discovery": "mcp",
+            "lmstudio-bionic-settings-https-pause": "mcp",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(settings[field], bionic[field])
+        self.assertEqual(settings["interface"], "settings-skills")
+        self.assertEqual({check["check"]: check["capability"] for check in settings["checks"]}, {
+            "lmstudio-bionic-settings-skill-import": "skills",
+            "lmstudio-bionic-composer-skill-reference": "skills",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(stdio_settings[field], bionic[field])
+        self.assertEqual(stdio_settings["interface"], "settings-mcp-stdio")
+        self.assertEqual({check["check"]: check["capability"] for check in stdio_settings["checks"]}, {
+            "lmstudio-bionic-settings-stdio-tool-discovery": "mcp",
+            "lmstudio-bionic-settings-stdio-pause": "mcp",
+        })
         observations = targets["api"]["runtime_observations"]
-        self.assertEqual(len(observations), 3)
+        self.assertEqual(len(observations), 7)
         for api in observations:
             self.assertEqual(api["product_version"], "0.0.27+1")
             self.assertEqual(api["engine_version"], "2.66.0")
@@ -492,23 +914,50 @@ class RequestedCoverageTests(unittest.TestCase):
             "lmstudio-local-reasoning-switch": "reasoning",
             "lmstudio-compatible-reasoning-switch": "reasoning",
             "lmstudio-messages-thinking-switch": "reasoning",
+            "lmstudio-loaded-chat-alias": "models",
+            "lmstudio-loaded-chat-alias-reasoning": "reasoning",
+            "lmstudio-native-mcp-tool-scope": "mcp",
+            "lmstudio-responses-mcp-tool-scope": "mcp",
+            "lmstudio-native-preconfigured-stdio": "mcp",
+            "lmstudio-preconfigured-plugin-authentication": "mcp",
+            "lmstudio-native-chat-context-length": "models",
             "lmstudio-local-embedding-request": "models",
             "lmstudio-ephemeral-mcp-tool-call": "mcp",
             "lmstudio-compatible-chat-requests": "models",
             "lmstudio-decision-instance-inventory": "models",
             "lmstudio-local-decision-requests": "models",
         })
-        self.assertEqual(targets["desktop"]["runtime_observations"], [])
-        self.assertEqual(targets["bionic"]["runtime_observations"], [])
+        preset, mcp, skill = targets["desktop"]["runtime_observations"]
+        for record in (preset, mcp, skill):
+            self.assertEqual(record["product_version"], "0.4.28+2")
+            self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+            self.assertEqual(record["architecture"], "x64")
+            self.assertEqual(record["environment"], "isolated-native-loader")
+        self.assertEqual(preset["interface"], "bundled-preset-parser")
+        self.assertEqual({check["check"]: check["capability"] for check in preset["checks"]}, {
+            "lmstudio-desktop-preset-prompt-parse": "instructions",
+            "lmstudio-desktop-preset-reasoning-parse": "reasoning",
+        })
+        self.assertEqual(mcp["interface"], "bundled-mcp-session")
+        self.assertEqual({check["check"]: check["capability"] for check in mcp["checks"]}, {
+            "lmstudio-desktop-mcp-config-parse": "mcp",
+            "lmstudio-desktop-bundled-stdio-tool-call": "mcp",
+            "lmstudio-desktop-bundled-http-wire": "mcp",
+        })
+        self.assertEqual(targets["desktop"]["capabilities"]["mcp"]["runtime_status"], "pending")
+        self.assertEqual(skill["interface"], "bundled-mcp-session")
+        self.assertEqual({check["check"]: check["capability"] for check in skill["checks"]}, {
+            "lmstudio-desktop-bundled-skill-tool": "skills",
+        })
+        self.assertEqual(targets["desktop"]["capabilities"]["skills"]["state"], "manual")
+        self.assertEqual(targets["desktop"]["capabilities"]["skills"]["runtime_status"], "pending")
 
     def test_copilot_observations_name_the_bundled_runtime_and_bound_discovery(self):
         report = coverage_report(ROOT)
         item = next(item for item in report["requested_items"] if item["id"] == "copilot")
         self.assertEqual({target["surface_id"] for target in item["targets"]}, {"cli", "desktop", "vscode"})
-        desktop = next(target for target in item["targets"] if target["surface_id"] == "desktop")
-        self.assertEqual(desktop["runtime_observations"], [])
         target = next(target for target in item["targets"] if target["surface_id"] == "vscode")
-        observation, tool_call, model_load = target["runtime_observations"]
+        observation, tool_call, model_load, agent_mcp = target["runtime_observations"]
         self.assertEqual(observation["product_version"], "1.146.0")
         self.assertEqual(observation["extension_version"], "0.74.0")
         self.assertEqual(observation["engine_version"], "1.0.73")
@@ -520,6 +969,31 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(tool_call["checks"][0]["capability"], "mcp")
         self.assertEqual([check["check"] for check in model_load["checks"]],
                          ["agent-model-effort-config-load", "agent-model-array-rejected"])
+        self.assertEqual(agent_mcp["interface"], "bundled-runtime")
+        self.assertEqual(agent_mcp["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual([(check["check"], check["capability"]) for check in agent_mcp["checks"]],
+                         [("copilot-vscode-agent-mcp-tool-selection", "mcp")])
+        self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_copilot_desktop_observation_identifies_the_binary_from_the_app_package(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "copilot")
+        target = next(target for target in item["targets"] if target["surface_id"] == "desktop")
+        record, = target["runtime_observations"]
+        self.assertEqual(record["product_version"], "1.4.2")
+        self.assertEqual(record["engine_version"], "1.0.106-8.unstable.r43566476370.g869eef3")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["interface"], "desktop-bundled-prompt-mode")
+        self.assertEqual(record["environment"], "isolated-release-loopback")
+        self.assertNotIn("extension_version", record)
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+            "copilot-desktop-bundled-agent": "agents",
+            "copilot-desktop-bundled-skills": "skills",
+            "copilot-desktop-bundled-mcp": "mcp",
+            "copilot-desktop-bundled-mcp-permissions": "mcp",
+            "copilot-desktop-bundled-model": "models",
+            "copilot-desktop-bundled-effort": "reasoning",
+        })
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_copilot_cli_observations_record_prompt_mode_separately(self):
@@ -547,11 +1021,10 @@ class RequestedCoverageTests(unittest.TestCase):
             "copilot-cli-child-effort-request": "reasoning",
         })
 
-    def test_claude_observations_belong_to_the_bundled_executable(self):
+    def test_claude_vscode_observations_belong_to_the_bundled_executable(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        self.assertEqual(targets["desktop"]["runtime_observations"], [])
-        record, remote, loopback = targets["vscode"]["runtime_observations"]
+        record, remote, loopback, ultracode = targets["vscode"]["runtime_observations"]
         self.assertEqual(record["extension_version"], record["engine_version"])
         self.assertEqual(record["interface"], "bundled-runtime")
         checks = {check["check"] for check in record["checks"]}
@@ -566,6 +1039,11 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual(loopback["environment"], "isolated-loopback")
         self.assertEqual(loopback["interface"], "bundled-runtime")
         self.assertEqual(loopback["extension_version"], record["extension_version"])
+        for field in ("product_version", "engine_version", "extension_version", "interface", "os_variant",
+                      "architecture", "environment"):
+            self.assertEqual(ultracode[field], loopback[field])
+        check, = ultracode["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("claude-ultracode-project-setting", "reasoning"))
         self.assertEqual({check["check"]: check["capability"] for check in loopback["checks"]},
                          {"agent-load": "agents", "claude-child-model-request": "models",
                           "claude-child-effort-request": "reasoning", "stdio-tool-call": "mcp",
@@ -575,8 +1053,8 @@ class RequestedCoverageTests(unittest.TestCase):
     def test_claude_standalone_observations_scope_catalog_and_tool_calls(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
         cli = next(target for target in item["targets"] if target["surface_id"] == "cli")
-        inventory, execution, local_generation = cli["runtime_observations"]
-        for record in (inventory, execution):
+        inventory, execution, local_generation, ultracode = cli["runtime_observations"]
+        for record in (inventory, execution, ultracode):
             self.assertEqual(record["interface"], "stream-json")
             self.assertEqual(record["product_version"], "2.1.325")
             self.assertEqual(record["engine_version"], "2.1.325")
@@ -585,6 +1063,9 @@ class RequestedCoverageTests(unittest.TestCase):
             self.assertNotIn("extension_version", record)
         self.assertEqual(inventory["environment"], "isolated-signed-out")
         self.assertEqual(execution["environment"], "isolated-loopback")
+        self.assertEqual(ultracode["environment"], "isolated-loopback")
+        check, = ultracode["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("claude-ultracode-project-setting", "reasoning"))
         self.assertEqual({check["check"]: check["capability"] for check in inventory["checks"]}, {
             "skill-discovery": "skills",
             "agent-metadata-discovery": "agents",
@@ -612,10 +1093,37 @@ class RequestedCoverageTests(unittest.TestCase):
         check, = local_generation["checks"]
         self.assertEqual((check["check"], check["capability"]), ("claude-lmstudio-local-generation", "models"))
 
+    def test_claude_desktop_observation_is_scoped_to_the_pinned_engine(self):
+        item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "claude-code")
+        desktop = next(target for target in item["targets"] if target["surface_id"] == "desktop")
+        record, ultracode = desktop["runtime_observations"]
+        self.assertEqual(record["product_version"], "5.11492.5.0")
+        self.assertEqual(record["engine_version"], "2.1.325")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["interface"], "desktop-pinned-runtime")
+        self.assertEqual(record["environment"], "isolated-loopback")
+        for field in ("product_version", "engine_version", "interface", "os_variant", "architecture", "environment"):
+            self.assertEqual(ultracode[field], record[field])
+        check, = ultracode["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("claude-ultracode-project-setting", "reasoning"))
+        self.assertEqual({row["check"]: row["capability"] for row in record["checks"]}, {
+            "claude-desktop-project-instructions": "instructions",
+            "claude-desktop-skill-use": "skills",
+            "agent-load": "agents",
+            "project-http-pending-approval": "mcp",
+            "stdio-tool-call": "mcp",
+            "claude-child-mcp-tool-filter": "mcp",
+            "claude-child-model-request": "models",
+            "claude-child-effort-request": "reasoning",
+            "claude-desktop-catalog-model-requests": "models",
+            "claude-desktop-catalog-effort-requests": "reasoning",
+        })
+
     def test_qwen_release_daemon_observations_identify_each_packaged_runtime(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "qwen-code")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        record, discovery, execution = targets["cli"]["runtime_observations"]
+        record, discovery, execution, public_https = targets["cli"]["runtime_observations"]
         self.assertEqual(record["product_version"], "0.27.3")
         self.assertEqual(record["interface"], "daemon-http")
         self.assertEqual(record["environment"], "isolated-release-loopback")
@@ -631,7 +1139,14 @@ class RequestedCoverageTests(unittest.TestCase):
             [check] = observation["checks"]
             self.assertEqual(check["check"], expected)
             self.assertEqual(check["capability"], "mcp")
-        desktop, = targets["desktop"]["runtime_observations"]
+        self.assertEqual(public_https["interface"], "exec-public-https-mcp")
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(public_https[field], execution[field])
+        self.assertEqual({check["check"]: check["capability"] for check in public_https["checks"]}, {
+            "qwen-cli-public-https-server-approval": "mcp",
+            "qwen-cli-public-https-tool-approval": "mcp",
+        })
+        desktop, desktop_public_https = targets["desktop"]["runtime_observations"]
         self.assertEqual(desktop["product_version"], "0.27.3")
         self.assertEqual(desktop["engine_version"], "22.20.0")
         self.assertEqual(desktop["interface"], "bundled-daemon-http")
@@ -650,6 +1165,13 @@ class RequestedCoverageTests(unittest.TestCase):
             "qwen-daemon-session-effort": "reasoning",
             "qwen-daemon-child-model-request": "models",
             "qwen-daemon-child-effort-request": "reasoning",
+        })
+        self.assertEqual(desktop_public_https["interface"], "bundled-daemon-public-https-mcp")
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "environment"):
+            self.assertEqual(desktop_public_https[field], desktop[field])
+        self.assertEqual({check["check"]: check["capability"] for check in desktop_public_https["checks"]}, {
+            "qwen-desktop-public-https-server-approval": "mcp",
+            "qwen-desktop-public-https-tool-approval": "mcp",
         })
 
     def test_qwen_companion_observation_names_the_extension_and_acp_runtime(self):
@@ -672,7 +1194,9 @@ class RequestedCoverageTests(unittest.TestCase):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "opencode")
         [target] = item["targets"]
         self.assertEqual(target["surface_id"], "cli")
-        initial, active, execution, delegation = target["runtime_observations"]
+        initial, active, execution, delegation, staged_run = [
+            row for row in target["runtime_observations"] if row["interface"] != "exec-local-inference"
+        ]
         self.assertEqual(initial["product_version"], active["product_version"])
         self.assertEqual(active["product_version"], "2.3.0")
         self.assertEqual(active["interface"], "serve-http")
@@ -689,13 +1213,40 @@ class RequestedCoverageTests(unittest.TestCase):
         self.assertEqual({check["check"]: check["capability"] for check in delegation["checks"]},
                          {"agent-load": "agents", "agent-model-effort-selection": "reasoning",
                           "opencode-v2-child-skill-use": "skills", "opencode-v2-child-mcp-filter": "mcp"})
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(staged_run[field], execution[field])
+        self.assertEqual({check["check"]: check["capability"] for check in staged_run["checks"]}, {
+            "opencode-v2-staged-run-alias": "models", "opencode-v2-staged-run-variant": "reasoning",
+            "opencode-v2-run-instructions": "instructions",
+        })
         self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
+
+    def test_opencode_and_kilo_have_scoped_real_local_model_and_reasoning_evidence(self):
+        report = coverage_report(ROOT)
+        items = {item["id"]: item for item in report["requested_items"]}
+        for product, version in (("opencode", "2.3.0"), ("kilo", "7.8.27")):
+            with self.subTest(product=product):
+                target = next(row for row in items[product]["targets"] if row["surface_id"] == "cli")
+                record, = [row for row in target["runtime_observations"] if row["interface"] == "exec-local-inference"]
+                self.assertEqual(record["environment"], "isolated-local-inference")
+                self.assertEqual(record["product_version"], version)
+                self.assertEqual(record["engine_version"], version)
+                self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+                self.assertEqual(record["architecture"], "x64")
+                self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+                    "local-chat-cli-model-selection": "models",
+                    "local-chat-cli-reasoning-switch": "reasoning",
+                })
+                self.assertTrue(all(evidence["runtime_status"] == "pending"
+                                    for evidence in target["capabilities"].values()))
 
     def test_kilo_runtime_records_keep_catalog_and_variant_loading_separate(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "kilo")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        discovery, execution = targets["cli"]["runtime_observations"]
-        [editor] = targets["ide"]["runtime_observations"]
+        discovery, execution, staged_run, cli_https, cli_gateway = [
+            row for row in targets["cli"]["runtime_observations"] if row["interface"] != "exec-local-inference"
+        ]
+        editor, editor_https = targets["ide"]["runtime_observations"]
         for record in (discovery, execution):
             self.assertEqual(record["product_version"], "7.8.27")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
@@ -710,6 +1261,12 @@ class RequestedCoverageTests(unittest.TestCase):
             "stdio-tool-call": "mcp", "kilo-cli-variant-request": "reasoning", "agent-load": "agents",
             "agent-model-effort-selection": "reasoning", "kilo-child-ambient-mcp": "mcp",
         })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(staged_run[field], execution[field])
+        self.assertEqual({check["check"]: check["capability"] for check in staged_run["checks"]}, {
+            "kilo-staged-run-model": "models", "kilo-staged-run-variant": "reasoning",
+            "kilo-staged-run-instructions": "instructions",
+        })
         self.assertEqual(editor["interface"], "vscode-extension-host")
         self.assertEqual(editor["product_version"], "1.146.0")
         self.assertEqual(editor["extension_version"], "7.8.27")
@@ -718,13 +1275,57 @@ class RequestedCoverageTests(unittest.TestCase):
             "kilo-stdio-discovery": "mcp", "kilo-extension-model-selection": "models",
             "kilo-extension-variant-selection": "reasoning",
         })
-        self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
+        for current, earlier in ((cli_https, execution), (editor_https, editor)):
+            for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+                self.assertEqual(current[field], earlier[field])
+        self.assertEqual(editor_https["extension_version"], editor["extension_version"])
+        self.assertEqual({check["check"]: check["capability"] for check in cli_https["checks"]}, {
+            "kilo-cli-generated-mcp-default-off": "mcp", "kilo-cli-public-https-mcp-call": "mcp",
+        })
+        self.assertEqual({check["check"]: check["capability"] for check in editor_https["checks"]}, {
+            "kilo-extension-public-https-mcp-call": "mcp", "kilo-extension-session-model-request": "models",
+            "kilo-extension-session-variant-request": "reasoning",
+        })
+        desktop, desktop_session, desktop_gateway = targets["desktop"]["runtime_observations"]
+        self.assertEqual(desktop["product_version"], "0.1.16")
+        for field in ("engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(desktop[field], discovery[field])
+        self.assertEqual({check["check"]: check["capability"] for check in desktop["checks"]}, {
+            "skill-discovery": "skills", "agent-discovery": "agents", "kilo-desktop-generated-mcp-discovery": "mcp",
+            "kilo-model-variant-catalog": "models", "kilo-agent-variant-load": "reasoning",
+        })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(desktop_session[field], desktop[field])
+        self.assertEqual({check["check"]: check["capability"] for check in desktop_session["checks"]}, {
+            "kilo-desktop-project-instructions": "instructions", "agent-load": "agents",
+            "kilo-desktop-subagent-stdio-call": "mcp", "kilo-desktop-subagent-model-request": "models",
+            "agent-model-effort-selection": "reasoning",
+        })
+        gateway, = targets["gateway"]["runtime_observations"]
+        self.assertEqual(gateway["product_version"], "1")
+        self.assertIsNone(gateway["engine_version"])
+        self.assertEqual(gateway["interface"], "public-model-list")
+        self.assertEqual(gateway["environment"], "public-unauthenticated")
+        self.assertEqual({check["check"]: check["capability"] for check in gateway["checks"]}, {
+            "kilo-gateway-public-model-catalog": "models", "kilo-gateway-catalog-variant-validation": "reasoning",
+        })
+        for replay, prior in ((cli_gateway, execution), (desktop_gateway, desktop_session)):
+            for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+                self.assertEqual(replay[field], prior[field])
+            self.assertEqual({check["check"]: check["capability"] for check in replay["checks"]}, {
+                "kilo-gateway-client-model-route": "models", "kilo-gateway-client-variant-wire": "reasoning",
+            })
+            self.assertIn("pinned locally", replay["checks"][1]["outcome"])
+        for target in targets.values():
+            self.assertEqual(target["capabilities"]["mcp"]["runtime_status"], "pending")
 
     def test_cline_runtime_records_distinguish_inventory_and_loopback_execution(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "cline")
         targets = {target["surface_id"]: target for target in item["targets"]}
-        inventory, execution = targets["cli"]["runtime_observations"]
-        for record in (inventory, execution):
+        inventory, execution, approval = [
+            row for row in targets["cli"]["runtime_observations"] if row["interface"] != "exec-local-inference"
+        ]
+        for record in (inventory, execution, approval):
             self.assertEqual(record["product_version"], "3.0.74")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
             self.assertEqual(record["architecture"], "x64")
@@ -739,8 +1340,15 @@ class RequestedCoverageTests(unittest.TestCase):
             "stdio-tool-call": "mcp", "agent-load": "agents", "agent-model-effort-selection": "reasoning",
             "cline-child-skill-use": "skills", "cline-child-mcp-filter": "mcp",
         })
+        self.assertEqual(approval["interface"], "exec-mcp-approval")
+        self.assertEqual(approval["environment"], "isolated-release-loopback")
+        self.assertEqual({check["check"]: check["capability"] for check in approval["checks"]}, {
+            "cline-cli-generated-mcp-approval": "mcp", "cline-cli-global-mcp-auto-approval": "mcp",
+            "cline-cli-public-https-mcp-tool-call": "mcp",
+        })
         self.assertEqual(targets["cli"]["capabilities"]["mcp"]["runtime_status"], "pending")
-        [desktop] = targets["desktop"]["runtime_observations"]
+        desktop, desktop_https = [row for row in targets["desktop"]["runtime_observations"]
+                                  if row["environment"] == "isolated-release-loopback"]
         self.assertEqual((desktop["product_version"], desktop["engine_version"]), ("0.0.49", "0.2.0"))
         self.assertEqual(desktop["interface"], "desktop-sidecar")
         self.assertEqual(desktop["os_variant"], "windows:11:10.0.26300.9711")
@@ -752,20 +1360,65 @@ class RequestedCoverageTests(unittest.TestCase):
             "agent-model-effort-selection": "reasoning", "cline-child-skill-use": "skills",
             "cline-child-mcp-filter": "mcp",
         })
+        for field in ("product_version", "engine_version", "os_variant", "architecture", "interface", "environment"):
+            self.assertEqual(desktop_https[field], desktop[field])
+        check, = desktop_https["checks"]
+        self.assertEqual((check["check"], check["capability"]), ("cline-desktop-public-https-mcp-tool-call", "mcp"))
+        cli_https = next(check for check in approval["checks"] if check["check"] == "cline-cli-public-https-mcp-tool-call")
+        self.assertEqual(check["evidence_sha256"], cli_https["evidence_sha256"])
+
+    def test_cline_local_inference_records_the_actual_reasoning_behavior(self):
+        cline = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "cline")
+        targets = {row["surface_id"]: row for row in cline["targets"]}
+        record, = [row for row in targets["cli"]["runtime_observations"] if row["interface"] == "exec-local-inference"]
+        self.assertEqual(record["environment"], "isolated-local-inference")
+        self.assertEqual((record["product_version"], record["engine_version"]), ("3.0.74", "3.0.74"))
+        self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(record["architecture"], "x64")
+        self.assertEqual({check["check"]: check["capability"] for check in record["checks"]}, {
+            "cline-cli-lmstudio-staged-model": "models",
+            "cline-cli-lmstudio-staged-reasoning-off": "reasoning",
+            "cline-cli-native-lmstudio-thinking-omission": "reasoning",
+        })
+        desktop, = [row for row in targets["desktop"]["runtime_observations"]
+                    if row["environment"] == "isolated-local-inference"]
+        self.assertEqual((desktop["product_version"], desktop["engine_version"]), ("0.0.49", "0.2.0"))
+        self.assertEqual(desktop["interface"], "desktop-sidecar")
+        self.assertEqual(desktop["os_variant"], record["os_variant"])
+        self.assertEqual(desktop["architecture"], "x64")
+        desktop_checks = {check["check"]: check for check in desktop["checks"]}
+        self.assertEqual({name: check["capability"] for name, check in desktop_checks.items()}, {
+            "cline-desktop-lmstudio-local-generation": "models",
+            "cline-desktop-lmstudio-session-reasoning": "reasoning",
+            "cline-desktop-lmstudio-reasoning-off": "reasoning",
+        })
+        self.assertNotEqual(desktop_checks["cline-desktop-lmstudio-session-reasoning"]["evidence_sha256"],
+                            desktop_checks["cline-desktop-lmstudio-reasoning-off"]["evidence_sha256"])
+        self.assertEqual(targets["desktop"]["capabilities"]["provider"]["runtime_status"], "pending")
 
     def test_factory_runtime_records_distinguish_catalog_and_loopback(self):
         item = next(item for item in coverage_report(ROOT)["requested_items"] if item["id"] == "factory")
         [target] = item["targets"]
-        workspace, catalog, custom, mcp_inventory = target["runtime_observations"]
-        for record in (workspace, catalog, custom, mcp_inventory):
+        workspace, catalog, byok, custom, mcp_inventory, mcp_call, spec, plan_approval, alias_wire = (
+            target["runtime_observations"]
+        )
+        for record in target["runtime_observations"]:
             self.assertEqual(record["product_version"], "1.10.1")
             self.assertEqual(record["architecture"], "x64")
             self.assertEqual(record["os_variant"], "windows:11:10.0.26300.9711")
         self.assertEqual(catalog["interface"], "exec-jsonrpc")
+        self.assertEqual(byok["interface"], "exec-jsonrpc")
+        self.assertEqual(byok["environment"], "isolated-signed-out")
         self.assertEqual(workspace["interface"], "exec-loopback")
         self.assertEqual(custom["interface"], "exec-loopback")
         self.assertEqual(mcp_inventory["interface"], "mcp-cli-inventory")
         self.assertEqual(mcp_inventory["environment"], "isolated-signed-out")
+        self.assertEqual(mcp_call["interface"], "exec-loopback")
+        self.assertEqual(mcp_call["environment"], "isolated-signed-out")
+        self.assertEqual(spec["interface"], "exec-loopback")
+        self.assertEqual(spec["environment"], "isolated-signed-out")
+        self.assertEqual(plan_approval["interface"], "exec-jsonrpc")
+        self.assertEqual(plan_approval["environment"], "isolated-signed-out")
         def checks(record):
             return {check["check"]: check["capability"] for check in record["checks"]}
 
@@ -773,10 +1426,26 @@ class RequestedCoverageTests(unittest.TestCase):
             "factory-droid-discovery": "agents", "factory-cli-skill-use": "skills", "stdio-tool-call": "mcp",
         })
         self.assertEqual(checks(catalog), {"factory-cli-model-catalog": "models"})
+        self.assertEqual(checks(byok), {"factory-cli-byok-base-model-catalog": "reasoning"})
         self.assertEqual(checks(custom), {
             "factory-cli-custom-model-request": "models", "factory-cli-custom-effort-request": "reasoning",
         })
         self.assertEqual(checks(mcp_inventory), {"factory-cli-context7-https-tool-inventory": "mcp"})
+        self.assertEqual(checks(mcp_call), {"factory-cli-context7-https-tool-call": "mcp"})
+        self.assertEqual(checks(spec), {
+            "factory-cli-spec-model-request": "models", "factory-cli-spec-effort-request": "reasoning",
+        })
+        self.assertEqual(checks(plan_approval), {
+            "factory-cli-spec-approval-model-transition": "models",
+            "factory-cli-spec-approval-effort-transition": "reasoning",
+        })
+        self.assertEqual(alias_wire["interface"], "exec-loopback")
+        self.assertEqual(alias_wire["environment"], "isolated-signed-out")
+        self.assertEqual(checks(alias_wire), {
+            "factory-cli-byok-alias-model-requests": "models",
+            "factory-cli-byok-alias-effort-requests": "reasoning",
+            "factory-cli-project-instructions-in-request": "instructions",
+        })
 
     def test_kimi_web_api_observations_cover_the_release_and_loopback_scope(self):
         report = coverage_report(ROOT)
@@ -828,7 +1497,21 @@ class RequestedCoverageTests(unittest.TestCase):
         report = coverage_report(ROOT)
         qoder = next(item for item in report["requested_items"] if item["id"] == "qoder")
         targets = {target["surface_id"]: target for target in qoder["targets"]}
-        self.assertEqual(targets["ide"]["runtime_observations"], [])
+        ide, = targets["ide"]["runtime_observations"]
+        self.assertEqual((ide["product_version"], ide["engine_version"]), ("1.40.1", "1.40.1"))
+        self.assertEqual(ide["os_variant"], "windows:11:10.0.26300.9711")
+        self.assertEqual(ide["architecture"], "x64")
+        self.assertEqual(ide["interface"], "bundled-backend-rpc")
+        self.assertEqual(ide["environment"], "isolated-signed-out")
+        self.assertEqual({check["check"]: check["capability"] for check in ide["checks"]}, {
+            "skill-discovery": "skills",
+            "qoder-ide-agent-inventory": "agents",
+            "qoder-ide-stdio-settings-import": "mcp",
+            "qoder-ide-public-https-settings-import": "mcp",
+            "qoder-ide-signed-out-model-inventory": "models",
+        })
+        checks = {check["check"]: check["evidence_sha256"] for check in ide["checks"]}
+        self.assertNotEqual(checks["qoder-ide-public-https-settings-import"], checks["qoder-ide-stdio-settings-import"])
         records = {row["interface"]: row for row in targets["cli"]["runtime_observations"]}
         self.assertEqual(set(records), {"acp-stdio", "cli-help", "config-inventory"})
         record = records["config-inventory"]
@@ -854,9 +1537,14 @@ class RequestedCoverageTests(unittest.TestCase):
 
     def test_runtime_observations_require_registered_scope_and_bounded_provenance(self):
         original = load_json(ROOT / "catalogs/requested-coverage.json")
+        desktop = next(
+            index for index, row in enumerate(original["runtime_observations"])
+            if (row["product_id"], row["surface_id"], row["interface"]) == ("codex", "desktop", "app-server-stdio")
+        )
         for field, value in (
             ("surface_id", "unknown-surface"), ("product_id", "aider"),
-            ("product_version", "C:/private/client"), ("engine_version", "latest"), ("engine_version", None),
+            ("product_version", "C:/private/client"), ("product_version", None),
+            ("engine_version", "latest"), ("engine_version", None),
             ("os_variant", "linux:22.04"), ("os_id", "unknown"), ("architecture", []),
             ("checked_on", "2026-02-31"), ("source_commit", "main"), ("interface", "desktop-ui"),
             ("interface", "bundled-runtime"), ("extension_version", "0.74.0"),
@@ -868,14 +1556,14 @@ class RequestedCoverageTests(unittest.TestCase):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 scope = copy.deepcopy(original)
-                scope["runtime_observations"][0][field] = value
+                scope["runtime_observations"][desktop][field] = value
                 self._write_catalogs(root, scope)
                 with self.assertRaises(WeaverError) as caught:
                     coverage_report(root)
                 self.assertNotIn("NEVER-ECHO", str(caught.exception))
         scope = copy.deepcopy(original)
-        duplicated = dict(scope["runtime_observations"][0]["checks"][0], evidence_sha256="b" * 64)
-        scope["runtime_observations"][0]["checks"].append(duplicated)
+        checks = scope["runtime_observations"][desktop]["checks"]
+        checks.append(dict(checks[0], evidence_sha256="b" * 64))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self._write_catalogs(root, scope)

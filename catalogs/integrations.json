@@ -431,13 +431,17 @@
               "runtime_checks": []
             },
             "provider": {
-              "state": "unknown",
+              "state": "available",
               "sources": [
-                "https://antigravity.google/docs/cli/install"
+                "https://antigravity.google/docs/install/#using-a-gemini-api-key",
+                "https://antigravity.google/docs/enterprise/#setting-up-application-default-credentials-adc",
+                "https://antigravity.google/docs/cli/reference"
               ],
-              "checked_on": "2026-11-14",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_model_hosts.py"
+              ],
               "runtime_checks": []
             },
             "os": {
@@ -517,14 +521,17 @@
               "runtime_checks": []
             },
             "provider": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
                 "https://antigravity.google/docs/install",
-                "https://antigravity.google/docs/models"
+                "https://antigravity.google/docs/models",
+                "https://antigravity.google/docs/enterprise/#setting-up-application-default-credentials-adc"
               ],
-              "checked_on": "2026-11-14",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_model_hosts.py"
+              ],
               "runtime_checks": []
             },
             "os": {
@@ -535,6 +542,93 @@
               "checked_on": "2026-11-14",
               "version_constraint": "Antigravity App: Windows 10/11 x64 or ARM64; macOS 13+ Intel or Apple Silicon; Linux x64/ARM64 with glibc >=2.28 and GLIBCXX >=3.4.25.",
               "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
+          "id": "sdk",
+          "mcp_dialect": "sdk.mcp_servers",
+          "config_fields": [
+            "mcp_servers",
+            "enabled_tools"
+          ],
+          "config_scope": "app",
+          "native_path_hint": null,
+          "documented_location": "Python SDK configuration",
+          "instruction_mode": "manual",
+          "instruction_paths": [],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "manual",
+              "sources": [
+                "https://antigravity.google/docs/sdk/mcp/"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_antigravity_sdk.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "manual",
+              "sources": [
+                "https://antigravity.google/docs/sdk/tools/",
+                "https://github.com/google-antigravity/antigravity-sdk-python/blob/75ba22bd00afae2f46393ff31f30c3f0df52982f/google/antigravity/connections/connection.py"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_antigravity_sdk.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "manual",
+              "sources": [
+                "https://antigravity.google/docs/sdk/tools/"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_antigravity_sdk.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://antigravity.google/docs/sdk/local-models/",
+                "https://antigravity.google/docs/install/#programmatic-authentication"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_antigravity_sdk.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://pypi.org/project/google-antigravity/0.1.23/#files"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Python >=3.10; 0.1.23 wheels for Windows x64/ARM64, macOS 11+ x64/ARM64, and Linux x64/ARM64 (glibc 2.17+ or musl 1.1+).",
+              "fixture_tests": [
+                "tests/test_antigravity_sdk.py"
+              ],
               "runtime_checks": []
             }
           }
@@ -2161,7 +2255,7 @@
     {
       "id": "kilo",
       "name": "Kilo Code",
-      "kind": "agent",
+      "kind": "hybrid",
       "default_surface": "cli",
       "surfaces": [
         {
@@ -2342,6 +2436,183 @@
               "runtime_checks": []
             }
           }
+        },
+        {
+          "id": "desktop",
+          "mcp_dialect": "mcp.type-remote",
+          "config_fields": [
+            "mcp",
+            "type",
+            "url",
+            "enabled"
+          ],
+          "config_scope": "project",
+          "native_path_hint": ".kilo/kilo.json",
+          "documented_location": null,
+          "instruction_mode": "agents-md",
+          "instruction_paths": [
+            "AGENTS.md"
+          ],
+          "skills_path": ".kilo/skills",
+          "os_workflows": {
+            "windows": "available",
+            "macos": "available",
+            "linux": "available",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "unknown",
+            "ios": "unknown"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/customize/marketplace",
+                "https://kilo.ai/docs/desktop/settings/ai",
+                "https://kilo.ai/docs/automate/mcp/using-in-cli"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_stdio_adapters.py"
+              ],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/desktop/overview",
+                "https://kilo.ai/docs/customize/agents-md"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/customize/marketplace",
+                "https://kilo.ai/docs/customize/skills"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_skills.py"
+              ],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "manual",
+              "sources": [
+                "https://kilo.ai/docs/desktop/settings/ai",
+                "https://kilo.ai/docs/desktop/quickstart",
+                "https://openrouter.ai/docs/quickstart"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_providers.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/desktop/installation"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Kilo Desktop documents Windows and Linux x64/ARM64 and macOS Apple Silicon.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          }
+        },
+        {
+          "id": "gateway",
+          "mcp_dialect": null,
+          "config_fields": [],
+          "config_scope": "none",
+          "native_path_hint": null,
+          "documented_location": "https://ai-gateway.kilo.ai/api/v1",
+          "instruction_mode": "none",
+          "instruction_paths": [],
+          "skills_path": null,
+          "os_workflows": {
+            "windows": "manual",
+            "macos": "manual",
+            "linux": "manual",
+            "bsd": "unknown",
+            "solaris": "unknown",
+            "android": "manual",
+            "ios": "manual"
+          },
+          "capabilities": {
+            "mcp": {
+              "state": "unsupported",
+              "sources": [
+                "https://kilo.ai/docs/gateway/api-reference"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "instructions": {
+              "state": "unsupported",
+              "sources": [
+                "https://kilo.ai/docs/gateway/api-reference"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "skills": {
+              "state": "unsupported",
+              "sources": [
+                "https://kilo.ai/docs/gateway/api-reference"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [],
+              "runtime_checks": []
+            },
+            "provider": {
+              "state": "available",
+              "sources": [
+                "https://kilo.ai/docs/gateway/api-reference",
+                "https://kilo.ai/docs/gateway/models-and-providers",
+                "https://kilo.ai/docs/gateway/authentication"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": null,
+              "fixture_tests": [
+                "tests/test_kilo_gateway_models.py"
+              ],
+              "runtime_checks": []
+            },
+            "os": {
+              "state": "manual",
+              "sources": [
+                "https://kilo.ai/docs/gateway/quickstart"
+              ],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Remote HTTPS through an authorized compatible client.",
+              "fixture_tests": [],
+              "runtime_checks": []
+            }
+          },
+          "provider": {
+            "base_url": "https://ai-gateway.kilo.ai/api/v1",
+            "endpoint": "/chat/completions",
+            "model_selection": "explicit",
+            "model_ids": [],
+            "secret_env": "KILO_API_KEY",
+            "mcp_service_enabled": false
+          }
         }
       ]
     },
@@ -2357,7 +2628,8 @@
           "config_fields": [
             "mcpServers",
             "url",
-            "disabled"
+            "disabled",
+            "disabledTools"
           ],
           "config_scope": "project",
           "native_path_hint": ".kiro/settings/mcp.json",
@@ -2382,7 +2654,7 @@
               "sources": ["https://kiro.dev/docs/configuration/", "https://kiro.dev/docs/mcp/configuration/"],
               "checked_on": "2026-11-13",
               "version_constraint": "Kiro CLI V3",
-              "fixture_tests": ["tests/test_cli_capabilities.py", "tests/test_stdio_adapters.py"],
+              "fixture_tests": ["tests/test_cli_capabilities.py", "tests/test_cli_exports.py", "tests/test_stdio_adapters.py"],
               "runtime_checks": []
             },
             "instructions": {
@@ -2424,14 +2696,15 @@
           "mcp_dialect": "mcpServers.url",
           "config_fields": [
             "mcpServers",
-            "url"
+            "url",
+            "disabledTools"
           ],
           "config_scope": "project",
           "native_path_hint": ".kiro/settings/mcp.json",
           "documented_location": null,
           "instruction_mode": "steering",
           "instruction_paths": [
-            ".kiro/steering/"
+            ".kiro/steering/agentweaver.md"
           ],
           "skills_path": ".kiro/skills",
           "os_workflows": {
@@ -2452,7 +2725,9 @@
               "checked_on": "2026-10-22",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_adapters.py"
+                "tests/test_adapters.py",
+                "tests/test_cli_exports.py",
+                "tests/test_stdio_adapters.py"
               ],
               "runtime_checks": []
             },
@@ -3058,14 +3333,16 @@
               "runtime_checks": []
             },
             "provider": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
                 "https://docs.qoder.com/cli/custom-models",
                 "https://docs.qoder.com/cli/model"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_cli_capabilities.py"
+              ],
               "runtime_checks": []
             },
             "os": {
@@ -3095,7 +3372,7 @@
           ],
           "config_scope": "app",
           "native_path_hint": null,
-          "documented_location": "Qoder IDE Settings > MCP > My Servers > Add; JSON editor. Persistent configuration path unestablished.",
+          "documented_location": "Qoder IDE Settings > MCP > My Servers > Add; JSON editor.",
           "instruction_mode": "rules",
           "instruction_paths": [
             "AGENTS.md",
@@ -3385,10 +3662,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/mcp"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -3407,11 +3689,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/build-skills"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_skills.py"
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
               ],
               "runtime_checks": []
             },
@@ -3470,10 +3756,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/mcp"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -3492,11 +3783,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/build-skills"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_skills.py"
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
               ],
               "runtime_checks": []
             },
@@ -3547,10 +3842,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/mcp"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -3569,11 +3869,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/build-skills"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_skills.py"
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
               ],
               "runtime_checks": []
             },
@@ -3632,10 +3936,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/mcp"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -3654,11 +3963,15 @@
               "state": "manual",
               "sources": [
                 "https://learn.chatgpt.com/docs/extend/build-skills"
+,
+                "https://developers.openai.com/plugins/build/plugins",
+                "https://learn.chatgpt.com/docs/enterprise/plugin-management"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_skills.py"
+                "tests/test_skills.py",
+                "tests/test_capability_expansion.py"
               ],
               "runtime_checks": []
             },
@@ -4028,10 +4341,10 @@
             "provider": {
               "state": "manual",
               "sources": [
-                "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+                "https://blog.jetbrains.com/air/2026/07/what-s-new-air-gets-more-agents-local-models-and-java-kotlin-code-intelligence/"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
+              "checked_on": "2026-11-14",
+              "version_constraint": "The July 2026 standalone release uses the provider and model configured in the selected ACP-connected agent.",
               "fixture_tests": [],
               "runtime_checks": []
             },
@@ -4111,14 +4424,16 @@
               "runtime_checks": []
             },
             "provider": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
                 "https://www.jetbrains.com/help/air/air-in-ides-authorization.html",
-                "https://www.jetbrains.com/help/air/air-in-ides-settings.html"
+                "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
               ],
-              "checked_on": "2026-10-27",
-              "version_constraint": "Air in IDEs plugin for JetBrains IDEs 2026.2 or bundled in 2026.3 EAP; controls depend on the selected agent. Compatible configured providers and agent login are documented; an arbitrary OpenRouter or custom OpenAI-compatible endpoint contract is not established.",
-              "fixture_tests": [],
+              "checked_on": "2026-11-14",
+              "version_constraint": "JetBrains documents the built-in OpenRouter provider for Air in IDEs with compatible Anthropic or OpenAI API agents. Model and effort options depend on the agent and the session.",
+              "fixture_tests": [
+                "tests/test_expanded_providers.py"
+              ],
               "runtime_checks": []
             },
             "os": {
@@ -4276,7 +4591,8 @@
             "instructions": {
               "state": "manual",
               "sources": [
-                "https://lmstudio.ai/docs/app/presets"
+                "https://lmstudio.ai/docs/app/presets",
+                "https://lmstudio.ai/docs/app/presets/import"
               ],
               "checked_on": "2026-10-26",
               "version_constraint": null,
@@ -4287,26 +4603,31 @@
               "runtime_checks": []
             },
             "skills": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
-                "https://lmstudio.ai/docs/app",
-                "https://lmstudio.ai/docs/bionic"
+                "https://lmstudio.ai/docs/app/mcp",
+                "https://agentskills.io/client-implementation/adding-skills-support"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
-              "fixture_tests": [],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Classic Desktop uses a manually configured stdio MCP tool for the selected Skill text.",
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "provider": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
+                "https://lmstudio.ai/docs/typescript/plugins/generator",
                 "https://lmstudio.ai/lmstudio/openai-compat-endpoint",
                 "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/config.ts",
                 "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/generator.ts"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
-              "fixture_tests": [],
+              "checked_on": "2026-11-15",
+              "version_constraint": "A manually activated text-only generator can stage exact Chat Completions model and reasoning fields.",
+              "fixture_tests": [
+                "tests/test_cli_exports.py"
+              ],
               "runtime_checks": []
             },
             "os": {
@@ -4327,7 +4648,7 @@
           "config_fields": [],
           "config_scope": "app",
           "native_path_hint": null,
-          "documented_location": null,
+          "documented_location": "Settings > MCP > Add custom MCP",
           "instruction_mode": "manual",
           "instruction_paths": [],
           "skills_path": null,
@@ -4345,11 +4666,14 @@
               "state": "manual",
               "sources": [
                 "https://lmstudio.ai/changelog/bionic-v1.1.3",
-                "https://lmstudio.ai/changelog/bionic-v1.1.9"
+                "https://lmstudio.ai/changelog/bionic-v1.1.9",
+                "https://producer-pal.org/installation/bionic"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_expanded_adapters.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -4451,13 +4775,16 @@
               "runtime_checks": []
             },
             "skills": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
-                "https://lmstudio.ai/docs/developer/rest/chat"
+                "https://lmstudio.ai/docs/developer/core/mcp",
+                "https://agentskills.io/client-implementation/adding-skills-support"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
-              "fixture_tests": [],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Native chat on LM Studio >=0.4.0 can reference the preconfigured Skill MCP tool.",
+              "fixture_tests": [
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "provider": {
@@ -4587,7 +4914,7 @@
           "config_fields": [],
           "config_scope": "app",
           "native_path_hint": null,
-          "documented_location": null,
+          "documented_location": "Plugins > Add custom",
           "instruction_mode": "manual",
           "instruction_paths": [],
           "skills_path": null,
@@ -4604,11 +4931,16 @@
             "mcp": {
               "state": "manual",
               "sources": [
-                "https://www.perplexity.ai/help-center/en/articles/11502712-local-and-remote-mcps-for-perplexity"
+                "https://www.perplexity.ai/help-center/en/articles/11502712-local-and-remote-mcps-for-perplexity",
+                "https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors",
+                "https://www.perplexity.ai/help-center/en/articles/2026100802-create-or-upload-a-custom-plugin"
               ],
-              "checked_on": "2026-10-26",
+              "checked_on": "2026-11-15",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": [
+                "tests/test_expanded_adapters.py",
+                "tests/test_capability_expansion.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -4694,7 +5026,8 @@
               "checked_on": "2026-10-26",
               "version_constraint": null,
               "fixture_tests": [
-                "tests/test_expanded_adapters.py"
+                "tests/test_expanded_adapters.py",
+                "tests/test_cli_exports.py"
               ],
               "runtime_checks": []
             },
@@ -4711,14 +5044,16 @@
               "runtime_checks": []
             },
             "skills": {
-              "state": "manual",
+              "state": "available",
               "sources": [
-                "https://docs.perplexity.ai/docs/agent-api/skills"
+                "https://docs.perplexity.ai/docs/agent-api/skills",
+                "https://docs.perplexity.ai/api-reference/agent-post"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
+              "checked_on": "2026-11-15",
+              "version_constraint": "Agent API v1 inline request Skills; custom Skills use an operator upload.",
               "fixture_tests": [
-                "tests/test_skills.py"
+                "tests/test_skills.py",
+                "tests/test_cli_exports.py"
               ],
               "runtime_checks": []
             },
@@ -4729,7 +5064,7 @@
               ],
               "checked_on": "2026-10-26",
               "version_constraint": null,
-              "fixture_tests": [],
+              "fixture_tests": ["tests/test_cli_exports.py"],
               "runtime_checks": []
             },
             "os": {
@@ -4773,13 +5108,18 @@
           },
           "capabilities": {
             "mcp": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
-                "https://docs.perplexity.ai/docs/router/quickstart"
+                "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
+                "https://docs.perplexity.ai/api-reference/gateway-responses-post",
+                "https://docs.perplexity.ai/api-reference/gateway-messages-post",
+                "https://modelcontextprotocol.io/specification/2025-11-25/server/tools"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
-              "fixture_tests": [],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Client-side tool declarations and mapping. The calling client owns the MCP connection and tool execution.",
+              "fixture_tests": [
+                "tests/test_cli_exports.py"
+              ],
               "runtime_checks": []
             },
             "instructions": {
@@ -4796,13 +5136,16 @@
               "runtime_checks": []
             },
             "skills": {
-              "state": "unknown",
+              "state": "manual",
               "sources": [
-                "https://docs.perplexity.ai/docs/router/quickstart"
+                "https://docs.perplexity.ai/docs/orchestrator/quickstart",
+                "https://agentskills.io/client-implementation/adding-skills-support"
               ],
-              "checked_on": "2026-10-26",
-              "version_constraint": null,
-              "fixture_tests": [],
+              "checked_on": "2026-11-15",
+              "version_constraint": "Caller-owned function tool loads the text of explicitly selected portable Skills.",
+              "fixture_tests": [
+                "tests/test_cli_exports.py"
+              ],
               "runtime_checks": []
             },
             "provider": {

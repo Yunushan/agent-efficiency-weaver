@@ -96,6 +96,8 @@ def expected_mcp(agent, surface):
         return "Not exported"
     if surface.config_scope == "request":
         return "Request fragment"
+    if artifacts and artifacts[0].kind == "mcp-setup":
+        return "Manual form handoff"
     if artifacts and artifacts[0].kind == "mcp-fragment":
         return "Fragment export; manual import"
     return "Native staged"
@@ -129,7 +131,8 @@ class DocumentationDriftTests(unittest.TestCase):
         hybrid_count = sum(len(item.surfaces) for item in self.hybrids)
         self.assertIn(f"{agent_count} agent surfaces", text)
         self.assertIn(f"{hybrid_count} hybrid surfaces", text)
-        self.assertIn("25 agents, 4 providers, and 2 hybrids", read_document("README.md"))
+        self.assertIn(f"{len(self.agents)} agents, {len(self.providers)} providers, and {len(self.hybrids)} hybrids",
+                      read_document("README.md"))
 
     def test_pure_provider_table_covers_every_gateway_surface_and_metadata(self):
         text = section(read_document("docs/compatibility.md"), "Provider surfaces")
@@ -263,7 +266,7 @@ class DocumentationDriftTests(unittest.TestCase):
                       "1,024", "128 arguments", "4,096", "32,768", "environment maps", "variable expansion",
                       "never executes", "invokes a shell", "installs a package", "credential-looking",
                       "Perplexity Agent API", "LM Studio ephemeral", "remote HTTPS only", "reject selected stdio",
-                      "JetBrains Air", "OpenHands CLI", "stdio file-export gap", "documentation and fixture evidence",
+                      "JetBrains Air", "OpenHands CLI", "project `.air/mcp.json`", "documentation and fixture evidence",
                       "manual user MCP fragment", "openhands mcp enable NAME"):
             self.assertIn(token, text)
         self.assertNotIn("OpenHands retain stdio file-export gaps", text)
@@ -430,7 +433,7 @@ class DocumentationDriftTests(unittest.TestCase):
     def test_cli_and_migration_contract_is_documented(self):
         lowered = all_document_text().lower()
         for token in ("inventory", "render", "bundle", "provider", "doctor", "report", "compare",
-                      "--platform kilo|abacus", "--agent", "mutually exclusive", "enabled: true",
+                      "--platform kilo|abacus", "--agent", "mutually exclusive", "enabled: false",
                       "schema_version: 1", "artifacts", "path", "kind", "content", "importlib.resources",
                       "--root .", "pythonpath=src", "no checkout or cwd fallback", "--skill", "--model",
                       "--dry-run", "api-key values are never accepted as arguments"):
@@ -494,7 +497,7 @@ class DocumentationDriftTests(unittest.TestCase):
 
     def test_manual_vendor_skill_imports_keep_standard_filename_and_declared_limits(self):
         text = section(read_document("docs/compatibility.md"), "Instruction and skill bundles")
-        for product, surface in (("perplexity", "app"), ("lm-studio", "bionic")):
+        for product, surface in (("perplexity", "app"), ("perplexity", "agent-api"), ("lm-studio", "bionic")):
             artifacts = render_instruction_bundle(self.integrations[product], surface, PROFILE,
                                                 ["token-efficient-retrieval"], ROOT)
             imports = [item for item in artifacts if item.kind == "skill-import"]
@@ -537,11 +540,10 @@ class DocumentationDriftTests(unittest.TestCase):
         self.assertEqual(ide.skills_path, ".agents/skills")
         self.assertEqual(ide.documented_location, "~/.jetbrains/mcp/mcp.json")
         self.assertEqual(ide.instruction_paths, ())
-        for capability in ("mcp", "instructions"):
+        for capability in ("mcp", "instructions", "provider"):
             self.assertEqual(ide.capabilities[capability].state, "manual")
         self.assertEqual(ide.capabilities["skills"].state, "available")
-        for capability in ("provider", "os"):
-            self.assertEqual(ide.capabilities[capability].state, "unknown")
+        self.assertEqual(ide.capabilities["os"].state, "unknown")
         self.assertEqual(set(ide.os_workflows.values()), {"unknown"})
         route = next(row for row in agent_inventory(ROOT)["definitions"]
                      if (row["product_id"], row["surface_id"]) == ("jetbrains-air", "ide"))
@@ -553,15 +555,20 @@ class DocumentationDriftTests(unittest.TestCase):
         sources.update(route["evidence"]["sources"])
         sources.update(host["selection"]["sources"])
         sources.update(host["reasoning"]["sources"])
+        sources.update({
+            "https://www.jetbrains.com/help/air/air-in-ides-manage-agents.html#add-a-custom-acp-agent",
+            "https://plugins.jetbrains.com/plugin/33314-air",
+        })
         self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", text)), sources)
         for token in ("separately from `jetbrains-air/desktop`", "2026.2", "2026.3 EAP",
                       "every IDE OS workflow remains unknown", "desktop requirements are not inherited",
                       "Manage Agents > Manage Presets > New Preset", "Advanced > Injected instructions",
                       "selected agent's own behavior", "not a native saved subagent file",
-                      "ACP executable registration", "Weaver emits no `acp.json`",
+                      "ACP executable registration", "jetbrains-air/fragments/acp.ide.json",
+                      "--use-idea-mcp", "--use-custom-mcp", "Both switches default to false",
                       "jetbrains-air/.agents/skills/<name>/SKILL.md", "Add context > Skills",
                       "jetbrains-air/fragments/mcp.ide.json", "~/.jetbrains/mcp/mcp.json", "Edit MCPs",
-                      "allowed values require model-specific discovery", "arbitrary OpenRouter",
+                      "allowed values require model-specific discovery", "More Providers > OpenRouter",
                       "compatible agents on new sessions", "runtime checks remain pending"):
             self.assertIn(token, text)
     def test_current_readiness_counts_follow_registry_without_rewriting_ci_history(self):
@@ -571,8 +578,9 @@ class DocumentationDriftTests(unittest.TestCase):
         self.assertIn(f"{summary['capability_states']['unknown']} unknown capability states", text)
         self.assertIn(f"{summary['pending_runtime_capabilities']} pending runtime records", text)
         self.assertIn(f"{len(load_model_hosts(ROOT))} registered surfaces", text)
-        for token in ("Air in IDEs", "separate manual UI-preset", "Perplexity Computer MCP",
-                      "default-off", "account-scoped `models_list`", "runtime support"):
+        for token in ("Air in IDEs", "manual role preset", "separate ACP registration fragment",
+                      "Perplexity Computer MCP", "default-off", "account-scoped `models_list`",
+                      "Installed-client compatibility requires a separate manual record"):
             self.assertIn(token, text)
 
     def test_host_model_controls_table_covers_every_surface_and_declared_control(self):
@@ -604,7 +612,7 @@ class DocumentationDriftTests(unittest.TestCase):
             self.assertIn(host["checked_on"], row[4])
             self.assertIn("runtime pending", row[4])
         for token in ("do not enable a native exporter", "Null control values", "model-dependent",
-                      "unknown shared reasoning override", "external agents", "project-local provider keys are ignored"):
+                      "Agent Review", "external agents", "project-local provider keys are ignored"):
             self.assertIn(token, text)
 
     def test_custom_agent_table_covers_all_registry_surfaces_and_declared_fields(self):
@@ -631,7 +639,8 @@ class DocumentationDriftTests(unittest.TestCase):
                       "Subagents (Preview)", "experimental", "true tool restriction", "auto-approval semantics",
                       "authorized project admin", "versioned Profile", "not a complete Profile JSON schema",
                       "not an authorization boundary", "does not revoke ambient Profile access",
-                      "five requested custom-definition routes", "no distinct registration contract"):
+                      "four requested custom-definition routes", "no distinct registration contract",
+                      "Teammates > Create teammate", "individual Perplexity Max account"):
             self.assertIn(token, text)
 
     def test_openhands_guide_binds_cli_loaders_without_promoting_profiles_or_runtime(self):
@@ -655,13 +664,15 @@ class DocumentationDriftTests(unittest.TestCase):
                               if "llm_profile_store.py" in source)
         self.assertIn(profile_source, definitions)
         skills = section(compatibility, "Instruction and skill bundles")
+        openhands_skills = next(paragraph for paragraph in skills.split("\n\n")
+                               if paragraph.startswith("OpenHands instruction and Skill evidence"))
         for token in ("working directory and then Git root", "immediate child directories",
                       "no general ancestor or category recursion", "not installed-client discovery"):
-            self.assertIn(token, skills)
+            self.assertIn(token, openhands_skills)
         evidence = self.integrations["openhands"].surface("cli").capabilities["skills"]
-        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", skills)), set(evidence.sources))
+        self.assertEqual(set(re.findall(r"\]\((https://[^)]+)\)", openhands_skills)), set(evidence.sources))
         controls = section(compatibility, "Host model controls")
-        for token in ("JetBrains Air desktop alone", "unknown shared reasoning override", "Agent.llm",
+        for token in ("standalone Air", "Claude Fable, Opus and Sonnet 5", "Agent.llm",
                       "llm.reasoning_effort", "llm.extended_thinking_budget", "model-feature dependent",
                       "Responses subscription route", "capped below `max_output_tokens`"):
             self.assertIn(token, controls)

@@ -68,10 +68,8 @@ class CursorModelTests(unittest.TestCase):
                 definition, handoff, _ = json.loads(output)["artifacts"]
                 self.assertEqual(definition["path"], "cursor/.cursor/agents/reviewer.md")
                 header = definition["content"].split("---", 2)[1]
-                if surface == "cli":
-                    # Cursor CLI reads the value after the first colon without YAML unquoting.
-                    self.assertEqual(header, "\nname: reviewer\ndescription: Fixture reviewer\n"
-                                             "model: reasoning-model[effort=high]\nreadonly: true\n")
+                self.assertEqual(header, "\nname: reviewer\ndescription: Fixture reviewer\n"
+                                         "model: reasoning-model[effort=high]\nreadonly: true\n")
                 fields = yaml.safe_load(header)
                 self.assertEqual(fields["model"], "reasoning-model[effort=high]")
                 self.assertNotIn("effort", fields)
@@ -79,13 +77,49 @@ class CursorModelTests(unittest.TestCase):
                 self.assertIn(hashlib.sha256(self.snapshot.read_bytes()).hexdigest(), handoff["content"])
                 self.assertEqual(invoke(*args, "--model", "reasoning-model", "--reasoning-effort", "high")[0], 2)
 
-    def test_cursor_cli_preserves_description_punctuation_and_inherited_model(self):
-        code, output, errors = invoke("agent", "--root", str(ROOT), "--agent", "cursor", "--surface", "cli",
-                                      "--name", "reviewer", "--description", "Review: avoid #secrets",
-                                      "--instructions-file", str(self.instructions), "--dry-run")
+    def test_cursor_preserves_description_punctuation_and_inherited_model(self):
+        for surface in ("cli", "ide"):
+            with self.subTest(surface=surface):
+                code, output, errors = invoke("agent", "--root", str(ROOT), "--agent", "cursor", "--surface", surface,
+                                              "--name", "reviewer", "--description", "Review: avoid #secrets",
+                                              "--instructions-file", str(self.instructions), "--dry-run")
+                self.assertEqual(code, 0, errors)
+                content = json.loads(output)["artifacts"][0]["content"]
+                self.assertIn("\ndescription: Review: avoid #secrets\nmodel: inherit\nreadonly: true\n", content)
+
+    def test_exact_preset_preserves_structured_and_subagent_parameters(self):
+        code, output, errors = invoke("cursor-models", "--input", str(self.snapshot), "--model", "reasoning-model",
+                                      "--cursor-variant", "Thorough")
         self.assertEqual(code, 0, errors)
-        content = json.loads(output)["artifacts"][0]["content"]
-        self.assertIn("\ndescription: Review: avoid #secrets\nmodel: inherit\nreadonly: true\n", content)
+        selection = json.loads(output)["selection"]
+        self.assertEqual(selection["variant"], "Thorough")
+        self.assertEqual(selection["subagent_selector"], "reasoning-model[effort=high,fast=false]")
+        self.assertEqual(selection["sdk_model"], {"id": "reasoning-model", "params": [
+            {"id": "effort", "value": "high"}, {"id": "fast", "value": "false"},
+        ]})
+        for surface in ("cli", "ide"):
+            code, output, errors = invoke("agent", "--root", str(ROOT), "--agent", "cursor", "--surface", surface,
+                                          "--name", "reviewer", "--description", "Review fixtures",
+                                          "--instructions-file", str(self.instructions), "--model", "reasoning-model",
+                                          "--cursor-catalog", str(self.snapshot), "--cursor-variant", "Thorough", "--dry-run")
+            self.assertEqual(code, 0, errors)
+            content = json.loads(output)["artifacts"][0]["content"]
+            self.assertEqual(yaml.safe_load(content.split("---", 2)[1])["model"], selection["subagent_selector"])
+        self.assertEqual(inspect_cursor_models(self.snapshot, model="reasoning-model")["selection"]["sdk_model"],
+                         {"id": "reasoning-model"})
+
+    def test_rejects_unknown_ambiguous_and_mixed_presets(self):
+        for options in ({"variant": "thorough"}, {"variant": "Thorough", "effort": "high"},
+                        {"variant": "Thorough", "parameters": ["fast=false"]}):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                inspect_cursor_models(self.snapshot, model="reasoning-model", **options)
+        with self.assertRaises(WeaverError):
+            inspect_cursor_models(self.snapshot, variant="Thorough")
+        variants = self.rows[0]["variants"]
+        variants.append(variants[0] | {"params": [{"id": "effort", "value": "low"}]})
+        self.snapshot.write_text(json.dumps(self.rows), encoding="utf-8")
+        with self.assertRaisesRegex(WeaverError, "exactly one preset"):
+            inspect_cursor_models(self.snapshot, model="reasoning-model", variant="Thorough")
 
     def test_rejects_ambiguous_unsupported_and_unsafe_selections(self):
         failures = [

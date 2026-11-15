@@ -31,7 +31,7 @@ AGENT_SURFACES: dict[str, tuple[str, ...]] = {
     "devin": ("desktop-local", "legacy-cascade"),
     "goose": ("cli",),
     "junie": ("cli",),
-    "kilo": ("cli", "ide"),
+    "kilo": ("cli", "ide", "desktop"),
     "kiro": ("ide", "cli"),
     "opencode": ("cli",),
     "openhands": ("cli",),
@@ -98,6 +98,7 @@ class ProviderRouteTests(unittest.TestCase):
     CASES: tuple[tuple[str, str, str, str], ...] = (
         ("kilo", "ide", "provider.openrouter.models", "https://kilo.ai/docs/ai-providers/openrouter"),
         ("kilo", "cli", "provider.openrouter.models", "https://kilo.ai/docs/getting-started/setup-authentication"),
+        ("kilo", "desktop", "Add AI Provider", "https://kilo.ai/docs/desktop/settings/ai"),
         ("opencode", "cli", "openrouter/anthropic/claude-sonnet-4", "https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration"),
         ("cline", "ide", "Model", "https://docs.cline.bot/provider-config/openrouter"),
         ("copilot", "vscode", "OpenRouter", "https://code.visualstudio.com/blogs/2026/06/18/byok-vscode"),
@@ -130,7 +131,10 @@ class ProviderRouteTests(unittest.TestCase):
                 self.assertIn("Staging handoff", text)
                 self.assertIn(expected_model_text, text)
                 self.assertIn(source, text)
-                self.assertIn("2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON, text)
+                expected = "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON
+                if (agent_id, surface) == ("kilo", "desktop"):
+                    expected = "2026-11-15"
+                self.assertIn(expected, text)
                 self.assertNotIn("\r", text)
 
     def test_standalone_copilot_stages_openrouter_config_without_credentials(self) -> None:
@@ -272,7 +276,10 @@ class ProviderEvidenceTests(unittest.TestCase):
                 data = provider_evidence(agent_id, surface)
                 self.assertEqual(data["state"], "available" if agent_id == "codex" else "manual")
                 self.assertIn(source, data["sources"])
-                self.assertEqual(data["checked_on"], "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON)
+                expected = "2026-10-26" if agent_id in {"codex", "openhands"} else CHECKED_ON
+                if (agent_id, surface) == ("kilo", "desktop"):
+                    expected = "2026-11-15"
+                self.assertEqual(data["checked_on"], expected)
                 self.assertEqual(data["fixture_tests"], ["tests/test_providers.py", "tests/test_expanded_providers.py"]
                                  if agent_id == "codex" else ["tests/test_providers.py"])
                 text = setup_text(render(agent_id, surface))
@@ -341,7 +348,7 @@ class ProviderGapTests(unittest.TestCase):
 
     def test_unsupported_surfaces_and_agents_fail_clearly(self) -> None:
         with self.assertRaises(WeaverError):
-            render("kilo", "desktop")
+            render("kilo", "cloud")
         with self.assertRaises(WeaverError):
             render("claude-code", "ide")
         with self.assertRaises(WeaverError):

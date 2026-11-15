@@ -78,7 +78,7 @@ def _model_row(row: object) -> dict[str, Any]:
 
 
 def inspect_cursor_models(path: Path, *, model: str | None = None, effort: str | None = None,
-                          parameters: list[str] | None = None) -> dict[str, Any]:
+                          parameters: list[str] | None = None, variant: str | None = None) -> dict[str, Any]:
     """Inspect the SDK JSON array and validate explicit selections without authentication."""
     snapshot, digest = _load_bounded_snapshot(path, "Cursor SDK model catalog")
     if not isinstance(snapshot, list):
@@ -90,8 +90,10 @@ def inspect_cursor_models(path: Path, *, model: str | None = None, effort: str |
             raise WeaverError("Duplicate Cursor model ID")
         models[row["id"]] = row
     selection = None
-    if model is None and (effort is not None or parameters):
+    if model is None and (effort is not None or parameters or variant is not None):
         raise WeaverError("Cursor parameters require an explicit model")
+    if variant is not None and (effort is not None or parameters):
+        raise WeaverError("Select a Cursor preset or explicit parameters")
     if model is not None:
         identifier = _cursor_id(model)
         entry = models.get(identifier)
@@ -104,6 +106,12 @@ def inspect_cursor_models(path: Path, *, model: str | None = None, effort: str |
                 raise WeaverError("Cursor model parameters require ID=VALUE")
             pairs.append((key, value))
         requested = _unique_params(pairs)
+        if variant is not None:
+            name = _text(variant, "Cursor preset name")
+            matches = [preset["parameters"] for preset in entry["variants"] if preset["name"] == name]
+            if len(matches) != 1:
+                raise WeaverError("Expected exactly one preset name for the selected Cursor model")
+            requested = matches[0]
         definitions = entry["parameters"]
         presets = [variant["parameters"] for variant in entry["variants"]]
         if effort is not None:
@@ -115,7 +123,13 @@ def inspect_cursor_models(path: Path, *, model: str | None = None, effort: str |
             raise WeaverError("Cursor parameter selection is unsupported or unknown for the selected model")
         options = ",".join(f"{key}={value}" for key, value in requested.items())
         selector = f"{identifier}[{options}]" if options else identifier
-        selection = {"model": identifier, "parameters": requested, "subagent_selector": selector}
+        selection = {
+            "model": identifier, "parameters": requested, "subagent_selector": selector,
+            "sdk_model": {"id": identifier, **({"params": [{"id": key, "value": value}
+                                                           for key, value in requested.items()]} if requested else {})},
+        }
+        if variant is not None:
+            selection["variant"] = variant
     return {"schema_version": 1, "source": "caller-supplied Cursor SDK models.list() array",
             "snapshot_sha256": digest, "snapshot_completeness": "unknown", "models": list(models.values()),
             "selection": selection, "network_used": False, "credentials_read": False, "inference_tested": False}

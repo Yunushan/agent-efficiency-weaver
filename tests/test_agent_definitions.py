@@ -1,4 +1,5 @@
 """Independent parsing and safety checks for offline custom-agent definitions."""
+import ast
 import copy
 import hashlib
 import json
@@ -36,6 +37,7 @@ NATIVE_PATHS = {
     ("opencode", "cli"): ".opencode/agents/reviewer.md",
     ("kilo", "cli"): ".kilo/agents/reviewer.md",
     ("kilo", "ide"): ".kilo/agents/reviewer.md",
+    ("kilo", "desktop"): ".kilo/agents/reviewer.md",
     ("qwen-code", "cli"): ".qwen/agents/reviewer.md",
     ("qwen-code", "desktop"): ".qwen/agents/reviewer.md",
     ("qwen-code", "vscode"): ".qwen/agents/reviewer.md",
@@ -49,6 +51,7 @@ NATIVE_PATHS = {
     ("antigravity", "ide"): ".agents/agents/reviewer.md",
     ("antigravity", "cli"): ".agents/agents/reviewer.md",
     ("antigravity", "desktop"): ".agents/agents/reviewer.md",
+    ("antigravity", "sdk"): "sdk/agents/reviewer/subagent_config.py",
     ("devin", "desktop-local"): ".devin/agents/reviewer.md",
     ("openhands", "cli"): ".agents/agents/reviewer.md",
 }
@@ -60,6 +63,13 @@ def parse_definition(content, path):
         return tomllib.loads(text), None
     if path.endswith(".json"):
         return json.loads(text), None
+    if path.endswith(".py"):
+        definition = next(node for node in ast.parse(text).body if isinstance(node, ast.FunctionDef))
+        returned = definition.body[0]
+        assert isinstance(returned, ast.Return) and isinstance(returned.value, ast.Call)
+        fields = {field.arg: ast.literal_eval(field.value) for field in returned.value.keywords
+                  if field.arg in {"name", "description", "system_instructions", "model"}}
+        return fields, fields["system_instructions"]
     header, body = text[4:].split("\n---\n", 1)
     return yaml.safe_load(header), body.lstrip("\n")
 
@@ -93,21 +103,28 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 if row["state"] in {"native", "manual"}:
                     self.assertTrue(row["evidence"]["sources"])
                     refreshed = {("jetbrains-air", "ide"): "2026-10-27", ("cline", "cli"): "2026-11-13",
+                                 ("perplexity", "app"): "2026-11-15",
                                  ("antigravity", "cli"): "2026-11-14",
                                  ("antigravity", "desktop"): "2026-11-14",
+                                 ("antigravity", "sdk"): "2026-11-15",
+                                 ("codex", "cli"): "2026-11-14", ("codex", "desktop"): "2026-11-14",
+                                 ("codex", "ide"): "2026-11-14",
                                  ("openhands", "canvas"): "2026-11-14",
                                  ("cursor", "cli"): "2026-11-14",
                                  ("cursor", "ide"): "2026-11-14",
+                                 ("copilot", "vscode"): "2026-11-14",
                                  ("qoder", "ide"): "2026-11-14",
                                  ("cline", "desktop"): "2026-11-13",
                                  ("kilo", "cli"): "2026-11-13", ("kilo", "ide"): "2026-11-13",
+                                 ("kilo", "desktop"): "2026-11-15",
                                  ("kiro", "cli"): "2026-11-13", ("factory", "cli"): "2026-11-13",
                                  ("qwen-code", "cli"): "2026-11-13", ("qwen-code", "desktop"): "2026-11-13",
                                  ("qwen-code", "vscode"): "2026-11-13",
                                  ("kimi-code", "cli"): "2026-11-13", ("copilot", "cli"): "2026-11-13",
                                  ("copilot", "desktop"): "2026-11-13", ("claude-code", "vscode"): "2026-11-13",
                                  ("claude-code", "desktop"): "2026-11-13"}
-                    expected_date = refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26")
+                    expected_date = ("2026-11-15" if row["product_id"] == "chatgpt" else
+                                     refreshed.get((row["product_id"], row["surface_id"]), "2026-10-26"))
                     self.assertEqual(row["evidence"]["checked_on"], expected_date)
                     self.assertIn("tests/test_agent_definitions.py", row["evidence"]["fixture_tests"])
 
@@ -139,6 +156,8 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 parsed, _ = parse_definition(self.render(product, surface)[0].content, path)
                 self.assertIn(parsed.get("model"), (None, "inherit"))
                 self.assertNotIn("model_reasoning_effort", parsed)
+                self.assertNotIn("model_reasoning_summary", parsed)
+                self.assertNotIn("model_verbosity", parsed)
                 self.assertNotIn("reasoningEffort", parsed)
                 self.assertNotIn("effort", parsed)
 
@@ -175,7 +194,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
         for (product, surface), path in NATIVE_PATHS.items():
             with self.subTest(product=product, surface=surface):
                 artifact = self.render(product, surface, description=description, instructions=instructions)[0]
-                if (product, surface) == ("cursor", "cli"):
+                if product == "cursor":
                     header, body = artifact.content.decode("utf-8")[4:].split("\n---\n", 1)
                     parsed = {key: value.strip() for key, value in
                               (line.split(":", 1) for line in header.splitlines())}
@@ -188,6 +207,9 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                     self.assertFalse(parsed["features"]["shell_tool"])
                 elif product == "kiro":
                     self.assertEqual(parsed["prompt"], normalized)
+                elif path.endswith(".py"):
+                    self.assertEqual(body, normalized)
+                    self.assertNotIn("model", parsed)
                 else:
                     self.assertEqual(body, normalized + "\n")
                     self.assertNotEqual(parsed.get("model"), "injected")
@@ -369,6 +391,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             self.assertEqual(parsed["model_reasoning_effort"], "ultra")
             self.assertNotIn("model_provider", parsed)
             self.assertIn(hashlib.sha256(catalog.read_bytes()).hexdigest(), artifacts[1].content.decode())
+            self.assertIn(b"model-specific reasoning effort", artifacts[1].content)
             for model, effort in (("client-model", "low"), ("internal", "ultra"), ("picker-alias", None)):
                 with self.subTest(model=model, effort=effort), self.assertRaises(WeaverError):
                     self.render(model_id=model, effort=effort, codex_catalog=catalog)
@@ -376,6 +399,46 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.render(model_id="client-model", provider_id="openai", codex_catalog=catalog)
             with self.assertRaisesRegex(WeaverError, "native Codex"):
                 self.render("factory", model_id="client-model", codex_catalog=catalog)
+
+    def test_codex_agent_reasoning_summary_and_verbosity_are_optional(self):
+        for surface in ("cli", "desktop", "ide"):
+            for summary in ("auto", "concise", "detailed", "none"):
+                with self.subTest(surface=surface, summary=summary):
+                    definition, handoff = self.render(surface=surface, codex_reasoning_summary=summary)
+                    parsed = tomllib.loads(definition.content.decode())
+                    self.assertEqual(parsed["model_reasoning_summary"], summary)
+                    self.assertNotIn("model_verbosity", parsed)
+                    self.assertNotIn("model", parsed)
+                    self.assertIn("does not advertise per-model support", handoff.content.decode())
+            for verbosity in ("low", "medium", "high"):
+                with self.subTest(surface=surface, verbosity=verbosity):
+                    definition, _ = self.render(surface=surface, codex_verbosity=verbosity)
+                    self.assertEqual(tomllib.loads(definition.content.decode())["model_verbosity"], verbosity)
+        with self.assertRaisesRegex(WeaverError, "native Codex"):
+            self.render("factory", codex_reasoning_summary="concise")
+        with self.assertRaisesRegex(WeaverError, "Unsupported Codex reasoning summary"):
+            self.render(codex_reasoning_summary="brief")
+        with self.assertRaisesRegex(WeaverError, "Unsupported Codex model verbosity"):
+            self.render(codex_verbosity=["low"])
+
+    def test_codex_agent_cli_stages_both_response_controls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stage = Path(directory)
+            prompt = stage / "instructions.txt"
+            prompt.write_text("Inspect code and report evidence.", encoding="utf-8")
+            args = ("agent", "--root", str(ROOT), "--surface", "cli", "--name", "reviewer",
+                    "--description", "Inspect code.", "--instructions-file", str(prompt),
+                    "--output-dir", str(stage / "out"))
+            code, _, errors = invoke(*args, "--agent", "codex", "--codex-reasoning-summary", "none",
+                                     "--codex-verbosity", "high")
+            self.assertEqual(code, 0, errors)
+            definition = stage / "out" / "codex" / NATIVE_PATHS["codex", "cli"]
+            parsed = tomllib.loads(definition.read_text(encoding="utf-8"))
+            self.assertEqual(parsed["model_reasoning_summary"], "none")
+            self.assertEqual(parsed["model_verbosity"], "high")
+            code, _, errors = invoke(*args, "--agent", "factory", "--codex-verbosity", "high", "--dry-run")
+            self.assertNotEqual(code, 0)
+            self.assertIn("native Codex", errors)
 
     def test_codex_catalog_rejects_ambiguous_unknown_or_unsafe_metadata(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -465,7 +528,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
             body = {"location": {"directory": str(output)}, "data": [row]}
             catalog.write_text(json.dumps(body), encoding="utf-8")
             options = {"model_id": "openrouter/fixture/reviewer", "kilo_catalog": catalog}
-            for surface in ("cli", "ide"):
+            for surface in ("cli", "ide", "desktop"):
                 definition, handoff = self.render("kilo", surface, model_variant="review-high", **options)
                 fields, _ = parse_definition(definition.content, definition.relative_path.as_posix())
                 self.assertEqual(fields["variant"], "review-high")
@@ -483,11 +546,11 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                              {"opencode_catalog": catalog}, {"model_id": None}):
                 with self.subTest(override=override), self.assertRaises(WeaverError):
                     self.render("kilo", "cli", **(options | override))
-            with self.assertRaisesRegex(WeaverError, "Kilo CLI or VS Code"):
+            with self.assertRaisesRegex(WeaverError, "Kilo custom-agent target"):
                 self.render("opencode", "cli", **options)
             instructions = output / "instructions.md"
             instructions.write_text("Review changes.", encoding="utf-8")
-            code, staged, error = invoke("agent", "--root", str(ROOT), "--agent", "kilo", "--surface", "ide",
+            code, staged, error = invoke("agent", "--root", str(ROOT), "--agent", "kilo", "--surface", "desktop",
                                          "--name", "reviewer", "--description", "Review changes",
                                          "--instructions-file", str(instructions), "--kilo-catalog", str(catalog),
                                          "--model", options["model_id"], "--model-variant", "review-high", "--dry-run")
@@ -797,7 +860,7 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.render("perplexity", "agent-api", **options)
 
     def test_reviewed_requested_gaps_are_bounded_unknowns_with_first_party_sources(self):
-        expected = {("perplexity", "app"), ("perplexity", "orchestrator"),
+        expected = {("perplexity", "orchestrator"),
                     ("lm-studio", "desktop"), ("lm-studio", "bionic"), ("lm-studio", "api")}
         rows = {(row["product_id"], row["surface_id"]): row for row in agent_inventory(ROOT)["definitions"]}
         for key in expected:
@@ -809,6 +872,107 @@ class CustomAgentDefinitionTests(unittest.TestCase):
                 self.assertTrue(row["evidence"]["sources"])
                 self.assertEqual(row["evidence"]["checked_on"], "2026-10-26")
                 self.assertEqual(row["evidence"]["runtime_checks"], [])
+
+    def test_perplexity_teammate_handoff_uses_the_documented_web_form(self):
+        handoff, = self.render("perplexity", "app")
+        self.assertEqual(handoff.kind, "agent-handoff")
+        self.assertEqual(handoff.relative_path.as_posix(), "perplexity/agents/reviewer/HANDOFF.md")
+        text = handoff.content.decode()
+        for phrase in ("Teammates > Create teammate", "Name or role", "Open Advanced",
+                       "individual Max account with access", "Choose a model separately",
+                       "installed Skills", "shared Project permissions", "Inspect the requested code"):
+            self.assertIn(phrase, text)
+        for options in ({"model_id": "openai/gpt-6.1-sol"}, {"effort": "high"},
+                        {"allowed_skills": ["security-review"]}, {"allowed_mcp": ["context7"]}):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("perplexity", "app", **options)
+
+    def test_vscode_copilot_agent_references_only_exact_profile_allowlisted_tools(self):
+        options = dict(mcp_profile="balanced", allowed_mcp=["context7"],
+                       allowed_mcp_tools=["context7:resolve-library-id"])
+        artifacts = self.render("copilot", "vscode", **options)
+        agent = next(item for item in artifacts if item.kind == "agent-definition")
+        fields, _ = parse_definition(agent.content, agent.relative_path.as_posix())
+        self.assertEqual(fields["target"], "github-copilot")
+        self.assertEqual(fields["tools"], ["read", "search", "context7/resolve-library-id"])
+        self.assertNotIn("mcp-servers", fields)
+        handoff = next(item.content.decode() for item in artifacts if item.kind == "agent-handoff")
+        self.assertIn("Configure the listed servers separately", handoff)
+        for override in (
+            {"allowed_mcp_tools": []},
+            {"allowed_mcp_tools": ["context7:*"]},
+            {"allowed_mcp_tools": ["github:search"]},
+            {"allowed_mcp_tools": ["context7:resolve-library-id"] * 2},
+            {"mcp_profile": "enterprise-secure"},
+            {"allowed_mcp": []},
+        ):
+            with self.subTest(override=override), self.assertRaises(WeaverError):
+                self.render("copilot", "vscode", **(options | override))
+        for surface in ("cli", "desktop"):
+            with self.subTest(surface=surface), self.assertRaises(WeaverError):
+                self.render("copilot", surface, **options)
+
+    def test_factory_droid_grants_only_exact_profile_allowlisted_mcp_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prompt = Path(tmp, "instructions.md")
+            prompt.write_text("Find the requested library documentation.", encoding="utf-8")
+            args = ("agent", "--root", str(ROOT), "--agent", "factory", "--surface", "cli",
+                    "--name", "reviewer", "--description", "Review documentation.",
+                    "--instructions-file", str(prompt), "--mcp-profile", "efficient",
+                    "--allow-mcp", "context7", "--dry-run")
+            code, output, error = invoke(*args, "--allow-mcp-tool", "context7:resolve-library-id")
+            self.assertEqual((code, error), (0, ""))
+            artifacts = json.loads(output)["artifacts"]
+            agent = next(item["content"] for item in artifacts if item["kind"] == "agent-definition")
+            fields, _ = parse_definition(agent.encode(), "reviewer.md")
+            self.assertEqual(fields["tools"], ["Read", "Grep", "Glob", "context7___resolve-library-id"])
+            self.assertEqual(fields["mcpServers"], [])
+            self.assertEqual({item["kind"] for item in artifacts}, {"agent-definition", "agent-handoff", "handoff"})
+            for flags in ((), ("--allow-mcp-tool", "context7:*"),
+                          ("--allow-mcp-tool", "github:search"),
+                          ("--allow-mcp-tool", "context7:resolve-library-id") * 2):
+                with self.subTest(flags=flags):
+                    self.assertEqual(invoke(*args, *flags)[0], 2)
+
+        with self.assertRaises(WeaverError):
+            self.render("factory", "cli", mcp_profile="enterprise-secure", allowed_mcp=["context7"],
+                        allowed_mcp_tools=["context7:resolve-library-id"])
+
+    def test_workspace_agent_builder_stages_exact_prompt_and_selected_skills_offline(self):
+        instructions = "Inspect the request.\n\nReturn a read-only evidence summary."
+        skill = "security-review"
+        with tempfile.TemporaryDirectory() as tmp:
+            prompt = Path(tmp, "instructions.md")
+            prompt.write_text(instructions, encoding="utf-8")
+            for surface in ("desktop", "web", "work-local", "work-cloud"):
+                with self.subTest(surface=surface):
+                    code, output, error = invoke(
+                        "agent", "--root", str(ROOT), "--agent", "chatgpt", "--surface", surface,
+                        "--name", "reviewer", "--description", "Review small changes.",
+                        "--instructions-file", str(prompt), "--chatgpt-workspace-agent", "--allow-skill", skill,
+                        "--dry-run",
+                    )
+                    self.assertEqual((code, error), (0, ""))
+                    plan = {item["kind"]: item for item in json.loads(output)["artifacts"]}
+                    self.assertNotIn("agent-definition", plan)
+                    prefix = f"chatgpt/workspace-agents/{surface}/reviewer"
+                    self.assertEqual(plan["agent-builder-prompt"]["path"], f"{prefix}/BUILDER.md")
+                    self.assertIn(instructions, plan["agent-builder-prompt"]["content"])
+                    self.assertEqual(plan["skill"]["path"], f"{prefix}/skills/{skill}/SKILL.md")
+                    self.assertEqual(plan["skill"]["content"],
+                                     (ROOT / ".agents/skills" / skill / "SKILL.md").read_text(encoding="utf-8"))
+                    self.assertIn("Add skill", plan["agent-handoff"]["content"])
+                    self.assertIn("agent-owned account", plan["agent-handoff"]["content"])
+
+    def test_workspace_agent_builder_refuses_native_or_unselected_inputs(self):
+        plain = self.render("chatgpt", "work-cloud", chatgpt_workspace_agent=True)
+        self.assertEqual([item.kind for item in plain], ["agent-builder-prompt", "agent-handoff"])
+        with self.assertRaisesRegex(WeaverError, "requires a ChatGPT surface"):
+            self.render("codex", "cli", chatgpt_workspace_agent=True)
+        for options in ({"model_id": "gpt-6-luna"}, {"effort": "high"}, {"codex_catalog": Path("saved.json")},
+                        {"allowed_skills": ["unknown-skill"]}, {"allowed_mcp": ["context7"]}):
+            with self.subTest(options=options), self.assertRaises(WeaverError):
+                self.render("chatgpt", "work-cloud", chatgpt_workspace_agent=True, **options)
 
     def test_manual_routes_produce_only_labeled_handoff_and_reject_ignored_overrides(self):
         for product, surface in (("hermes", "cli"), ("jetbrains-air", "desktop"), ("zed", "ide"),

@@ -19,6 +19,8 @@ DEFAULT_ENDPOINT = "/chat/completions"
 DEFAULT_SECRET_ENV = "OPENROUTER_API_KEY"
 CURSOR_ENDPOINT = "https://openrouter.ai/api/v1/cursor"
 CLAUDE_ENDPOINT = "https://openrouter.ai/api"
+AIR_IDE_AUTHORIZATION = "https://www.jetbrains.com/help/air/air-in-ides-authorization.html"
+AIR_IDE_SESSION_SETTINGS = "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _MODEL_RE = re.compile(
     r"^~?[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:+-]*$"
@@ -60,6 +62,7 @@ class _Route:
     restrictions: tuple[str, ...]
     sources: tuple[str, ...]
     native_toml: bool = False
+    host_managed_endpoint: bool = False
 
 
 def _fail(message: str) -> NoReturn:
@@ -169,6 +172,8 @@ def _metadata(provider_metadata: Mapping[str, Any] | None) -> _Metadata:
 
 
 def _route(agent_id: str, surface: str) -> _Route:
+    if (agent_id, surface) == ("kilo", "desktop"):
+        return _KILO_DESKTOP_ROUTE
     if (agent_id, surface) == ("cline", "cli"):
         return _CLINE_CLI_ROUTE
     if (agent_id, surface) == ("cline", "desktop"):
@@ -238,7 +243,7 @@ def _markdown(
         "- Provider: `openrouter`",
         f"- OpenRouter registry model: `{model_id}`",
         f"- Model to use on this surface: `{rendered_model}`",
-        f"- Endpoint: `{endpoint}`",
+        "- Endpoint: managed by the host" if route.host_managed_endpoint else f"- Endpoint: `{endpoint}`",
         "",
         "## Setup",
         "",
@@ -352,6 +357,10 @@ def provider_evidence(agent_id: str, surface: str) -> dict[str, Any]:
 
 
 def _checked_on(agent_id: str, surface: str) -> str:
+    if (agent_id, surface) == ("kilo", "desktop"):
+        return "2026-11-15"
+    if (agent_id, surface) == ("jetbrains-air", "ide"):
+        return "2026-11-14"
     if (agent_id, surface) in {
         ("qwen-code", "desktop"), ("qwen-code", "vscode"), ("copilot", "cli"), ("copilot", "desktop"),
         ("claude-code", "vscode"), ("claude-code", "desktop"),
@@ -369,7 +378,7 @@ def render_provider_setup(
     provider_metadata: Mapping[str, Any] | None = None,
 ) -> list[RenderedArtifact]:
     agent_id = _agent_id(agent)
-    if getattr(agent, "kind", None) != "agent" or agent_id == "openrouter":
+    if getattr(agent, "kind", None) not in {"agent", "hybrid"} or agent_id == "openrouter":
         _fail("OpenRouter is a provider gateway, not an agent; no agent setup can be rendered")
     _provider(provider_id)
     model = _model(model_id)
@@ -468,11 +477,38 @@ _CLINE_DESKTOP_ROUTE = _Route(
      "Review delegation settings and permissions before approving a subagent."),
     ("https://docs.cline.bot/usage/cline-desktop", "https://docs.cline.bot/provider-config/openrouter", _OPENROUTER),
 )
-_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex"})
+_EXPANDED_ROUTE_IDS = frozenset({"factory", "hermes", "qwen-code", "kimi-code", "chatgpt", "codex", "jetbrains-air"})
 _REFRESHED_ROUTE_IDS = _EXPANDED_ROUTE_IDS | {"openhands"}
+_KILO_DESKTOP_ROUTE = _Route(
+    ("desktop",), "", "Use the exact model ID shown by the configured provider.",
+    (
+        "Open Settings, then AI Providers, and select Add AI Provider.",
+        "Choose the built-in OpenRouter provider and enter the key in the Desktop provider form.",
+        "Open the intended workspace and choose the configured model from the chat model picker.",
+    ),
+    (), "Enter the OpenRouter API key in the Desktop provider form.", None,
+    "Kilo Desktop manages the provider connection.",
+    ("Model and effort availability depend on the account and chat.",),
+    ("https://kilo.ai/docs/desktop/settings/ai", "https://kilo.ai/docs/desktop/quickstart", _OPENROUTER),
+    host_managed_endpoint=True,
+)
+
+
 _ROUTES = {
+    "jetbrains-air": _Route(
+        ("ide",), "", "Use `{model}` as the reference OpenRouter ID when reviewing the session's model picker.",
+        ("In the JetBrains IDE, open AI > Air > Accounts > More Providers and choose OpenRouter.",
+         "Enter your OpenRouter key in the provider form and save the entry.",
+         "Open the session authorization menu and select the configured OpenRouter entry for a compatible agent.",
+         "Open the session model controls and select the requested model and effort if offered."),
+        (), "Enter the OpenRouter API key in the IDE's provider form.", None,
+        "Air manages the provider connection. Select an agent that uses the Anthropic or OpenAI API.",
+        ("The available models and effort controls depend on the agent and session.",
+         "The host's built-in OpenRouter entry supplies this workflow. Custom endpoint setup is unverified."),
+        (AIR_IDE_AUTHORIZATION, AIR_IDE_SESSION_SETTINGS), host_managed_endpoint=True,
+    ),
     "kilo": _Route(
-        None,
+        ("cli", "ide"),
         "",
         "Kilo documents the raw OpenRouter model ID as the key under "
         "`provider.openrouter.models` in `kilo.json`. Do not add an `openrouter/` "

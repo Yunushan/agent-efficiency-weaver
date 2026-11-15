@@ -73,8 +73,9 @@ class FactoryModelTests(unittest.TestCase):
         items = {entry["kind"]: entry for entry in json.loads(output)["artifacts"]}
         self.assertEqual(json.loads(items["session-arguments"]["content"]),
                          ["exec", "--model", "fixture-managed", "--reasoning-effort", "xhigh"])
-        self.assertEqual(json.loads(render_factory_exec(self.catalog, "fixture-managed", None)[0].content),
-                         ["exec", "--model", "fixture-managed"])
+        args, note = render_factory_exec(self.catalog, "fixture-managed", None)
+        self.assertEqual(json.loads(args.content), ["exec", "--model", "fixture-managed"])
+        self.assertIn("Droid resolves the effort when it is omitted.", note.content.decode())
         code, output, error = invoke("model", *base, "--model", "custom:vendor/review", "--reasoning-effort", "low")
         self.assertEqual((code, error), (0, ""))
         items = {entry["kind"]: entry for entry in json.loads(output)["artifacts"]}
@@ -83,6 +84,34 @@ class FactoryModelTests(unittest.TestCase):
         self.assertIn("same custom model configuration and order", items["model-setup"]["content"])
         self.assertEqual(invoke("model", *base, "--model", "custom:vendor/review", "--reasoning-effort", "high")[0], 2)
         self.assertEqual(invoke("model", *base, "--model", "fixture-managed", "--provider", "openai")[0], 2)
+
+    def test_preserves_bracketed_custom_selector_and_base_model_metadata(self):
+        selector = "custom:Weaver-[fixture]-0"
+        self.save([*MODELS, {"id": selector, "isCustom": True, "behavesLikeModelId": "fixture-managed",
+                             "supportedReasoningEfforts": ["low", "high", "xhigh"],
+                             "defaultReasoningEffort": "low"}])
+        selected = inspect_factory_models(self.catalog, model=selector, effort="xhigh")["selection"]
+        self.assertEqual(selected["id"], selector)
+        self.assertEqual(selected["behaves_like_model_id"], "fixture-managed")
+        self.assertEqual(json.loads(render_factory_exec(self.catalog, selector, "xhigh")[0].content),
+                         ["exec", "--model", selector, "--reasoning-effort", "xhigh"])
+        prompt = self.directory / "review.md"
+        prompt.write_text("Review changes.", encoding="utf-8")
+        code, output, error = invoke("agent", "--root", str(ROOT), "--agent", "factory", "--surface", "cli",
+                                     "--name", "reviewer", "--description", "Review", "--instructions-file", str(prompt),
+                                     "--factory-catalog", str(self.catalog), "--model", selector,
+                                     "--reasoning-effort", "high", "--dry-run")
+        self.assertEqual((code, error), (0, ""))
+        content = next(row["content"] for row in json.loads(output)["artifacts"] if row["kind"] == "agent-definition")
+        self.assertIn(f'model: "{selector}"', content)
+        self.assertIn('reasoningEffort: "high"', content)
+
+    def test_rejects_malformed_factory_selectors(self):
+        for selector in ("managed-[fixture]", "custom:fixture-[a", "custom:fixture-[]-0",
+                         "custom:fixture-[a[b]]-0", "custom:fixture-[foo;bar]-0", "custom:fixture-[a]/../b"):
+            with self.subTest(selector=selector), self.assertRaises(WeaverError):
+                self.save([{"id": selector}])
+                inspect_factory_models(self.catalog)
 
     def test_custom_droid_stages_saved_ids_and_preserves_its_effort_schema(self):
         instructions = self.directory / "instructions.md"
@@ -99,3 +128,32 @@ class FactoryModelTests(unittest.TestCase):
         self.assertIn("Saved Factory Droid SDK", items["agent-handoff"]["content"])
         self.assertEqual(invoke("agent", *base, "--model", "fixture-managed", "--reasoning-effort", "xhigh")[0], 2)
         self.assertEqual(invoke("agent", *base, "--model", "fixture-disabled")[0], 2)
+
+    def test_specification_route_validates_the_models_and_efforts_independently(self):
+        base = ("model", "--root", str(ROOT), "--agent", "factory", "--surface", "cli", "--dry-run",
+                "--model", "fixture-managed", "--factory-catalog", str(self.catalog))
+        code, output, error = invoke(*base, "--reasoning-effort", "high", "--factory-spec-model", "custom:vendor/review",
+                                     "--factory-spec-reasoning-effort", "low")
+        self.assertEqual((code, error), (0, ""))
+        items = {entry["kind"]: entry for entry in json.loads(output)["artifacts"]}
+        self.assertEqual(json.loads(items["session-arguments"]["content"]), [
+            "exec", "--model", "fixture-managed", "--reasoning-effort", "high",
+            "--use-spec", "--spec-model", "custom:vendor/review", "--spec-reasoning-effort", "low",
+        ])
+        self.assertEqual(json.loads(items["session-settings"]["content"]), {
+            "modelId": "fixture-managed", "reasoningEffort": "high", "interactionMode": "spec",
+            "specModeModelId": "custom:vendor/review", "specModeReasoningEffort": "low",
+        })
+        self.assertIn("same custom model configuration and order", items["model-setup"]["content"])
+        args, _, settings = render_factory_exec(self.catalog, "fixture-managed", None, spec_model="fixture-managed")
+        self.assertEqual(json.loads(args.content),
+                         ["exec", "--model", "fixture-managed", "--use-spec", "--spec-model", "fixture-managed"])
+        self.assertEqual(json.loads(settings.content), {
+            "modelId": "fixture-managed", "interactionMode": "spec", "specModeModelId": "fixture-managed",
+        })
+        for extra in (("--factory-spec-reasoning-effort", "low"), ("--factory-spec-model", "fixture-disabled"),
+                      ("--factory-spec-model", "unknown"),
+                      ("--factory-spec-model", "custom:vendor/review", "--factory-spec-reasoning-effort", "high")):
+            with self.subTest(extra=extra):
+                self.assertEqual(invoke(*base, *extra)[0], 2)
+        self.assertEqual(invoke(*base[:-2], "--factory-spec-model", "fixture-managed")[0], 2)

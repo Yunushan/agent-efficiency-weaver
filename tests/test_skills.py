@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 import shutil
 import socket
 import subprocess
@@ -53,11 +54,13 @@ NATIVE_TARGETS = {
     ("junie", "cli"): ".junie/AGENTS.md",
     ("kilo", "cli"): "AGENTS.md",
     ("kilo", "ide"): "AGENTS.md",
+    ("kilo", "desktop"): "AGENTS.md",
     ("kimi-code", "cli"): "AGENTS.md",
     ("opencode", "cli"): "AGENTS.md",
     ("openhands", "cli"): "AGENTS.md",
     ("openhands", "canvas"): "AGENTS.md",
     ("kiro", "cli"): ".kiro/steering/agentweaver.md",
+    ("kiro", "ide"): ".kiro/steering/agentweaver.md",
     ("pi", "cli"): "AGENTS.md",
     ("qwen-code", "cli"): "QWEN.md",
     ("qwen-code", "desktop"): "QWEN.md",
@@ -74,7 +77,6 @@ MANUAL_TARGETS = {
     ("chatgpt", "web"),
     ("chatgpt", "work-local"),
     ("chatgpt", "work-cloud"),
-    ("kiro", "ide"),
     ("lm-studio", "bionic"),
     ("lm-studio", "api"),
     ("lm-studio", "desktop"),
@@ -125,6 +127,38 @@ def write_six_skills(root, body_size=0):
 
 
 class SkillValidationTests(unittest.TestCase):
+    def test_perplexity_inline_skill_preserves_lf_normalized_instruction_body(self):
+        spec = get_integration("perplexity", ROOT)
+        profile = load_json(ROOT / "profiles" / "efficient.json")
+        name = "token-efficient-retrieval"
+        artifacts = render_instruction_bundle(spec, "agent-api", profile, [name], ROOT, perplexity_inline_skills=True)
+        artifact, = [item for item in artifacts if item.kind == "skill-request"]
+        source = skill_path(ROOT, name)
+        body = source.read_text(encoding="utf-8").partition("\n---\n")[2].removeprefix("\n")
+        self.assertEqual(json.loads(artifact.content), {"skills": [{
+            "type": "inline", "name": name, "description": read_frontmatter(source)["description"],
+            "instructions": body,
+        }]})
+
+    def test_perplexity_inline_skill_enforces_utf8_limits_and_requires_a_body(self):
+        spec = get_integration("perplexity", ROOT)
+        profile = load_json(ROOT / "profiles" / "efficient.json")
+        name = "security-review"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_six_skills(root, body_size=50_000)
+            with self.assertRaisesRegex(WeaverError, "262,144 UTF-8 bytes"):
+                render_instruction_bundle(spec, "agent-api", profile, sorted(EXPECTED_SKILLS), root,
+                                          perplexity_inline_skills=True)
+            for fields, message in (({"body": "é" * 32_768}, "65,536 UTF-8 bytes"),
+                                    ({"description": "é" * 513}, "1,024 UTF-8 bytes")):
+                with self.subTest(message=message), self.assertRaisesRegex(WeaverError, message):
+                    write_skill(root, name, **fields)
+                    render_instruction_bundle(spec, "agent-api", profile, [name], root, perplexity_inline_skills=True)
+            skill_path(root, name).write_text(f"---\nname: {name}\ndescription: Fixture\n---", encoding="utf-8")
+            with self.assertRaisesRegex(WeaverError, "must have content"):
+                render_instruction_bundle(spec, "agent-api", profile, [name], root, perplexity_inline_skills=True)
+
     def test_canonical_skills_validate_and_are_exactly_six(self):
         self.assertEqual(validate_skills(ROOT), [])
         folders = sorted(path.name for path in SKILLS_ROOT.iterdir())
@@ -308,6 +342,9 @@ class InstructionBundleTests(unittest.TestCase):
                         self.assertEqual(artifacts[0].relative_path.as_posix(), expected_path)
                         self.assertEqual(artifacts[0].kind, "instructions")
                         self.assertIn("advisory", artifacts[0].content.decode("utf-8").casefold())
+                    elif key == ("antigravity", "sdk"):
+                        self.assertEqual([item.relative_path.name for item in artifacts],
+                                         ["context_config.py", "INSTRUCTIONS.md"])
                     else:
                         self.assertIn(key, MANUAL_TARGETS)
                         self.assertEqual(

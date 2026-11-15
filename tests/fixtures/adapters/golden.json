@@ -1,5 +1,5 @@
 {
-  "kilo": {"path": "kilo/.kilo/kilo.json", "empty": {"mcp": {}}, "enabled": {"mcp": {"context7": {"type": "remote", "url": "https://mcp.context7.com/mcp"}}}},
+  "kilo": {"path": "kilo/.kilo/kilo.json", "empty": {"mcp": {}}, "enabled": {"mcp": {"context7": {"type": "remote", "url": "https://mcp.context7.com/mcp", "enabled": false}}}},
   "opencode": {"path": "opencode/opencode.json", "empty": {"mcp": {}}, "enabled": {"mcp": {"context7": {"type": "remote", "url": "https://mcp.context7.com/mcp"}}}},
   "cline": {"path": "cline/fragments/cline_mcp_settings.json", "empty": {"mcpServers": {}}, "enabled": {"mcpServers": {"context7": {"type": "streamableHttp", "url": "https://mcp.context7.com/mcp", "disabled": true}}}},
   "copilot": {"path": "copilot/.vscode/mcp.json", "empty": {"servers": {}}, "enabled": {"servers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}}},

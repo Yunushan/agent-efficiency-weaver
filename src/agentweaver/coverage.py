@@ -29,6 +29,46 @@ LIMITATIONS = (
 )
 
 _OBSERVATION_CHECKS = {
+    "perplexity-public-plugin-skill-preview": (
+        "skills", "The signed-out browser displayed a published plugin's Skill and connector "
+        "sections. The probe viewed public catalog metadata.",
+    ),
+    "perplexity-public-model-picker-sign-in": (
+        "models", "Clicking Model in signed-out Search displayed a sign-in prompt. The signed-out "
+        "Computer page offered sign-in without exposing the account's model or effort choices.",
+    ),
+    "perplexity-agent-catalog-authentication": (
+        "models", "GET /v1/models without credentials returned HTTP 401 with a JSON error. "
+        "Project model visibility remains unverified.",
+    ),
+    "perplexity-orchestrator-catalog-authentication": (
+        "models", "GET /orchestrator/v1/models without credentials returned HTTP 401 with a JSON error. "
+        "Private-preview catalog access remains unverified.",
+    ),
+    "perplexity-orchestrator-model-lookup-authentication": (
+        "models", "Orchestrator model lookups returned HTTP 401 without credentials for both literal and "
+        "percent-encoded slashes in the full model ID. Authenticated path handling remains unverified.",
+    ),
+    "perplexity-orchestrator-openai-mcp-round-trip": (
+        "mcp", "The OpenAI Python SDK serialized selected tools and their results for Chat Completions and Responses. "
+        "The probe called a local stdio MCP fixture and returned its result with the original call ID using mocked "
+        "provider transport. Hosted access and tool acceptance remain unverified.",
+    ),
+    "perplexity-orchestrator-anthropic-mcp-round-trip": (
+        "mcp", "The Anthropic Python SDK serialized selected tools and their results for Messages. "
+        "The probe called a local stdio MCP fixture and returned its result with the original tool-use ID using mocked "
+        "provider transport. Hosted access and tool acceptance remain unverified.",
+    ),
+    "perplexity-orchestrator-openai-skill-round-trip": (
+        "skills", "The OpenAI Python SDK sent the selected Skill index through Chat Completions and Responses. "
+        "With mocked provider transport, the test client returned one Skill body on demand with the original call ID. "
+        "Hosted access and model use of the Skill remain unverified.",
+    ),
+    "perplexity-orchestrator-anthropic-skill-round-trip": (
+        "skills", "The Anthropic Python SDK sent the selected Skill index through Messages. "
+        "With mocked provider transport, the test client returned one Skill body on demand with the original tool-use ID. "
+        "Hosted access and model use of the Skill remain unverified.",
+    ),
     "openrouter-public-model-catalog": (
         "models", "The public v1 model-list API returned text, all-modality and reasoning-filtered lists without credentials. "
         "Three offset pages matched the ordered model IDs, endpoints and reasoning metadata in the unpaginated all-modality response.",
@@ -36,6 +76,10 @@ _OBSERVATION_CHECKS = {
     "openrouter-public-model-route-validation": (
         "models", "Offline validation accepted the captured model IDs for their advertised endpoints. "
         "This check did not invoke those endpoints.",
+    ),
+    "openrouter-public-provider-endpoint-inventory": (
+        "models", "Unauthenticated model-specific requests returned provider tags and advertised parameters "
+        "for the sampled catalog entries. Account access, request routing, and inference remain unverified.",
     ),
     "openrouter-public-reasoning-payload-validation": (
         "reasoning", "Offline validation projected catalog-advertised reasoning controls into Chat Completions, "
@@ -98,6 +142,26 @@ _OBSERVATION_CHECKS = {
         "models", "The signed-out account model listing requested sign-in. The Gemini-compatible mode listed "
         "its bundled selectors with a loopback endpoint and a synthetic key.",
     ),
+    "antigravity-sdk-instructions-config": (
+        "instructions", "The released Python SDK constructor accepted the staged prompt through system_instructions.",
+    ),
+    "antigravity-sdk-skill-path-config": (
+        "skills", "The SDK configuration kept explicit root and child Skill paths. The staged Skill files existed.",
+    ),
+    "antigravity-sdk-subagent-config": (
+        "agents", "The SDK SubagentConfig constructor accepted generated instructions and both explicit and inherited models.",
+    ),
+    "antigravity-sdk-mcp-config": (
+        "mcp", "The released Python types accepted both transports, exact tool allowlists and separate stdio arguments. "
+        "No server connection or tool call ran.",
+    ),
+    "antigravity-sdk-model-config": (
+        "models", "The SDK accepted the staged model selector in Gemini, Vertex AI, Ollama and LM Studio configurations.",
+    ),
+    "antigravity-sdk-thinking-config": (
+        "reasoning", "The SDK parsed all five explicit Gemini and Vertex thinking levels and their omitted defaults. "
+        "The probe stopped at configuration construction.",
+    ),
     "antigravity-cli-workspace-instructions": (
         "instructions", "The headless runtime included the generated AGENTS.md in its loopback request.",
     ),
@@ -131,6 +195,29 @@ _OBSERVATION_CHECKS = {
     "antigravity-cli-bundled-variant-requests": (
         "reasoning", "All 21 selectors advertised by the Gemini-compatible CLI mode completed a scripted "
         "loopback turn. The endpoint recorded the resolved model and thinking settings for each selector.",
+    ),
+    "antigravity-cli-custom-model-request": (
+        "models", "The generated settings added an alias visible to agy models. Generated launch arguments "
+        "sent the exact model path to a scripted loopback endpoint. Without the entry the alias was absent. "
+        "The documented host-bearing form added the host to the request path on this build.",
+    ),
+    "antigravity-cli-custom-model-thinking": (
+        "reasoning", "Generated settings and arguments sent LOW, MEDIUM, and HIGH thinking levels. "
+        "Turning thinking off sent budget zero, and omitting the effort used budget -1. "
+        "The CLI rejected xhigh, max, and explicit effort with thinking disabled before any request.",
+    ),
+    "antigravity-cli-gemini-provider-staging": (
+        "provider", "The headless CLI read the generated Gemini provider fragment and returned the response "
+        "from a scripted Gemini-compatible endpoint. With the process key omitted, it stopped before making a request.",
+    ),
+    "antigravity-cli-gemini-built-in-reasoning": (
+        "reasoning", "The staged Gemini 3.8 Flash medium selector sent thinkingLevel MEDIUM. The staged Gemini "
+        "3.1 Pro high selector resolved to gemini-3.1-pro-preview and sent thinkingBudget -1 on the tested build.",
+    ),
+    "antigravity-cli-adc-credential-boundary": (
+        "provider", "The headless CLI selected the ADC credential loader with the staged environment and rejected "
+        "a missing credential file and an invalid credential type. Both stopped at authentication. "
+        "Authorized model access and reasoning remain unverified.",
     ),
     "antigravity-cli-project-context7-https-call": (
         "mcp", "The headless CLI loaded the exact generated workspace entry, called the public Context7 "
@@ -169,12 +256,116 @@ _OBSERVATION_CHECKS = {
         "agents", "The CLI package's bundled loader read the exact generated name, prompt, readonly mode, and "
         "parameterized model string. Withholding the file removed the agent. The loader was invoked directly.",
     ),
+    "cursor-cli-bundled-preset-selector-load": (
+        "reasoning", "The bundled subagent loader preserved all model, effort, speed and context parameters "
+        "in three generated selectors from synthetic presets. Withholding the files removed the entries.",
+    ),
     "cursor-cli-bundled-skill-load": (
         "skills", "The CLI package's bundled loader read the exact generated Skill. Withholding the Skill file "
         "removed it from discovery. The loader was invoked directly.",
     ),
+    "cursor-ide-bundled-instruction-load": (
+        "instructions", "The IDE's bundled project rules loader read the generated AGENTS.md. "
+        "Withholding the file removed it from the rule inventory.",
+    ),
+    "cursor-ide-bundled-skill-load": (
+        "skills", "The IDE's bundled Skills loader returned the exact generated Skill content. "
+        "Withholding the file removed it from discovery.",
+    ),
+    "cursor-ide-bundled-subagent-load": (
+        "agents", "The IDE's bundled loader read the generated subagent names, descriptions, prompts and "
+        "read-only modes. Withholding the agent files removed them. The same loader kept the literal "
+        "quotes in older generated names and model selectors.",
+    ),
+    "cursor-ide-bundled-selector-load": (
+        "reasoning", "The IDE's bundled subagent loader preserved the inherited selector and a synthetic "
+        "model selector with explicit effort and fast parameters.",
+    ),
+    "cursor-ide-bundled-mcp-inventory": (
+        "mcp", "The IDE's bundled loader inventoried the generated Context7 HTTPS and stdio entries, "
+        "both requiring approval. The default generated config listed no servers.",
+    ),
+    "cursor-ide-bundled-mcp-stdio": (
+        "mcp", "The IDE's bundled MCP client called a read-only fixture from the generated stdio entry "
+        "after project approval. The fixture stayed idle before approval and after revocation. "
+        "Withholding the project config removed the server.",
+    ),
     "skill-discovery": ("skills", "The client listed the enabled generated project Skill."),
+    "codex-desktop-chatgpt-plugin-skill-inventory": (
+        "skills", "The signed-out bundled App Server read all six selected Skills in the generated ChatGPT plugin. "
+        "Removing the marketplace file removed the package from the local inventory.",
+    ),
+    "codex-desktop-chatgpt-plugin-mcp-inventory": (
+        "mcp", "The bundled App Server read the selected HTTPS and stdio entry names from the generated package. "
+        "The skills-only package had no MCP entries. The packages stayed uninstalled and the stdio fixture stayed idle.",
+    ),
+    "codex-desktop-chatgpt-named-plugin-skills": (
+        "skills", "The bundled App Server discovered two generated plugin names in the same marketplace. "
+        "The shared Skill appeared under each plugin's namespace. Withholding an entry removed only that plugin.",
+    ),
+    "codex-desktop-chatgpt-named-plugin-mcp": (
+        "mcp", "The bundled App Server returned the correct selected HTTPS entry for each generated plugin. "
+        "Both packages stayed uninstalled and no MCP tool was called.",
+    ),
+    "chatgpt-local-plugin-skill-inventory": (
+        "skills", "The signed-out Desktop-bundled App Server listed all six namespaced Skills in the staged "
+        "package. Withholding one Skill removed only that entry. Withholding the marketplace hid the package. "
+        "This was a package discovery check without GUI use or activation.",
+    ),
+    "chatgpt-local-plugin-mcp-inventory": (
+        "mcp", "The signed-out Desktop-bundled App Server listed the selected HTTPS and stdio server names. "
+        "Both the Skills-only export and the withheld MCP file returned an empty MCP list. "
+        "The package stayed uninstalled and disabled, and the stdio fixture never started.",
+    ),
+    "chatgpt-web-public-plugin-mcp": (
+        "mcp", "The signed-out web Plugins directory showed a published custom plugin's MCP server declaration "
+        "and an installation link requiring sign-in. No installation or tool call was exercised.",
+    ),
+    "chatgpt-web-chat-model-picker": (
+        "models", "An existing signed-in Chat session displayed GPT-6 and GPT-5.6 Sol in Select model. "
+        "The observation records labels from one account without selecting a model or starting a turn.",
+    ),
+    "chatgpt-web-chat-reasoning-control": (
+        "reasoning", "The signed-in Chat composer reported Extra High at position four of five. "
+        "The probe read the current setting without changing it or running inference.",
+    ),
+    "chatgpt-web-skill-authoring-menu": (
+        "skills", "The signed-in Skills screen offered Create with chat, Create with editor, "
+        "and Upload from your computer. The probe opened the menu without adding a Skill.",
+    ),
+    "chatgpt-work-cloud-model-picker": (
+        "models", "The signed-in Work web composer listed Default and eight named model options. "
+        "No Work task was started and the catalog is scoped to the observed account.",
+    ),
+    "chatgpt-work-cloud-reasoning-control": (
+        "reasoning", "The signed-in Work web composer showed Light at position two of six and a Fast mode control. "
+        "Neither control was changed and no Work task was started.",
+    ),
+    "chatgpt-work-cloud-plugin-picker": (
+        "mcp", "The Work web composer opened its searchable plugin picker. "
+        "The check covered the picker without inspecting a server connection or invoking a tool.",
+    ),
     "agent-discovery": ("agents", "The runtime discovered the generated project agent and loaded its prompt."),
+    "devin-desktop-project-instructions-inventory": (
+        "instructions", "The bundled ACP engine listed the generated AGENTS.md as always-on. "
+        "The rule disappeared when the standard instruction import was disabled or the file was withheld.",
+    ),
+    "devin-desktop-project-skill-inventory": (
+        "skills", "The bundled ACP engine listed all six generated workspace Skills. "
+        "The empty project control listed no workspace Skills.",
+    ),
+    "devin-desktop-project-subagent-inventory": (
+        "agents", "The bundled ACP engine listed the generated workspace subagent and its declared sonnet model alias. "
+        "The empty project control listed no custom subagent.",
+    ),
+    "devin-desktop-project-mcp-config-inventory": (
+        "mcp", "The bundled engine's CLI read the generated stdio and HTTPS entries with their disabled state "
+        "and disabled tool names. The empty project control listed neither entry.",
+    ),
+    "devin-desktop-project-stdio-handshake": (
+        "mcp", "The bundled ACP engine sent discovery and completed initialization with the selected local stdio fixture. "
+        "The fixture received no messages when the generated entry was disabled.",
+    ),
     "agent-load": ("agents", "A spawned custom agent received its generated developer instructions."),
     "stdio-tool-call": ("mcp", "The parent session called a local stdio fixture from the generated configuration."),
     "stdio-subagent-approved-tool-call": ("mcp", "The subagent called the fixture with explicit local tool approval."),
@@ -197,6 +388,36 @@ _OBSERVATION_CHECKS = {
     "workspace-mcp-parse": ("mcp", "The native workspace parser accepted generated HTTP and stdio entries."),
     "workspace-stdio-tool-call": (
         "mcp", "The bundled runtime loaded the trusted workspace file, discovered the local tool, and called it directly.",
+    ),
+    "copilot-vscode-agent-mcp-tool-selection": (
+        "mcp", "The bundled runtime used the generated agent's exact tool reference in a loopback model turn. "
+        "It called the selected stdio tool and returned its result. A second tool on the same server stayed out "
+        "of the agent's request. Withholding the reference or workspace configuration hid the selected tool.",
+    ),
+    "copilot-desktop-bundled-agent": (
+        "agents", "The Desktop-bundled engine loaded the explicitly selected repository agent and its "
+        "instructions. Withholding the staged agent file prevented selection.",
+    ),
+    "copilot-desktop-bundled-skills": (
+        "skills", "The Desktop-bundled engine listed all six staged Skills. A scripted invocation returned "
+        "the selected Skill's instructions, and withholding the Skills removed them from the inventory.",
+    ),
+    "copilot-desktop-bundled-mcp": (
+        "mcp", "The engine started the fixture from the generated repository file and returned its tool result. "
+        "Empty, missing and untrusted MCP configurations left the fixture idle.",
+    ),
+    "copilot-desktop-bundled-mcp-permissions": (
+        "mcp", "The generated agent's tool aliases hid the fixture tools after discovery. In a plain "
+        "noninteractive session, an unapproved unannotated tool and an explicitly denied read-only tool "
+        "received no call. The read-only tool ran with no explicit approval when no denial applied.",
+    ),
+    "copilot-desktop-bundled-model": (
+        "models", "The model selected in the bundled engine resolved to the fixture model ID in a scripted "
+        "Responses request. This exercised the engine's local BYOK configuration.",
+    ),
+    "copilot-desktop-bundled-effort": (
+        "reasoning", "The bundled engine sent low, medium and high from its launch flags to the local "
+        "Responses endpoint.",
     ),
     "copilot-cli-skill-use": (
         "skills", "The CLI invoked the generated project Skill and returned its instructions to a scripted local endpoint.",
@@ -221,6 +442,74 @@ _OBSERVATION_CHECKS = {
     ),
     "model-catalog": ("models", "The client listed model IDs and advertised reasoning efforts across its catalog pages."),
     "agent-model-effort-selection": ("reasoning", "The selected child model and effort reached a scripted local endpoint."),
+    "codex-agent-model-effort-precedence": (
+        "reasoning", "The generated agent's model and effort reached the scripted local endpoint despite conflicting spawn settings."
+    ),
+    "codex-agent-model-only-preserves-spawn-effort": (
+        "reasoning", "The generated agent set the child model to gpt-6-luna and preserved medium effort from the spawn "
+        "request when the agent file omitted effort. The child also received the project's read-only stdio tool result.",
+    ),
+    "codex-picker-pair-request-matrix": (
+        "models", "The generated agent sent all 44 advertised ordinary model and effort pairs from the signed-out "
+        "picker to the scripted Responses endpoint without changing either value.",
+    ),
+    "codex-picker-ultra-request-resolution": (
+        "reasoning", "The generated agent selected all six picker-visible models that advertised ultra. The tested "
+        "engine sent xhigh for three models and max for three in ordinary Responses requests.",
+    ),
+    "codex-agent-inherited-read-only-mcp": (
+        "mcp", "The generated agent called a read-only stdio tool from the trusted project's MCP configuration without a tool approval override."
+    ),
+    "codex-agent-project-mcp-precedence": (
+        "mcp", "The trusted project's MCP server handled the read-only call. A same-name declaration in the "
+        "agent file neither replaced the project server nor started a server without the project declaration.",
+    ),
+    "codex-agent-mcp-startup-failure-isolation": (
+        "mcp", "The generated subagent received the healthy read-only stdio fixture's result when a second "
+        "server in the generated project config exited before completing its MCP handshake.",
+    ),
+    "codex-agent-mcp-required-startup-policy": (
+        "mcp", "An unavailable optional stdio server let the generated subagent run. Requiring that "
+        "enabled server blocked startup before any model request. Disabling it let the subagent run without "
+        "starting the fixture.",
+    ),
+    "codex-agent-mcp-project-tool-filters": (
+        "mcp", "The generated subagent discovered and called the read-only stdio tools allowed by native "
+        "filters added to the staged project config. The deny list took precedence over the allow list, "
+        "and calls by name to filtered tools did not reach the fixture.",
+    ),
+    "codex-project-subagent-selection": (
+        "agents", "Two generated project definitions loaded their distinct developer instructions in one session. "
+        "Withholding either definition left only the other generated agent available.",
+    ),
+    "codex-project-subagent-mcp-results": (
+        "mcp", "Each generated agent called the same read-only stdio fixture through the generated project config "
+        "and received only its own labeled result. Withholding the config left the fixture idle.",
+    ),
+    "codex-project-subagent-model-requests": (
+        "models", "The scripted loopback endpoint received gpt-6-luna from the first generated agent and "
+        "gpt-6.1-sol from the second in the same session.",
+    ),
+    "codex-project-subagent-effort-requests": (
+        "reasoning", "The scripted loopback endpoint received high effort from the first generated agent and "
+        "medium from the second in the same session.",
+    ),
+    "codex-generated-stdio-argument-roundtrip": (
+        "mcp", "Codex started the read-only fixture from the unmodified CLI-generated config. The fixture "
+        "received Windows paths with spaces and Unicode and a separate argument containing literal quotes.",
+    ),
+    "codex-mcp-list-project-trust": (
+        "mcp", "The CLI listed the configured project server only with project trust and the generated file "
+        "present. Inventory did not start the server.",
+    ),
+    "codex-agent-summary-inheritance": (
+        "reasoning", "Leaving the child summary unset inherited the parent's detailed setting. Explicit none "
+        "omitted the summary from the scripted local Responses request.",
+    ),
+    "codex-picker-summary-verbosity-matrix": (
+        "reasoning", "For all nine visible signed-out models at high effort, the generated agent passed the "
+        "selected summary and verbosity values to the scripted local Responses endpoint. Explicit none omitted summary.",
+    ),
     "agent-model-effort-config-load": (
         "reasoning", "The direct runtime loader read the scalar model and effort into the selected agent definition.",
     ),
@@ -249,7 +538,7 @@ _OBSERVATION_CHECKS = {
         "agents", "The bundled executable listed the generated project agent with its authored model selector.",
     ),
     "project-http-pending-approval": (
-        "mcp", "The bundled executable read the generated project HTTP entry and reported it pending approval.",
+        "mcp", "The tested runtime read the generated project HTTP entry and reported it pending approval.",
     ),
     "project-public-docs-tool-discovery": (
         "mcp", "After local project approval, the bundled executable connected to OpenAI Docs and listed its tools.",
@@ -278,12 +567,53 @@ _OBSERVATION_CHECKS = {
     "claude-cli-default-child-model": (
         "models", "The catalog's resolved default model was pinned in the generated file and used by the subagent.",
     ),
+    "claude-desktop-project-instructions": (
+        "instructions", "The Desktop-pinned engine included the generated CLAUDE.md guidance in its first "
+        "loopback request. Withholding the file removed the guidance.",
+    ),
+    "claude-desktop-skill-use": (
+        "skills", "The Desktop-pinned engine invoked the generated Skill and included its instructions in "
+        "a subsequent loopback request. Withholding the Skill removed those instructions.",
+    ),
+    "claude-desktop-catalog-model-requests": (
+        "models", "The Desktop-pinned engine sent the resolved model IDs for all five signed-out selectors "
+        "to a scripted Messages endpoint.",
+    ),
+    "claude-desktop-catalog-effort-requests": (
+        "reasoning", "The Desktop-pinned engine sent all 25 signed-out selector and effort pairs to a "
+        "scripted endpoint. Twenty used generated project settings and five max cases used explicit "
+        "launch flags matching the packaged SDK's argument mapping.",
+    ),
+    "claude-ultracode-project-setting": (
+        "reasoning", "The tested engine applied the generated Ultracode setting while preserving the "
+        "selected effort. Project off overrode user on, and disabling workflows suppressed Ultracode. "
+        "The scripted endpoint observed the resulting effort and workflow tool availability.",
+    ),
     "qwen-daemon-agent-discovery": ("agents", "The daemon listed the generated project agent."),
     "qwen-daemon-mcp-pending-approval": (
         "mcp", "The daemon read the generated project server and kept it disconnected pending approval.",
     ),
     "qwen-daemon-approved-stdio-discovery": (
         "mcp", "The daemon connected and requested the fixture tool list after approval of the exact configuration.",
+    ),
+    "qwen-desktop-public-https-server-approval": (
+        "mcp", "The bundled daemon connected and exposed five public OpenAI Docs tools after approval "
+        "of the exact generated setting. Withholding approval, changing the setting after approval, "
+        "or omitting it left the endpoint idle.",
+    ),
+    "qwen-desktop-public-https-tool-approval": (
+        "mcp", "The bundled daemon requested approval for each attempt in the same session. Allow once "
+        "returned public documentation URLs to the scripted local model endpoint. Rejecting the call "
+        "before and after that turn returned no new documentation result.",
+    ),
+    "qwen-cli-public-https-server-approval": (
+        "mcp", "The CLI discovered five public OpenAI Docs tools after approval of the generated setting. "
+        "Withholding approval or the setting kept the endpoint idle. A change to the approved config "
+        "required fresh approval.",
+    ),
+    "qwen-cli-public-https-tool-approval": (
+        "mcp", "A headless run reported that the requested documentation tool required approval. "
+        "Allowing that exact tool let it return public documentation URLs over the configured HTTPS connection.",
     ),
     "qwen-daemon-startup-model": ("models", "The daemon confirmed the generated startup request's exact model route."),
     "qwen-daemon-session-effort": ("reasoning", "Live session context reflected the generated model's effort setting."),
@@ -312,6 +642,18 @@ _OBSERVATION_CHECKS = {
     ),
     "opencode-v2-disabled-mcp-load": ("mcp", "The V2 server read the generated MCP entry with discovery disabled."),
     "opencode-v2-model-variant-catalog": ("models", "The V2 server listed built-in model and variant IDs."),
+    "opencode-v2-staged-run-alias": (
+        "models", "Generated OpenCode run arguments selected two configured catalog aliases. "
+        "The loopback endpoint received their distinct upstream model IDs.",
+    ),
+    "opencode-v2-staged-run-variant": (
+        "reasoning", "The generated argument selector sent low, high, or xhigh and the matching named variant's "
+        "request body setting. Both runs without a variant omitted those fields.",
+    ),
+    "opencode-v2-run-instructions": (
+        "instructions", "A model request in every generated run included the root instruction bundle. "
+        "The control with the instruction file removed omitted it and kept the selected variant.",
+    ),
     "opencode-v2-agent-variant-load": (
         "reasoning", "The V2 server reported the generated subagent's exact provider, model, and named variant.",
     ),
@@ -327,6 +669,15 @@ _OBSERVATION_CHECKS = {
     "opencode-v2-child-mcp-filter": (
         "mcp", "The generated subagent's tool list excluded the stdio fixture visible to the parent session.",
     ),
+    "local-chat-cli-model-selection": (
+        "models", "Generated run arguments selected the manually configured model alias. LM Studio ran "
+        "Qwen3 0.6B Q8_0 locally and the CLI returned the expected answer in both runs.",
+    ),
+    "local-chat-cli-reasoning-switch": (
+        "reasoning", "The staged variants sent none and medium to LM Studio Chat Completions on loopback. "
+        "The real model returned reasoning content for medium and no reasoning content for none. "
+        "This tests the two selections on one local model.",
+    ),
     "kilo-stdio-discovery": (
         "mcp", "Kilo initialized the selected project stdio fixture and requested its tools.",
     ),
@@ -339,6 +690,18 @@ _OBSERVATION_CHECKS = {
     "kilo-cli-variant-request": (
         "reasoning", "A named variant sent high reasoning effort to the local endpoint. Omitting the variant omitted the field.",
     ),
+    "kilo-staged-run-model": (
+        "models", "Weaver staged all 426 enabled built-in text chat selections offline. Two synthetic local "
+        "model selections reached the loopback endpoint through generated run arguments.",
+    ),
+    "kilo-staged-run-variant": (
+        "reasoning", "Three advertised named variants sent low, high and xhigh through the generated run arguments. "
+        "The two runs without a variant omitted the effort field.",
+    ),
+    "kilo-staged-run-instructions": (
+        "instructions", "The generated project instructions reached the loopback endpoint. Withholding the file "
+        "removed the instructions and preserved the selected model variant.",
+    ),
     "kilo-child-ambient-mcp": (
         "mcp", "The generated subagent could see the fixture tool explicitly allowed by the parent project.",
     ),
@@ -350,6 +713,56 @@ _OBSERVATION_CHECKS = {
     ),
     "kilo-extension-variant-selection": (
         "reasoning", "The sidebar exposed the local model's named variant and displayed it after selection.",
+    ),
+    "kilo-cli-generated-mcp-default-off": (
+        "mcp", "The generated disabled entries kept the local stdio fixture idle and made no connection to "
+        "the public HTTPS MCP server.",
+    ),
+    "kilo-cli-public-https-mcp-call": (
+        "mcp", "Enabling only the public HTTPS MCP entry exposed the explicitly allowed list_openai_docs tool "
+        "and returned a documentation URL. Withholding the entry kept the server idle.",
+    ),
+    "kilo-extension-public-https-mcp-call": (
+        "mcp", "The generated disabled HTTPS entry made no connection. An explicit sidebar connection exposed "
+        "only the allowed list_openai_docs tool and returned a documentation URL.",
+    ),
+    "kilo-extension-session-model-request": (
+        "models", "A sidebar session sent the selected synthetic model ID to the scripted loopback provider.",
+    ),
+    "kilo-extension-session-variant-request": (
+        "reasoning", "The sidebar session's review-high variant sent high effort to the scripted loopback provider.",
+    ),
+    "kilo-desktop-generated-mcp-discovery": (
+        "mcp", "The Desktop-bundled engine kept the generated disabled stdio server idle. Enabling it in a "
+        "disposable project produced initialize and tools/list. Withholding the artifacts removed the server.",
+    ),
+    "kilo-desktop-project-instructions": (
+        "instructions", "A Desktop-bundled engine session sent the generated project instructions to the local "
+        "endpoint. Withholding the file removed its instructions from the request.",
+    ),
+    "kilo-desktop-subagent-stdio-call": (
+        "mcp", "The generated subagent called the explicitly allowed read-only stdio tool after the server "
+        "was enabled in a disposable project. The generated disabled entry left the fixture idle.",
+    ),
+    "kilo-desktop-subagent-model-request": (
+        "models", "The Desktop-bundled engine sent the generated subagent's configured synthetic model ID to the "
+        "local endpoint. Withholding the agent file removed the child request.",
+    ),
+    "kilo-gateway-public-model-catalog": (
+        "models", "The unauthenticated v1 catalog returned 470 unique model IDs. Offline validation preserved "
+        "all exact IDs, including 19 aliases.",
+    ),
+    "kilo-gateway-catalog-variant-validation": (
+        "reasoning", "Offline validation preserved all 1,109 named variants across 332 models in the captured "
+        "Gateway catalog and rejected an unadvertised variant for each model.",
+    ),
+    "kilo-gateway-client-model-route": (
+        "models", "The exact selected Gateway model IDs reached a loopback endpoint. The captured model metadata "
+        "was pinned in the disposable project for Chat Completions, Responses and Messages.",
+    ),
+    "kilo-gateway-client-variant-wire": (
+        "reasoning", "With captured model metadata pinned locally, the CLI and session API sent matching "
+        "DeepSeek instant and thinking settings, OpenAI xhigh effort, and Anthropic adaptive thinking with max effort.",
     ),
     "cline-agent-file-inventory": (
         "agents", "Cline listed the generated project agent file in its configuration inventory.",
@@ -369,6 +782,39 @@ _OBSERVATION_CHECKS = {
     "cline-child-mcp-filter": (
         "mcp", "The configured subagent received the selected built-in tools. The parent alone could see its MCP fixture.",
     ),
+    "cline-cli-generated-mcp-approval": (
+        "mcp", "Weaver's generated --auto-approve false kept the enabled stdio tool discoverable. "
+        "The headless call was withheld with an empty, sibling-only, or exact per-server autoApprove entry.",
+    ),
+    "cline-cli-global-mcp-auto-approval": (
+        "mcp", "The disabled generated server stayed idle with global auto-approval enabled. "
+        "After enabling the server, global auto-approval called the read-only fixture regardless of its "
+        "per-server autoApprove entries. Omitting the global flag also allowed the call in the tested Act session.",
+    ),
+    "cline-cli-public-https-mcp-tool-call": (
+        "mcp", "The generated disabled and omitted entries left the public endpoint idle. After enabling the server, "
+        "both approval settings exposed five tools. Explicit global auto-approval returned a public documentation URL "
+        "from list_openai_docs to the scripted loopback model.",
+    ),
+    "cline-cli-lmstudio-staged-model": (
+        "models", "Cline selected the exact loaded LM Studio alias from a verified catalog using generated "
+        "session arguments. Both provider paths completed an actual local Qwen3 0.6B Q8_0 turn.",
+    ),
+    "cline-cli-lmstudio-staged-reasoning-off": (
+        "reasoning", "The generated explicit-off arguments selected Cline's OpenAI-compatible provider and sent "
+        "none to LM Studio. The local model returned the answer without reasoning content. "
+        "The unmodified default selection streamed reasoning content for this model.",
+    ),
+    "cline-cli-native-lmstudio-thinking-omission": (
+        "reasoning", "Cline's lmstudio provider omitted the effort field for --thinking none on the tested model. "
+        "The server returned reasoning content under its default setting. The OpenAI-compatible provider sent none "
+        "and suppressed reasoning content in the separate control.",
+    ),
+    "cline-desktop-public-https-mcp-tool-call": (
+        "mcp", "The packaged Desktop backend listed the generated disabled server without connecting. "
+        "After explicit enablement and local session auto-approval, it discovered five tools and returned public "
+        "documentation from list_openai_docs. The omitted control had no entry or HTTPS connection.",
+    ),
     "cline-desktop-model-catalog": (
         "models", "The Desktop backend listed its bundled OpenRouter model IDs and reasoning capability flags.",
     ),
@@ -381,9 +827,40 @@ _OBSERVATION_CHECKS = {
     "cline-desktop-max-effort-fallback": (
         "reasoning", "Desktop 0.0.49 sent medium effort when its chat backend received max for the tested model.",
     ),
+    "cline-desktop-lmstudio-local-generation": (
+        "models", "The Desktop sidecar listed and selected the loaded LM Studio alias for Qwen3 0.6B Q8_0. "
+        "The answer returned by the local server matched the final answer in the session history.",
+    ),
+    "cline-desktop-lmstudio-session-reasoning": (
+        "reasoning", "The Desktop sidecar sent medium effort to the loaded local model. "
+        "The response streamed reasoning content and the session history recorded a separate reasoning field.",
+    ),
+    "cline-desktop-lmstudio-reasoning-off": (
+        "reasoning", "Turning thinking off sent none through the Desktop sidecar's native LM Studio provider. "
+        "The local model completed its answer without reasoning content, and the session history had no reasoning field.",
+    ),
     "cline-ide-stdio-activation": (
         "mcp", "The IDE loaded the generated disabled entry and connected and discovered its tool only after "
         "enabling the server in the isolated extension profile.",
+    ),
+    "cline-ide-mcp-category-auto-approval": (
+        "mcp", "After enabling the generated stdio server, the sidebar's Use MCP servers category "
+        "allowed the fixture tool to run while the tool's own auto-approval setting was off.",
+    ),
+    "cline-ide-stdio-manual-approval": (
+        "mcp", "With MCP category auto-approval off, Reject withheld the fixture call and returned a denial. "
+        "Approve in a separate task sent one call and returned the fixture result. Disabling the server "
+        "removed the tool from the next model request.",
+    ),
+    "cline-ide-public-https-tool-inventory": (
+        "mcp", "The generated disabled OpenAI Docs entry made no connection and exposed no tools. "
+        "Enabling it in the isolated extension host discovered five tools over Streamable HTTPS. "
+        "Disabling it again removed the tools from the next request.",
+    ),
+    "cline-ide-public-https-tool-approval": (
+        "mcp", "Category auto-approval let list_openai_docs return a public documentation URL with "
+        "per-tool auto-approval off. With the category off, Reject returned a denial and Approve returned "
+        "a documentation URL in a separate task.",
     ),
     "cline-ide-delegation-unavailable": (
         "agents", "The isolated IDE exposed subagents as disabled and offered no delegation tool in the test request.",
@@ -405,8 +882,45 @@ _OBSERVATION_CHECKS = {
         "and discovered both tools. The read-only exec inventory applied exact inclusion and exclusion "
         "filters for the resolver. Withholding the config removed the server and both tools.",
     ),
+    "factory-cli-context7-https-tool-call": (
+        "mcp", "Droid used the generated project Context7 entry to resolve a public library over Streamable HTTPS. "
+        "The scripted loopback endpoint received the result. Removing the config or excluding the resolver "
+        "from the exact tool selection prevented the call.",
+    ),
+    "factory-cli-spec-model-request": (
+        "models", "With generated arguments, Droid sent the selected specification model to a scripted local endpoint. "
+        "The execution-only control sent the independently selected execution model.",
+    ),
+    "factory-cli-spec-effort-request": (
+        "reasoning", "Droid sent the explicitly selected specification effort and resolved its own effort when omitted. "
+        "Weaver rejected an effort absent from the saved catalog before launch.",
+    ),
+    "factory-cli-spec-approval-model-transition": (
+        "models", "Droid used the generated JSON-RPC settings to select the planning model. A one-time plan approval "
+        "switched the same session to the generated execution model. Cancelling sent no execution request.",
+    ),
+    "factory-cli-spec-approval-effort-transition": (
+        "reasoning", "The scripted endpoint observed the selected planning effort before approval and the independently "
+        "selected execution effort after approval.",
+    ),
     "factory-cli-model-catalog": (
         "models", "The signed-out JSON-RPC catalog listed model IDs and their advertised reasoning efforts.",
+    ),
+    "factory-cli-byok-base-model-catalog": (
+        "reasoning", "Nine bracketed BYOK selectors reported the same reasoning options and default as their "
+        "configured base models. Weaver preserved their exact IDs when staging arguments and supported agent pins.",
+    ),
+    "factory-cli-byok-alias-model-requests": (
+        "models", "Droid resolved nine generated bracketed BYOK selectors to their configured model IDs "
+        "in 48 signed-out Chat Completions requests to a scripted loopback endpoint.",
+    ),
+    "factory-cli-byok-alias-effort-requests": (
+        "reasoning", "Explicit efforts reached the scripted endpoint, with no effort value for off or none. "
+        "Omitting the argument sent high for all nine aliases, including five with different catalog defaults.",
+    ),
+    "factory-cli-project-instructions-in-request": (
+        "instructions", "The scripted endpoint received a line from the generated AGENTS.md in all 48 "
+        "BYOK requests. Withholding the file removed the line in the control.",
     ),
     "factory-cli-custom-model-request": (
         "models", "The CLI accepted the catalog's custom selector and sent its model ID to a scripted local endpoint.",
@@ -454,6 +968,41 @@ _OBSERVATION_CHECKS = {
         "reasoning", "CLI help listed thinking mode and fixed-budget flags. Generated session arguments reached "
         "the sign-in requirement and an unknown-flag control failed during argument parsing. Effective thinking is unverified.",
     ),
+    "qoder-ide-agent-inventory": (
+        "agents", "The bundled IDE backend listed the generated project agent with its exact instruction body. "
+        "The empty workspace lacked the entry.",
+    ),
+    "qoder-ide-stdio-settings-import": (
+        "mcp", "The bundled IDE backend imported the generated settings fragment and discovered the stdio fixture's tool. "
+        "The entry survived a restart, disabling stopped discovery, and deletion removed it.",
+    ),
+    "qoder-ide-public-https-settings-import": (
+        "mcp", "The bundled IDE backend imported the generated OpenAI Docs entry and discovered five tools over HTTPS. "
+        "A fresh backend rediscovered the tools. Disabled and removed entries opened no connection to the server.",
+    ),
+    "qoder-ide-signed-out-model-inventory": (
+        "models", "The isolated backend opened an empty session and returned no model metadata while signed out.",
+    ),
+    "air-ide-acp-registration-load": (
+        "agents", "The bundled configuration loader preserved the generated executable, arguments, and separate IDE "
+        "and custom MCP settings. It dropped the documented WSL execution field in the control.",
+    ),
+    "air-desktop-acp-registration-load": (
+        "agents", "The standalone build's ACP parser loaded the staged display name, executable, and "
+        "literal arguments. The empty configuration had no agents, and the IDE MCP switch control "
+        "produced the same standalone entry.",
+    ),
+    "air-desktop-mcp-config-parse": (
+        "mcp", "The standalone project parser recognized the generated HTTPS and disabled stdio servers, "
+        "preserved argument boundaries and the empty argument, and reported no auto-approved tools.",
+    ),
+    "air-desktop-skill-file-parse": (
+        "skills", "The standalone build's bundled Skill parser read the full staged files and their paths "
+        "and recovered all six names and descriptions.",
+    ),
+    "air-ide-mcp-config-parse": (
+        "mcp", "The bundled MCP parser resolved the generated HTTPS and stdio entries. The empty file yielded no servers.",
+    ),
     "project-stdio-healthcheck": (
         "mcp", "The bundled executable connected to the generated project stdio fixture after isolated user approval.",
     ),
@@ -479,6 +1028,123 @@ _OBSERVATION_CHECKS = {
         "reasoning", "The Messages endpoint produced a thinking block with adaptive and a plain text response with disabled "
         "for the locally loaded Qwen3 0.6B model.",
     ),
+    "lmstudio-loaded-chat-alias": (
+        "models", "The generated selector used the exact custom loaded instance ID from the native list. "
+        "A fresh catalog after unload no longer supplied the alias's capabilities.",
+    ),
+    "lmstudio-loaded-chat-alias-reasoning": (
+        "reasoning", "For a Qwen3 loaded alias, generated native chat requests returned a message with off "
+        "and a reasoning block with on. The generated Responses request disabled reasoning at effort none.",
+    ),
+    "lmstudio-native-mcp-tool-scope": (
+        "mcp", "The generated native chat request called the selected Context7 resolver. Selecting only query-docs "
+        "prevented the resolver call in the control.",
+    ),
+    "lmstudio-responses-mcp-tool-scope": (
+        "mcp", "The generated Responses request listed and called only the selected Context7 tool. "
+        "The resolver returned a public React library ID when selected.",
+    ),
+    "lmstudio-native-preconfigured-stdio": (
+        "mcp", "The authenticated native chat request used the generated plugin reference to call a preconfigured "
+        "stdio server. The fixture received only the exact tool selected for each request.",
+    ),
+    "lmstudio-preconfigured-plugin-authentication": (
+        "mcp", "The loopback server rejected a missing token and a valid token without plugin access. "
+        "Neither rejected request reached the stdio fixture.",
+    ),
+    "lmstudio-desktop-preset-prompt-parse": (
+        "instructions", "The parser extracted from LM Studio Desktop 0.4.28 build 2 accepted the generated "
+        "system prompt in four Presets. It rejected the missing-name control and removed a privileged load field. "
+        "The probe exercised the parser in isolation.",
+    ),
+    "lmstudio-desktop-preset-reasoning-parse": (
+        "reasoning", "The bundled Desktop parser retained the generated thinking toggle and nonnegative "
+        "reasoning budget, both alone and together. Model application and inference remain unchecked.",
+    ),
+    "lmstudio-desktop-mcp-config-parse": (
+        "mcp", "The bundled Desktop MCP parser accepted the empty default, retained the selected HTTPS "
+        "URL and stdio command and arguments, and rejected a string in place of the argument array.",
+    ),
+    "lmstudio-desktop-bundled-stdio-tool-call": (
+        "mcp", "The isolated Desktop session module started the configured stdio fixture, listed both tools, "
+        "and returned the result of the single allowlisted tool. The fixture logged exactly one call.",
+    ),
+    "lmstudio-desktop-bundled-http-wire": (
+        "mcp", "The bundled Streamable HTTP client initialized, discovered tools and completed one allowlisted "
+        "call over live loopback HTTP after a test-only scheme override. The exact staged HTTPS URL also "
+        "completed the scripted fetch exchange. Live TLS and the Desktop UI remain unchecked.",
+    ),
+    "lmstudio-desktop-bundled-skill-tool": (
+        "skills", "The isolated Desktop MCP client parsed the generated fragment, launched the staged stdio "
+        "Skill server and retrieved the exact selected instructions through load_skill. The probe ran without "
+        "a model turn. Desktop UI activation and model use remain unverified.",
+    ),
+    "lmstudio-bionic-skill-import": (
+        "skills", "Bionic's bundled local importer inspected, saved and reopened all six staged Skills in "
+        "isolation. The names, descriptions and instruction bodies survived the import.",
+    ),
+    "lmstudio-bionic-settings-skill-import": (
+        "skills", "Bionic's Skills settings imported all six staged SKILL.md files in a disposable profile. "
+        "The test supplied file selections at the Electron dialog boundary. A canceled selection installed "
+        "nothing, and all completed imports preserved their metadata and normalized instructions.",
+    ),
+    "lmstudio-bionic-composer-skill-reference": (
+        "skills", "All six imported Skills appeared when searched by name in Bionic's composer reference "
+        "picker. Selecting one added its reference to the unsent draft without a model request.",
+    ),
+    "lmstudio-bionic-mcp-form-parse": (
+        "mcp", "The bundled form converter and schema retained the staged HTTPS URL and the stdio command and "
+        "arguments. Bionic filtered an empty argument in the control.",
+    ),
+    "lmstudio-bionic-mcp-stdio-discovery": (
+        "mcp", "After a native process started with redirected Electron paths, the isolated disabled fixture "
+        "stayed idle. The enabled entry preserved its arguments, initialized and listed its tool.",
+    ),
+    "lmstudio-bionic-local-model-picker": (
+        "models", "The signed-out Windows Bionic app indexed and selected the local Qwen3 0.6B Q8_0 "
+        "model in its session picker. The model was absent in a separate empty profile.",
+    ),
+    "lmstudio-bionic-local-reasoning-picker": (
+        "reasoning", "The Bionic session picker switched the local Qwen3 0.6B model between Off and On. "
+        "Weaver staged both labels from the observed model mapping and refused high as an unavailable menu choice.",
+    ),
+    "lmstudio-bionic-local-model-inference": (
+        "models", "The signed-out Bionic session dispatched the indexed Qwen3 0.6B Q8_0 GGUF to the local "
+        "llama.cpp CPU runtime and saved the expected arithmetic result in two disposable sessions.",
+    ),
+    "lmstudio-bionic-local-reasoning-output": (
+        "reasoning", "Bionic saved text output with reasoning Off. With reasoning On, the saved assistant "
+        "message contained a separate reasoning part alongside its text answer.",
+    ),
+    "lmstudio-bionic-session-stdio-tool-call": (
+        "mcp", "A local Qwen3 session used Bionic's on-demand MCP discovery and called the read-only stdio fixture "
+        "once. The saved tool result matched the wire payload. The model's final text did not repeat that result.",
+    ),
+    "lmstudio-bionic-session-mcp-disable": (
+        "mcp", "The disabled fixture stayed idle at startup. Enabling it exposed the integration mention in "
+        "the composer. Disabling it after the tool call removed the mention and produced no further calls.",
+    ),
+    "lmstudio-bionic-settings-https-tool-discovery": (
+        "mcp", "Bionic saved Weaver's public documentation endpoint through Settings > MCP and completed "
+        "Streamable HTTPS initialization and discovery of five tools without an Authorization header.",
+    ),
+    "lmstudio-bionic-settings-https-pause": (
+        "mcp", "Saving the public server paused kept it idle. Two enable cycles initialized and listed tools. "
+        "The UI returned to Paused when the server was switched off.",
+    ),
+    "lmstudio-bionic-settings-stdio-tool-discovery": (
+        "mcp", "The Bionic settings form saved the generated command and all five separate arguments. "
+        "Four enable cycles each initialized the stdio fixture and listed its read-only tool. "
+        "The fixture received a value with a space as one argument.",
+    ),
+    "lmstudio-bionic-settings-stdio-pause": (
+        "mcp", "The generated stdio fixture stayed idle when saved paused. Process checks observed the fixture "
+        "exit on pause in two cycles. Reopening the profile kept the server paused and produced no fixture traffic.",
+    ),
+    "lmstudio-native-chat-context-length": (
+        "models", "The generated native chat request loaded a downloaded model key at a new context length. "
+        "A loaded alias accepted its existing length, and Weaver rejected a resize against the captured alias.",
+    ),
     "lmstudio-local-embedding-request": (
         "models", "The generated embedding selector returned a vector from the local OpenAI-compatible endpoint.",
     ),
@@ -501,6 +1167,37 @@ _OBSERVATION_CHECKS = {
         "skills", "ACP reported the generated project's Skill and steering paths. The empty workspace did "
         "not report either file.",
     ),
+    "kiro-ide-steering-load": (
+        "instructions", "The bundled extension read the exact generated project steering file. "
+        "The empty and untrusted workspaces did not expose it.",
+    ),
+    "kiro-ide-skill-resource-load": (
+        "skills", "The bundled extension resolved the generated project Skill and read its name and scope. "
+        "The empty workspace did not resolve it.",
+    ),
+    "kiro-ide-agent-profile-load": (
+        "agents", "The bundled extension loaded the generated reviewer and its prompt, read-only tool list, "
+        "and MCP and Powers inheritance switches. The empty workspace exposed no reviewer.",
+    ),
+    "kiro-ide-agent-model-readback": (
+        "models", "The bundled extension preserved the generated reviewer's claude-sonnet-4.6 model pin.",
+    ),
+    "kiro-ide-mcp-declarations": (
+        "mcp", "The bundled extension parsed the generated HTTPS and stdio entries and their tool filters. "
+        "The untrusted workspace and the empty config exposed no project servers.",
+    ),
+    "kiro-ide-https-discovery-and-call": (
+        "mcp", "The extracted extension opened a native Streamable HTTPS connection to the generated "
+        "Context7 endpoint, listed tools, and received a public React library ID from resolve-library-id.",
+    ),
+    "kiro-ide-https-disabled-tool-status": (
+        "mcp", "The bundled session inventory marked query-docs disabled with the generated filter and "
+        "enabled without it. The loader marked the disabled server and omitted untrusted or absent settings.",
+    ),
+    "kiro-ide-mcp-stdio-tool-filter": (
+        "mcp", "The bundled MCP connection listed both read-only fixture tools. The session inventory marked "
+        "only the named tool disabled, and a direct call of the enabled tool returned the fixture result.",
+    ),
     "kiro-v3-workspace-agent-selection": (
         "agents", "ACP listed the generated agent as a workspace mode and switched to it. The empty "
         "workspace reported that the agent was missing.",
@@ -509,6 +1206,14 @@ _OBSERVATION_CHECKS = {
         "mcp", "The generated disabled fixture received no messages. After explicit enablement in the "
         "disposable project, the fixture received initialize and tools/list. Selecting the generated "
         "reviewer removed the fixture from the session's MCP status.",
+    ),
+    "kiro-v3-stdio-disabled-tool-status": (
+        "mcp", "After explicit enablement of the staged stdio server, ACP marked only the selected tool "
+        "disabled. The unfiltered control listed both tools as enabled and the disabled server received no messages.",
+    ),
+    "kiro-v3-https-disabled-tool-status": (
+        "mcp", "The disabled Context7 entry stayed disabled. After explicit enablement, ACP connected over "
+        "HTTPS and marked only query-docs disabled. Both tools were enabled in the unfiltered control.",
     ),
     "kiro-v3-model-login-required": (
         "models", "The signed-out CLI required login for model listing and for the generated session "
@@ -525,6 +1230,19 @@ _OBSERVATION_CHECKS = {
     "kiro-v3-workspace-thinking-readback": (
         "reasoning", "The CLI read back disabled, between-tools, and adaptive thinking settings, including both "
         "adaptive visibility settings. An empty workspace had no model defaults. No model request was made.",
+    ),
+    "kiro-v3-documented-effort-matrix-readback": (
+        "reasoning", "The signed-out CLI read back all 51 documented model and default-effort pairs across ten "
+        "models. The 94 readbacks also covered thinking modes, display controls and output bounds. An empty "
+        "workspace had no model defaults. No model request was made.",
+    ),
+    "kiro-v3-acp-initial-model-selection": (
+        "models", "The signed-out ACP session returned gpt-5.6-terra as its selected model after receiving the "
+        "staged session options. The session created without those options advertised no selected model.",
+    ),
+    "kiro-v3-acp-signed-out-effort-boundary": (
+        "reasoning", "The staged initial ACP options carried xhigh. The signed-out runtime exposed no effective "
+        "effort option or service model catalog. The probe sent no model prompts.",
     ),
     "hermes-profile-role-loading": (
         "agents", "The local distribution planner accepted the generated manifest and the prompt "
@@ -563,6 +1281,19 @@ _OBSERVATION_CHECKS = {
     "zed-stdio-explicit-activation": (
         "mcp", "The exact generated disabled entry and the absent entry sent no stdio messages. "
         "Enabling the fixture in disposable Zed user settings produced initialize and tools/list.",
+    ),
+    "zed-lmstudio-v0-catalog-request": (
+        "models", "Zed read the configured LM Studio provider base and requested /models from a loopback fixture. "
+        "A separate base-path control received the changed route. Editor startup stopped at home directory resolution.",
+    ),
+    "zed-public-https-mcp-tool-inventory": (
+        "mcp", "The signed-out Windows editor initialized the public OpenAI Docs MCP server over HTTPS and "
+        "received its five-tool inventory after explicit enablement in disposable user settings. The generated "
+        "disabled entry and the omitted control made no connection to the server.",
+    ),
+    "zed-settings-ui-disabled-mcp-inventory": (
+        "mcp", "The signed-out Windows editor displayed the generated server with its toggle off. "
+        "The control without the generated entry showed an empty inventory. Neither run started the fixture.",
     ),
     "openhands-headless-skill-invocation": (
         "skills", "The headless CLI included the generated project instructions and Skill in the "
@@ -640,42 +1371,73 @@ _OBSERVATION_FIELDS = {
 }
 _OBSERVATION_INTERFACES = {
     ("openrouter", "gateway", "public-model-list"),
+    ("openrouter", "gateway", "public-provider-endpoint-list"),
     ("antigravity", "cli", "headless-loopback"),
     ("antigravity", "cli", "acp-stdio"),
     ("antigravity", "desktop", "bundled-language-server"),
+    ("antigravity", "cli", "headless-adc"),
     ("antigravity", "ide", "bundled-language-server"),
+    ("antigravity", "sdk", "python-config-constructor"),
     ("codex", "cli", "app-server-stdio"),
     ("codex", "cli", "exec-loopback"),
+    ("codex", "cli", "mcp-list"),
     ("codex", "desktop", "app-server-stdio"),
+    ("chatgpt", "desktop", "desktop-bundled-plugin-reader"),
+    ("chatgpt", "web", "public-web-ui"),
+    ("chatgpt", "web", "hosted-chat-ui"),
+    ("chatgpt", "work-local", "desktop-bundled-plugin-reader"),
+    ("chatgpt", "work-cloud", "hosted-work-ui"),
     ("codex", "ide", "app-server-stdio"),
     ("copilot", "vscode", "bundled-runtime"),
     ("claude-code", "vscode", "bundled-runtime"),
     ("claude-code", "cli", "stream-json"),
     ("claude-code", "cli", "print-json"),
+    ("claude-code", "desktop", "desktop-pinned-runtime"),
+    ("devin", "desktop-local", "desktop-bundled-acp-stdio"),
+    ("devin", "desktop-local", "desktop-bundled-config-inventory"),
     ("qwen-code", "cli", "daemon-http"),
     ("qwen-code", "cli", "exec-loopback"),
+    ("qwen-code", "cli", "exec-public-https-mcp"),
     ("qwen-code", "desktop", "bundled-daemon-http"),
+    ("qwen-code", "desktop", "bundled-daemon-public-https-mcp"),
+    ("perplexity", "app", "public-web-ui"),
+    ("perplexity", "agent-api", "unauthenticated-catalog-http"),
+    ("perplexity", "orchestrator", "unauthenticated-catalog-http"),
+    ("perplexity", "orchestrator", "openai-sdk"),
+    ("perplexity", "orchestrator", "anthropic-sdk"),
     ("qwen-code", "vscode", "vscode-extension-host"),
     ("opencode", "cli", "serve-http"),
     ("opencode", "cli", "exec-loopback"),
+    ("opencode", "cli", "exec-local-inference"),
     ("kilo", "cli", "serve-http"),
     ("kilo", "cli", "exec-loopback"),
+    ("kilo", "cli", "exec-local-inference"),
     ("kilo", "ide", "vscode-extension-host"),
+    ("kilo", "desktop", "serve-http"),
+    ("kilo", "gateway", "public-model-list"),
     ("kiro", "cli", "acp-stdio"),
     ("kiro", "cli", "config-inventory"),
+    ("kiro", "ide", "bundled-extension-loaders"),
     ("hermes", "cli", "config-inventory"),
     ("hermes", "cli", "direct-engine"),
     ("hermes", "cli", "oneshot-gateway"),
     ("zed", "ide", "editor-startup"),
+    ("zed", "ide", "editor-settings-ui"),
     ("openhands", "cli", "headless-loopback"),
     ("openhands", "canvas", "local-agent-server-asgi"),
     ("cursor", "cli", "mcp-cli-inventory"),
     ("cursor", "cli", "bundled-subagent-loader"),
     ("cursor", "cli", "bundled-skill-loader"),
+    ("cursor", "ide", "ide-bundled-config-loaders"),
+    ("jetbrains-air", "ide", "ide-bundled-config-loaders"),
+    ("jetbrains-air", "desktop", "desktop-bundled-config-loaders"),
     ("cline", "cli", "config-inventory"),
     ("cline", "cli", "exec-loopback"),
+    ("cline", "cli", "exec-local-inference"),
+    ("cline", "cli", "exec-mcp-approval"),
     ("cline", "desktop", "desktop-sidecar"),
     ("cline", "ide", "vscode-extension-host"),
+    ("cline", "ide", "vscode-extension-mcp-approval"),
     ("factory", "cli", "exec-loopback"),
     ("factory", "cli", "exec-jsonrpc"),
     ("factory", "cli", "mcp-cli-inventory"),
@@ -684,7 +1446,18 @@ _OBSERVATION_INTERFACES = {
     ("qoder", "cli", "config-inventory"),
     ("qoder", "cli", "acp-stdio"),
     ("qoder", "cli", "cli-help"),
+    ("qoder", "ide", "bundled-backend-rpc"),
     ("copilot", "cli", "prompt-mode"),
+    ("copilot", "desktop", "desktop-bundled-prompt-mode"),
+    ("lm-studio", "desktop", "bundled-preset-parser"),
+    ("lm-studio", "desktop", "bundled-mcp-session"),
+    ("lm-studio", "bionic", "bundled-bionic-probe"),
+    ("lm-studio", "bionic", "session-model-picker"),
+    ("lm-studio", "bionic", "session-local-inference"),
+    ("lm-studio", "bionic", "session-local-mcp"),
+    ("lm-studio", "bionic", "settings-mcp-https"),
+    ("lm-studio", "bionic", "settings-skills"),
+    ("lm-studio", "bionic", "settings-mcp-stdio"),
     ("lm-studio", "api", "loopback-http"),
 }
 
@@ -815,12 +1588,24 @@ def _load_observations(
         os_id = _canonical_id(row["os_id"], "runtime observation OS")
         if os_id not in OS_IDS:
             raise WeaverError("Runtime observation: unknown OS")
-        public_catalog = (product, surface, row["interface"]) == ("openrouter", "gateway", "public-model-list")
+        public_catalog = ((product, surface) in {("openrouter", "gateway"), ("kilo", "gateway")}
+                          and row["interface"] in ("public-model-list", "public-provider-endpoint-list"))
+        hosted_auth_boundary = (product == "perplexity" and surface in {"agent-api", "orchestrator"}
+                                and row["interface"] == "unauthenticated-catalog-http")
+        hosted_browser = (product, surface, row["interface"]) in {
+            ("perplexity", "app", "public-web-ui"),
+            ("chatgpt", "web", "public-web-ui"),
+            ("chatgpt", "web", "hosted-chat-ui"),
+            ("chatgpt", "work-cloud", "hosted-work-ui"),
+        }
+        product_version = row["product_version"]
+        if not hosted_browser or product_version is not None:
+            product_version = _observation_field(product_version, r"[0-9][A-Za-z0-9.+_-]{0,63}", "product version")
         engine_version = row["engine_version"]
-        if not public_catalog or engine_version is not None:
+        if not (public_catalog or hosted_auth_boundary) or engine_version is not None:
             engine_version = _observation_field(engine_version, r"[0-9][A-Za-z0-9.+_-]{0,63}", "engine version")
         identity = {
-            "product_version": _observation_field(row["product_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "product version"),
+            "product_version": product_version,
             "engine_version": engine_version,
             "os_id": os_id,
             "os_variant": _observation_field(row["os_variant"], rf"{os_id}:[A-Za-z0-9][A-Za-z0-9.() _:-]{{0,95}}", "OS variant"),
@@ -832,25 +1617,42 @@ def _load_observations(
         }
         environments = {
             ("openrouter", "gateway"): {"public-unauthenticated"},
-            ("antigravity", "cli"): {"isolated-release-loopback"},
+            ("chatgpt", "web"): ({"public-unauthenticated"} if row["interface"] == "public-web-ui"
+                                else {"existing-account-read-only"}),
+            ("chatgpt", "work-cloud"): {"existing-account-read-only"},
+            ("perplexity", "app"): {"public-unauthenticated"},
+            ("perplexity", "agent-api"): {"public-unauthenticated"},
+            ("perplexity", "orchestrator"): {"public-unauthenticated", "isolated-sdk-mock"},
+            ("antigravity", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("qwen-code", "cli"): {"isolated-release-loopback"},
             ("qwen-code", "desktop"): {"isolated-release-loopback"},
             ("qwen-code", "vscode"): {"isolated-release-loopback"},
-            ("opencode", "cli"): {"isolated-release-loopback"},
-            ("kilo", "cli"): {"isolated-release-loopback"},
+            ("opencode", "cli"): {"isolated-release-loopback", "isolated-local-inference"},
+            ("kilo", "cli"): {"isolated-release-loopback", "isolated-local-inference"},
             ("kilo", "ide"): {"isolated-release-loopback"},
+            ("kilo", "desktop"): {"isolated-release-loopback"},
+            ("kilo", "gateway"): {"public-unauthenticated"},
             ("openhands", "cli"): {"isolated-release-loopback"},
             ("openhands", "canvas"): {"isolated-release-loopback"},
             ("cursor", "cli"): {"isolated-signed-out", "isolated-native-loader"},
-            ("cline", "cli"): {"isolated-release-loopback"},
-            ("cline", "desktop"): {"isolated-release-loopback"},
+            ("cursor", "ide"): {"isolated-native-loader"},
+            ("jetbrains-air", "ide"): {"isolated-native-loader"},
+            ("jetbrains-air", "desktop"): {"isolated-native-loader"},
+            ("antigravity", "sdk"): {"isolated-native-loader"},
+            ("kiro", "ide"): {"isolated-native-loader"},
+            ("cline", "cli"): {"isolated-release-loopback", "isolated-local-inference"},
+            ("cline", "desktop"): {"isolated-release-loopback", "isolated-local-inference"},
             ("cline", "ide"): {"isolated-release-loopback"},
+            ("copilot", "desktop"): {"isolated-release-loopback"},
             ("factory", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("hermes", "cli"): {"isolated-release-loopback", "isolated-signed-out"},
             ("kimi-code", "cli"): {"isolated-release-loopback"},
+            ("lm-studio", "desktop"): {"isolated-native-loader"},
+            ("lm-studio", "bionic"): {"isolated-native-loader"},
             ("lm-studio", "api"): {"isolated-release-loopback"},
             ("claude-code", "vscode"): {"isolated-signed-out", "isolated-loopback"},
             ("claude-code", "cli"): {"isolated-signed-out", "isolated-loopback"},
+            ("claude-code", "desktop"): {"isolated-loopback"},
         }.get((product, surface), {"isolated-signed-out"})
         if ((product, surface, identity["interface"]) not in _OBSERVATION_INTERFACES
                 or identity["environment"] not in environments):
@@ -858,8 +1660,12 @@ def _load_observations(
         if "extension_version" in row:
             identity["extension_version"] = _observation_field(
                 row["extension_version"], r"[0-9][A-Za-z0-9.+_-]{0,63}", "extension version")
-        is_extension = (identity["interface"] in {"bundled-runtime", "vscode-extension-host"}
-                        or (product, surface) == ("codex", "ide"))
+        is_extension = (
+            identity["interface"] in {
+                "bundled-runtime", "bundled-extension-loaders", "vscode-extension-host", "vscode-extension-mcp-approval",
+            }
+            or (product, surface) == ("codex", "ide")
+        )
         if is_extension != ("extension_version" in identity):
             raise WeaverError("Runtime observation: extension version must match the extension runtime scope")
         checks = row["checks"]

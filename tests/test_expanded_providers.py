@@ -8,6 +8,17 @@ from agentweaver.providers import provider_evidence, render_provider_setup
 
 
 class ExpandedProviderTests(unittest.TestCase):
+    def test_air_ide_openrouter_handoff_uses_host_managed_connection(self) -> None:
+        agent = spec("jetbrains-air", surfaces=("desktop", "ide"))
+        artifacts = render_provider_setup(agent, "ide", provider_id="openrouter", model_id="vendor/model")
+        self.assertEqual([item.kind for item in artifacts], ["provider-setup"])
+        text = setup_text(artifacts)
+        for expected in ("AI > Air > Accounts > More Providers", "session authorization menu", "vendor/model",
+                         "managed by the host", "Anthropic or OpenAI API"):
+            self.assertIn(expected, text)
+        self.assertNotIn("/chat/completions", text)
+        self.assertNotIn("OPENROUTER_API_KEY", text)
+
     def test_new_routes_are_manual_scoped_and_credential_free(self) -> None:
         for agent in ("factory", "hermes", "qwen-code", "kimi-code"):
             with self.subTest(agent=agent):

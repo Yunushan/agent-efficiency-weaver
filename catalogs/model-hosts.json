@@ -275,9 +275,12 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "List account-visible models with agy models, then select one for the session. The Gemini API key route uses a separate Gemini-compatible endpoint.",
+        "mechanism": "Use agy models to find the session selector. Gemini API key mode also accepts custom aliases and can use a compatible endpoint configured in the process environment.",
         "fields": [
-          "--model"
+          "--model",
+          "modelProvider",
+          "customModelsConfig.customModels",
+          "GOOGLE_GEMINI_BASE_URL"
         ],
         "commands": [
           "agy models",
@@ -286,7 +289,8 @@
         "ui_steps": [],
         "sources": [
           "https://antigravity.google/docs/cli/reference",
-          "https://antigravity.google/docs/cli/install"
+          "https://antigravity.google/docs/cli/install",
+          "https://antigravity.google/schemas/v1/settings.json"
         ]
       },
       "reasoning": {
@@ -315,14 +319,67 @@
               "max"
             ],
             "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "customModelsConfig.customModels.<alias>.modelFeatures.supportsThinking",
+            "values": ["true", "false"],
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://antigravity.google/docs/cli/reference",
-          "https://antigravity.google/docs/cli/commands/effort"
+          "https://antigravity.google/docs/cli/commands/effort",
+          "https://antigravity.google/schemas/v1/settings.json"
         ]
       },
       "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "antigravity",
+      "surface_id": "sdk",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Select a model in a Python SDK config. Verify the model name through the intended Gemini, Vertex AI, Ollama or LM Studio endpoint.",
+        "fields": [
+          "LocalAgentConfig.model",
+          "LocalAgentConfig.vertex",
+          "LocalOpenAIAgentConfig.model",
+          "LocalOpenAIAgentConfig.base_url"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://antigravity.google/docs/sdk/local-models/",
+          "https://antigravity.google/docs/install/"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "GeminiModelOptions.thinking_level",
+            "values": [
+              "minimal",
+              "low",
+              "medium",
+              "high",
+              "extra_high"
+            ],
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://github.com/google-antigravity/antigravity-sdk-python/blob/75ba22bd00afae2f46393ff31f30c3f0df52982f/google/antigravity/models.py"
+        ]
+      },
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -553,13 +610,20 @@
             "field": "/effort or --effort",
             "values": null,
             "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "ultracode",
+            "values": ["true", "false"],
+            "model_dependent": true
           }
         ],
         "sources": [
-          "https://code.claude.com/docs/en/model-config"
+          "https://code.claude.com/docs/en/model-config",
+          "https://code.claude.com/docs/en/settings-reference"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -604,15 +668,22 @@
               "xhigh"
             ],
             "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "ultracode",
+            "values": ["true", "false"],
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://code.claude.com/docs/en/desktop",
           "https://code.claude.com/docs/en/settings",
-          "https://code.claude.com/docs/en/model-config"
+          "https://code.claude.com/docs/en/model-config",
+          "https://code.claude.com/docs/en/settings-reference"
         ]
       },
-      "checked_on": "2026-11-13",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -650,14 +721,21 @@
             "field": "effortLevel",
             "values": null,
             "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "ultracode",
+            "values": ["true", "false"],
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://code.claude.com/docs/en/settings",
-          "https://code.claude.com/docs/en/model-config"
+          "https://code.claude.com/docs/en/model-config",
+          "https://code.claude.com/docs/en/settings-reference"
         ]
       },
-      "checked_on": "2026-11-13",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1148,7 +1226,7 @@
       "surface_id": "desktop-local",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a Devin Local session model in the account-managed Desktop picker; third-party ACP agents own their model setup and do not establish a custom provider for Devin Local.",
+        "mechanism": "Choose a Devin Local session model in the account-managed Desktop picker. A saved List Models response can validate the model UID and supply its picker label.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1156,7 +1234,8 @@
         ],
         "sources": [
           "https://docs.devin.ai/desktop/models",
-          "https://docs.devin.ai/desktop/devin-local"
+          "https://docs.devin.ai/desktop/devin-local",
+          "https://docs.devin.ai/desktop/accounts/api-reference/list-models"
         ]
       },
       "reasoning": {
@@ -1171,13 +1250,35 @@
               "Max"
             ],
             "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "SWE-2 Flash variant",
+            "values": [
+              "Medium",
+              "High",
+              "Max"
+            ],
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "Claude Fable 5.2 variant",
+            "values": [
+              "Low",
+              "Medium",
+              "High",
+              "XHigh",
+              "Max"
+            ],
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://docs.devin.ai/desktop/models"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1189,9 +1290,11 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a built-in or custom model. A saved SDK list can validate managed exec selections and custom-droid model pins.",
+        "mechanism": "Select a built-in or custom model. A saved SDK list can validate exec selections for execution and specification mode, and custom-droid model pins.",
         "fields": [
           "--model",
+          "--spec-model",
+          "--use-spec",
           "customModels[].model"
         ],
         "commands": [
@@ -1201,7 +1304,8 @@
         "ui_steps": [],
         "sources": [
           "https://docs.factory.com/model-independence/byok",
-          "https://docs.factory.com/sdk/typescript"
+          "https://docs.factory.com/sdk/typescript",
+          "https://docs.factory.com/droid-exec/overview"
         ]
       },
       "reasoning": {
@@ -1210,6 +1314,12 @@
           {
             "kind": "effort",
             "field": "--reasoning-effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "--spec-reasoning-effort",
             "values": null,
             "model_dependent": true
           },
@@ -1240,7 +1350,7 @@
           "https://docs.factory.com/droid-exec/overview"
         ]
       },
-      "checked_on": "2026-11-13",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1409,25 +1519,33 @@
       "surface_id": "desktop",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose the agent and its model in the task toolbar; provider and agent choices determine the available model list. A shared host reasoning override has not been established.",
+        "mechanism": "Choose the agent and model for Agent Review. For an ACP-connected agent, configure its model and provider in the underlying harness. Air exposes the models and options offered through ACP.",
         "fields": [],
         "commands": [],
         "ui_steps": [
-          "Choose the agent and model in the new-task toolbar",
-          "Inspect Settings > AI Providers"
+          "Choose the agent and model for Agent Review",
+          "For an ACP agent, configure the provider and model in that agent"
         ],
         "sources": [
-          "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+          "https://blog.jetbrains.com/air/2026/08/new-in-air-multiproject-view-and-improved-markdown/",
+          "https://blog.jetbrains.com/air/2026/07/what-s-new-air-gets-more-agents-local-models-and-java-kotlin-code-intelligence/"
         ]
       },
       "reasoning": {
-        "state": "unknown",
-        "controls": [],
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "effort",
+            "field": "Claude Agent effort for Fable, Opus and Sonnet 5 in the July 2026 standalone release",
+            "values": ["xhigh"],
+            "model_dependent": true
+          }
+        ],
         "sources": [
-          "https://www.jetbrains.com/help/air/select-agents-and-models.html"
+          "https://blog.jetbrains.com/air/2026/07/what-s-new-air-gets-more-agents-local-models-and-java-kotlin-code-intelligence/"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1439,13 +1557,13 @@
       "surface_id": "ide",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose an installed agent and its model through Manage Presets or session Agent settings. Default Model follows the selected agent; compatible providers and agent login are configured separately. This IDE plugin is distinct from the Air desktop app; no shared model inheritance or account availability is asserted.",
+        "mechanism": "Choose an installed agent and its model through Manage Presets or the session model controls. Default Model follows the selected agent. Configure OpenRouter, Anthropic, OpenAI or Gemini in Accounts and select the provider in a compatible agent's session.",
         "fields": [],
         "commands": [],
         "ui_steps": [
           "Open Manage Agents > Manage Presets and choose an agent and Model",
-          "For the current session open Agent settings below the request field",
-          "Inspect Tools > Air > Accounts for compatible authorization sources"
+          "Click the model name below the prompt or press Ctrl+Shift+M",
+          "Use AI > Air > Accounts > More Providers for compatible authorization sources"
         ],
         "sources": [
           "https://www.jetbrains.com/help/air/air-in-ides-presets.html",
@@ -1458,7 +1576,7 @@
         "controls": [
           {
             "kind": "effort",
-            "field": "Air in IDEs preset Effort or session Agent settings > Reasoning effort",
+            "field": "Air in IDEs preset Effort or session model popup > Effort",
             "values": null,
             "model_dependent": true
           }
@@ -1468,7 +1586,7 @@
           "https://www.jetbrains.com/help/air/air-in-ides-interact-with-the-agent.html"
         ]
       },
-      "checked_on": "2026-10-27",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1517,7 +1635,7 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose the configured provider/model and one of its supported reasoning variants; output thinking visibility is a separate display setting.",
+        "mechanism": "Choose the configured provider/model and one of its supported reasoning variants. Use kilo run with --model and optional --variant for a single run. Thinking visibility is a separate display setting.",
         "fields": [
           "model"
         ],
@@ -1548,7 +1666,83 @@
           "https://kilo.ai/docs/code-with-ai/platforms/cli-reference"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "desktop",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose a provider and model for the current Desktop chat.",
+        "fields": [],
+        "commands": [],
+        "ui_steps": [
+          "Open the chat model picker"
+        ],
+        "sources": [
+          "https://kilo.ai/docs/desktop/quickstart",
+          "https://kilo.ai/docs/desktop/settings/ai"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "Chat effort",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://kilo.ai/docs/desktop/quickstart",
+          "https://kilo.ai/docs/customize/custom-modes"
+        ]
+      },
+      "checked_on": "2026-11-15",
+      "fixture_tests": [
+        "tests/test_model_hosts.py"
+      ],
+      "runtime_checks": [],
+      "availability": "unknown"
+    },
+    {
+      "product_id": "kilo",
+      "surface_id": "gateway",
+      "selection": {
+        "state": "manual",
+        "mechanism": "Choose an exact Gateway model ID from a saved public model list.",
+        "fields": [
+          "model"
+        ],
+        "commands": [],
+        "ui_steps": [],
+        "sources": [
+          "https://kilo.ai/docs/gateway/api-reference",
+          "https://kilo.ai/docs/gateway/models-and-providers"
+        ]
+      },
+      "reasoning": {
+        "state": "manual",
+        "controls": [
+          {
+            "kind": "variant",
+            "field": "opencode.variants",
+            "values": null,
+            "model_dependent": true
+          }
+        ],
+        "sources": [
+          "https://kilo.ai/docs/gateway/models-and-providers",
+          "https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/kilo-gateway/src/api/models.ts"
+        ]
+      },
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1661,23 +1855,24 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Select an account-managed model for Kiro CLI V3. A session flag takes precedence over the custom-agent model pin and saved default.",
-        "fields": ["chat.defaultModel", "model", "--model"],
+        "mechanism": "Select an account-managed model for Kiro CLI V3. A chat launch flag takes precedence over the custom-agent model pin and saved default. An ACP client can supply an initial model in session/new.",
+        "fields": ["chat.defaultModel", "model", "--model", "_meta.kiro.modelId"],
         "commands": ["/model", "/effort"],
         "ui_steps": ["Select a model in /model", "Choose Effort when the model exposes it"],
-        "sources": ["https://kiro.dev/docs/cli/headless/", "https://kiro.dev/docs/models/"]
+        "sources": ["https://kiro.dev/docs/cli/headless/", "https://kiro.dev/docs/models/", "https://kiro.dev/docs/cli/v3/acp-migration/"]
       },
       "reasoning": {
         "state": "manual",
         "controls": [
           {"kind": "effort", "field": "--effort", "values": null, "model_dependent": true},
+          {"kind": "effort", "field": "_meta.kiro.effortLevel", "values": null, "model_dependent": true},
           {"kind": "effort", "field": "chat.modelDefaults", "values": null, "model_dependent": true},
           {"kind": "mode", "field": "chat.modelDefaults.<model>.thinking.type", "values": null, "model_dependent": true},
           {"kind": "mode", "field": "chat.modelDefaults.<model>.thinking.display", "values": ["summarized", "omitted"], "model_dependent": true}
         ],
-        "sources": ["https://kiro.dev/docs/models/effort/"]
+        "sources": ["https://kiro.dev/docs/models/effort/", "https://kiro.dev/docs/cli/v3/acp-migration/"]
       },
-      "checked_on": "2026-11-14",
+      "checked_on": "2026-11-15",
       "fixture_tests": ["tests/test_model_hosts.py"],
       "runtime_checks": [],
       "availability": "unknown"
@@ -1725,9 +1920,10 @@
       "surface_id": "api",
       "selection": {
         "state": "manual",
-        "mechanism": "Discover locally available model keys with the native models endpoint; local listing and loaded/runtime availability are separate facts.",
+        "mechanism": "Use the native models endpoint to discover downloaded model keys and loaded instance IDs. Native chat accepts an explicit request context length.",
         "fields": [
-          "model"
+          "model",
+          "context_length"
         ],
         "commands": [],
         "ui_steps": [],
@@ -1759,7 +1955,7 @@
           "https://lmstudio.ai/docs/developer/openai-compat/responses"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1771,7 +1967,7 @@
       "surface_id": "bionic",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose LM Studio Cloud, a local model, or a model on another device through LM Link. A Remote choice is not an arbitrary OpenAI-compatible custom API endpoint.",
+        "mechanism": "Choose LM Studio Cloud, a local model, or a remote model. Remote choices require an available device sharing its models through LM Link. Saved picker metadata can validate the exact ID and reasoning label for a manual handoff.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1796,7 +1992,7 @@
           "https://lmstudio.ai/docs/bionic/models"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1808,7 +2004,7 @@
       "surface_id": "desktop",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a downloaded model. The first-party openai-compat-endpoint plugin exposes a base URL but currently has fixed model choices; it does not establish arbitrary OpenRouter model IDs or Bionic support.",
+        "mechanism": "Choose a downloaded model or select a reviewed generator plugin for an external Chat Completions model. Each staged generator binds one exact provider model and its validated reasoning fields.",
         "fields": [],
         "commands": [],
         "ui_steps": [
@@ -1817,6 +2013,7 @@
         ],
         "sources": [
           "https://lmstudio.ai/docs/app/basics/download-model",
+          "https://lmstudio.ai/docs/typescript/plugins/generator",
           "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/config.ts",
           "https://lmstudio.ai/lmstudio/openai-compat-endpoint/files/src/generator.ts"
         ]
@@ -1825,17 +2022,25 @@
         "state": "manual",
         "controls": [
           {
-            "kind": "variant",
-            "field": "Model reasoning setting",
+            "kind": "toggle",
+            "field": "llm.prediction.reasoning.enableThinking",
+            "values": ["true", "false"],
+            "model_dependent": true
+          },
+          {
+            "kind": "budget",
+            "field": "llm.prediction.reasoning.budgetTokens",
             "values": null,
             "model_dependent": true
           }
         ],
         "sources": [
-          "https://lmstudio.ai/changelog/lmstudio"
+          "https://lmstudio.ai/changelog/lmstudio",
+          "https://lmstudio.ai/docs/app/presets/import",
+          "https://github.com/lmstudio-ai/lmstudio-js/blob/main/packages/lms-kv-config/src/schema.ts"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -1900,14 +2105,16 @@
       "surface_id": "cli",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose a configured provider/model; reasoning options and named variants are model dependent.",
+        "mechanism": "Choose an enabled provider/model from the current project. OpenCode V2 accepts provider/model#variant for individual CLI runs.",
         "fields": [
           "model",
           "provider.<id>.models.<id>.options",
-          "provider.<id>.models.<id>.variants"
+          "provider.<id>.models.<id>.variants",
+          "providers.<id>.models.<id>.variants"
         ],
         "commands": [
-          "/models"
+          "/models",
+          "opencode run --model"
         ],
         "ui_steps": [],
         "sources": [
@@ -1928,13 +2135,19 @@
             "field": "provider.<id>.models.<id>.variants",
             "values": null,
             "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "opencode run --model provider/model#variant",
+            "values": null,
+            "model_dependent": true
           }
         ],
         "sources": [
           "https://opencode.ai/docs/models/"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -2124,16 +2337,24 @@
       "surface_id": "agent-api",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose an Agent API model or an effort preset; presets select model bundles and do not constitute a universal reasoning setting.",
+        "mechanism": "Choose an Agent API model, ordered fallback chain, effort preset, or saved profile. Presets and profiles supply request defaults. Optional processing tiers depend on the selected models.",
         "fields": [
           "model",
-          "effort"
+          "models",
+          "max_output_tokens",
+          "max_steps",
+          "service_tier",
+          "effort",
+          "profile"
         ],
         "commands": [],
         "ui_steps": [],
         "sources": [
           "https://docs.perplexity.ai/docs/agent-api/models",
-          "https://docs.perplexity.ai/docs/agent-api/effort"
+          "https://docs.perplexity.ai/docs/agent-api/effort",
+          "https://docs.perplexity.ai/docs/agent-api/model-fallback",
+          "https://docs.perplexity.ai/docs/agent-api/profiles",
+          "https://docs.perplexity.ai/api-reference/agent-post"
         ]
       },
       "reasoning": {
@@ -2147,7 +2368,8 @@
               "low",
               "medium",
               "high",
-              "xhigh"
+              "xhigh",
+              "ultra"
             ],
             "model_dependent": true
           },
@@ -2163,7 +2385,7 @@
           "https://docs.perplexity.ai/docs/agent-api/effort"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-14",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -2175,7 +2397,7 @@
       "surface_id": "app",
       "selection": {
         "state": "manual",
-        "mechanism": "In Computer on the web, choose an effort preset or Custom model and reasoning level. After a separately authorized Computer MCP connection, models_list returns allowed modes and models for the account's plan, region and organization policy. Choose either mode or model; effort requires model and one of that model's returned efforts. Desktop retains the regular model picker; custom API credentials authenticate tools, not a replacement inference provider. Weaver does not connect, authenticate, discover account models or perform inference.",
+        "mechanism": "In Computer on the web, choose an effort preset or Custom model and reasoning level. After a separately authorized Computer MCP connection, models_list returns allowed modes and models for the account's plan, region and organization policy. Choose either mode or model; effort requires model and one of that model's returned efforts. Desktop retains the regular model picker; custom API credentials authenticate tools, not a replacement inference provider. In the individual Max Teammates web preview, choose the model for each teammate. Teammate-specific reasoning settings remain unknown. Weaver does not connect, authenticate, discover account models or perform inference.",
         "fields": [],
         "commands": [
           "models_list"
@@ -2183,12 +2405,15 @@
         "ui_steps": [
           "On Computer web, open the effort selector in the prompt box",
           "Choose a preset or Custom to inspect available models and supported reasoning levels",
-          "For a separately authorized Computer MCP connection, inspect the account-scoped models_list result before selecting mode, model or effort"
+          "Under Computer web Custom, choose Normal, Fast, or Ultrafast speed when offered for the selected model",
+          "For a separately authorized Computer MCP connection, inspect the account-scoped models_list result before selecting mode, model or effort",
+          "In the Teammates web preview, choose the teammate's model separately"
         ],
         "sources": [
           "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
           "https://www.perplexity.ai/help-center/en/articles/20260716-using-custom-api-credentials-in-computer",
-          "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
+          "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server",
+          "https://www.perplexity.ai/help-center/en/articles/2026102601-perplexity-teammates"
         ]
       },
       "reasoning": {
@@ -2217,7 +2442,7 @@
           "https://docs.perplexity.ai/docs/getting-started/integrations/computer-mcp-server"
         ]
       },
-      "checked_on": "2026-10-27",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -2229,7 +2454,7 @@
       "surface_id": "orchestrator",
       "selection": {
         "state": "manual",
-        "mechanism": "Choose an Orchestrator allowlisted model; authenticated discovery and request shape are specific to this API, separate from the app.",
+        "mechanism": "Use the authenticated Orchestrator model allowlist for the private-preview API. Choose Chat Completions, stateless Responses, or Messages for the request.",
         "fields": [
           "model"
         ],
@@ -2237,8 +2462,10 @@
         "ui_steps": [],
         "sources": [
           "https://docs.perplexity.ai/api-reference/gateway-models-get",
+          "https://docs.perplexity.ai/api-reference/gateway-model-get",
           "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
-          "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+          "https://docs.perplexity.ai/api-reference/gateway-responses-post",
+          "https://docs.perplexity.ai/docs/orchestrator/quickstart"
         ]
       },
       "reasoning": {
@@ -2247,23 +2474,30 @@
           {
             "kind": "effort",
             "field": "Chat Completions reasoning_effort",
-            "values": null,
+            "values": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
             "model_dependent": true
           },
           {
             "kind": "effort",
             "field": "Responses reasoning.effort",
-            "values": null,
+            "values": ["none", "low", "medium", "high", "xhigh"],
+            "model_dependent": true
+          },
+          {
+            "kind": "toggle",
+            "field": "Messages thinking.type",
+            "values": ["disabled"],
             "model_dependent": true
           }
         ],
         "sources": [
           "https://docs.perplexity.ai/api-reference/gateway-models-get",
           "https://docs.perplexity.ai/api-reference/gateway-chat-completions-post",
-          "https://docs.perplexity.ai/api-reference/gateway-responses-post"
+          "https://docs.perplexity.ai/api-reference/gateway-responses-post",
+          "https://docs.perplexity.ai/api-reference/gateway-messages-post"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],
@@ -2584,9 +2818,10 @@
       "surface_id": "ide",
       "selection": {
         "state": "manual",
-        "mechanism": "Select a main-thread model in native Zed Agent or configure a shared subagent default. External agents and terminal threads own their own model settings.",
+        "mechanism": "Select a main-thread model in native Zed Agent, set a named Agent Profile's model, or configure a shared subagent default. External agents and terminal threads own their own model settings.",
         "fields": [
           "agent.default_model",
+          "agent.profiles.<id>.default_model",
           "agent.subagent_model"
         ],
         "commands": [],
@@ -2597,7 +2832,8 @@
         "sources": [
           "https://zed.dev/docs/ai/llm-providers",
           "https://zed.dev/docs/ai/agent-settings",
-          "https://zed.dev/docs/ai/use-api-access"
+          "https://zed.dev/docs/ai/use-api-access",
+          "https://zed.dev/docs/ai/agent-profiles"
         ]
       },
       "reasoning": {
@@ -2612,6 +2848,12 @@
           {
             "kind": "effort",
             "field": "agent.subagent_model.effort",
+            "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "effort",
+            "field": "agent.profiles.<id>.default_model.effort",
             "values": null,
             "model_dependent": true
           },
@@ -2634,19 +2876,40 @@
             "model_dependent": true
           },
           {
+            "kind": "toggle",
+            "field": "agent.profiles.<id>.default_model.enable_thinking",
+            "values": [
+              "true",
+              "false"
+            ],
+            "model_dependent": true
+          },
+          {
             "kind": "budget",
             "field": "language_models.<provider>.available_models[].mode.budget_tokens",
             "values": null,
+            "model_dependent": true
+          },
+          {
+            "kind": "variant",
+            "field": "speed",
+            "values": [
+              "standard",
+              "fast"
+            ],
             "model_dependent": true
           }
         ],
         "sources": [
           "https://zed.dev/docs/ai/llm-providers",
           "https://zed.dev/docs/ai/agent-settings",
-          "https://zed.dev/docs/ai/use-api-access"
+          "https://zed.dev/docs/ai/use-api-access",
+          "https://github.com/zed-industries/zed/blob/v1.28.1/crates/settings_content/src/agent.rs",
+          "https://github.com/zed-industries/zed/blob/v1.28.1/crates/open_ai/src/open_ai.rs",
+          "https://github.com/zed-industries/zed/blob/v1.28.1/crates/anthropic/src/anthropic.rs"
         ]
       },
-      "checked_on": "2026-10-26",
+      "checked_on": "2026-11-15",
       "fixture_tests": [
         "tests/test_model_hosts.py"
       ],

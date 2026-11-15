@@ -120,6 +120,30 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertEqual(invoke('model', *base, '--model', 'gpt-5.6-terra', '--reasoning-effort', 'none',
                                 '--kiro-model-defaults')[0], 0)
 
+    def test_kiro_cli_stages_acp_launch_and_initial_model_metadata(self):
+        base = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run', '--kiro-acp')
+        cases = (('gpt-5.6-terra', ('--reasoning-effort', 'xhigh'), {'effortLevel': 'xhigh'}),
+                 ('account-model', (), {}))
+        for model, flags, effort in cases:
+            with self.subTest(model=model), mock.patch.object(urllib.request, 'urlopen',
+                                                               side_effect=AssertionError('network forbidden')):
+                code, output, error = invoke('model', *base, '--model', model, *flags)
+                self.assertEqual(code, 0, error)
+                items = {item['kind']: item for item in json.loads(output)['artifacts']}
+                self.assertEqual(set(items), {'acp-launch-arguments', 'acp-session-options', 'model-setup', 'handoff'})
+                self.assertEqual(items['acp-launch-arguments']['path'], 'kiro/model/acp-launch-arguments.json')
+                self.assertEqual(json.loads(items['acp-launch-arguments']['content']), ['acp', '--agent-engine=v3'])
+                self.assertEqual(items['acp-session-options']['path'], 'kiro/model/acp-session-options.json')
+                self.assertEqual(json.loads(items['acp-session-options']['content']), {
+                    '_meta': {'kiro': {'modelId': model, **effort}},
+                })
+                self.assertIn('absolute workspace cwd', items['model-setup']['content'])
+                self.assertIn('advertised model and effortLevel', items['model-setup']['content'])
+        for flags in (('--kiro-model-defaults',), ('--reasoning-mode', 'adaptive'), ('--reasoning-effort', 'ultra'),
+                      ('--agent', 'codex'), ('--surface', 'ide')):
+            with self.subTest(flags=flags):
+                self.assertEqual(invoke('model', *base, '--model', 'gpt-5.6-terra', *flags)[0], 2)
+
     def test_kiro_cli_stages_documented_thinking_modes_and_visibility(self):
         base = (*ROOT_ARGS, '--agent', 'kiro', '--surface', 'cli', '--dry-run', '--kiro-model-defaults')
         for model, flags, expected in (
@@ -188,6 +212,9 @@ class CapabilityCliTests(unittest.TestCase):
             self.assertEqual(json.loads(items['session-arguments']['content']), [
                 '--model', 'fixture/Model-v2', '--reasoning-effort', 'high', '--context-window', '400000',
             ])
+            self.assertIn('open /model, switch to Custom, and choose Add custom model', items['model-setup']['content'])
+            self.assertIn('Use the provider and model choices offered by that account', items['model-setup']['content'])
+            self.assertIn('Enter credentials in the wizard', items['model-setup']['content'])
             for extra, expected in (
                 (('--reasoning-effort', 'off', '--context-size', '200000'), {
                     'name': 'auto', 'reasoningEffort': 'off', 'contextWindow': 200000,
@@ -257,9 +284,12 @@ class CapabilityCliTests(unittest.TestCase):
         self.assertIn('model_catalogs', data)
         self.assertIn('custom_agents', data)
         self.assertFalse(data['mcp_transports']['stdio']['runtime_verified'])
-        self.assertEqual(data['mcp_transports']['stdio']['unestablished_file_exports'],
-                         ['jetbrains-air/desktop', 'jetbrains-air/ide'])
-        self.assertIn('codex', data['mcp_transports']['stdio']['documented_adapters'])
+        stdio = data['mcp_transports']['stdio']
+        self.assertEqual(stdio['unestablished_file_exports'], [])
+        self.assertIn('codex', stdio['documented_adapters'])
+        air = stdio['documented_adapters']['jetbrains-air']
+        self.assertEqual(air['mcp_dialect'], 'mcpServers.jetbrains-air-ide')
+        self.assertEqual(air['additional_routes'][0]['mcp_dialect'], 'mcpServers.url')
         self.assertEqual(invoke('coverage', *ROOT_ARGS, '--strict')[0], 1)
 
     def test_host_model_controls_filter_alias_and_surface_without_implying_availability(self):

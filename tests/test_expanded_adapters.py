@@ -1,5 +1,6 @@
 """Offline schema and handoff contracts for expanded product surfaces."""
 import json
+import shlex
 import socket
 import subprocess
 import unittest
@@ -85,6 +86,53 @@ class ExpandedAdapterTests(unittest.TestCase):
                     self.assertNotIn(secret_field, selected.content)
                 self.assertNotIn(b"mcp_service_enabled", selected.content)
 
+    def test_lmstudio_request_tools_are_scoped_per_server_and_target(self):
+        spec = self.integrations["lm-studio"]
+        for responses, suffix, root_key, tool_type in (
+            (False, "api.json", "integrations", "ephemeral_mcp"),
+            (True, "responses.json", "tools", "mcp"),
+        ):
+            with self.subTest(responses=responses):
+                artifact, = render_mcp(spec, "api", self.profile, self.catalog, ["context7"],
+                                       lmstudio_responses=responses, lmstudio_tools=["context7:resolve-library-id"])
+                self.assertEqual(artifact.relative_path.as_posix(), f"lm-studio/requests/{suffix}")
+                self.assertEqual(json.loads(artifact.content), {root_key: [{
+                    "type": tool_type, "server_label": "context7", "server_url": URL,
+                    "allowed_tools": ["resolve-library-id"],
+                }]})
+        empty, = render_mcp(spec, "api", self.profile, self.catalog, [], lmstudio_responses=True)
+        self.assertEqual(json.loads(empty.content), {"tools": []})
+        for filters in (["context7:*"], ["different:exact"], ["context7:exact", "context7:exact"]):
+            with self.subTest(filters=filters), self.assertRaises(WeaverError):
+                render_mcp(spec, "api", self.profile, self.catalog, ["context7"], lmstudio_tools=filters)
+        profile = dict(self.profile, allowed_mcp=["context7", "openai-docs"], max_mcp_servers=2)
+        with self.assertRaisesRegex(WeaverError, "for each selected"):
+            render_mcp(spec, "api", profile, self.catalog, ["context7", "openai-docs"], lmstudio_tools=["context7:exact"])
+        with self.assertRaisesRegex(WeaverError, "LM Studio API"):
+            render_mcp(spec, "desktop", self.profile, self.catalog, ["context7"], lmstudio_responses=True)
+
+    def test_lmstudio_native_plugin_references_can_select_stdio_without_copying_commands(self):
+        profile = dict(self.profile, allowed_mcp=["context7", "local-fixture"], max_mcp_servers=2)
+        catalog = {"servers": self.catalog["servers"] | {
+            "local-fixture": {"kind": "stdio", "command": "python", "args": ["fixture.py"], "default_enabled": False},
+        }}
+        spec = self.integrations["lm-studio"]
+        artifact, = render_mcp(spec, "api", profile, catalog, ["local-fixture", "context7"], lmstudio_plugins=True,
+                               lmstudio_tools=["local-fixture:verify_status", "context7:query-docs"])
+        self.assertEqual(artifact.relative_path.as_posix(), "lm-studio/requests/chat-plugins.json")
+        self.assertEqual(json.loads(artifact.content), {"integrations": [
+            {"type": "plugin", "id": "mcp/context7", "allowed_tools": ["query-docs"]},
+            {"type": "plugin", "id": "mcp/local-fixture", "allowed_tools": ["verify_status"]},
+        ]})
+        empty, = render_mcp(spec, "api", profile, catalog, [], lmstudio_plugins=True)
+        self.assertEqual(json.loads(empty.content), {"integrations": []})
+        with self.assertRaisesRegex(WeaverError, "native chat request"):
+            render_mcp(spec, "api", profile, catalog, ["local-fixture"], lmstudio_plugins=True, lmstudio_responses=True)
+        with self.assertRaisesRegex(WeaverError, "stdio is unavailable"):
+            render_mcp(spec, "api", profile, catalog, ["local-fixture"], lmstudio_responses=True)
+        with self.assertRaisesRegex(WeaverError, "LM Studio API"):
+            render_mcp(spec, "desktop", profile, catalog, ["context7"], lmstudio_plugins=True)
+
     def test_request_schema_cannot_be_project_or_user_configuration(self):
         spec = self.integrations["perplexity"]
         base = spec.surface("agent-api")
@@ -117,14 +165,72 @@ class ExpandedAdapterTests(unittest.TestCase):
 
     def test_manual_and_provider_routes_do_not_become_native_mcp_hosts(self):
         for identifier, surface in (
-            ("perplexity", "app"), ("perplexity", "orchestrator"),
-            ("lm-studio", "bionic"),
+            ("perplexity", "orchestrator"),
             *(("chatgpt", sid) for sid in ("desktop", "web", "work-local", "work-cloud")),
             *((identifier, spec.default_surface) for identifier, spec in self.integrations.items()
               if spec.kind == "provider"),
         ):
             with self.subTest(product=identifier, surface=surface), self.assertRaises(WeaverError):
                 self.render(identifier, surface)
+
+    def test_bionic_stages_manual_form_values_for_https_and_stdio(self):
+        profile = dict(self.profile, allowed_mcp=["context7", "my-fixture"], max_mcp_servers=2)
+        catalog = {"servers": self.catalog["servers"] | {
+            "my-fixture": {"kind": "stdio", "command": "python", "args": ["path with spaces.py", "--read-only"],
+                           "default_enabled": False},
+        }}
+        spec = self.integrations["lm-studio"]
+        with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process launched")):
+            artifact, = render_mcp(spec, "bionic", profile, catalog, ["my-fixture", "context7"])
+            empty, = render_mcp(spec, "bionic", profile, catalog, [])
+        self.assertEqual(artifact.relative_path.as_posix(), "lm-studio/mcp/bionic-setup.md")
+        self.assertEqual(artifact.kind, "mcp-setup")
+        blocks = artifact.content.decode().split("```json\n")[1:]
+        self.assertEqual([json.loads(block.split("```")[0]) for block in blocks], [
+            {"Name": "context7", "Connection": "Web address", "URL": URL},
+            {"Name": "my-fixture", "Connection": "On this computer", "Command": "python",
+             "Arguments": ["path with spaces.py", "--read-only"]},
+        ])
+        self.assertIn(b"In Settings > MCP, open Add custom MCP", artifact.content)
+        self.assertIn(b"To save an entry paused, turn it off before selecting Add MCP", artifact.content)
+        self.assertIn(b"Automatic is the default", artifact.content)
+        self.assertIn(b"For Access token, supply the token separately", artifact.content)
+        self.assertIn(b"Turn on Show advanced options, then use Add argument", artifact.content)
+        self.assertIn(b"No MCP servers were selected", empty.content)
+        with self.assertRaisesRegex(WeaverError, "not permitted"):
+            render_mcp(spec, "bionic", self.profile, catalog, ["my-fixture"])
+        catalog["servers"]["my-fixture"]["args"] = ["--read-only", ""]
+        with self.assertRaisesRegex(WeaverError, "Bionic drops empty MCP arguments"):
+            render_mcp(spec, "bionic", profile, catalog, ["my-fixture"])
+
+    def test_perplexity_app_stages_only_reviewable_connector_form_values(self):
+        profile = dict(self.profile, allowed_mcp=["context7", "local-test"], max_mcp_servers=2)
+        argv = ["/Applications/Test Tools/node", "folder with spaces/fixture.mjs", "literal 'quote' and `backtick`"]
+        catalog = {"servers": self.catalog["servers"] | {
+            "local-test": {"kind": "stdio", "command": argv[0], "args": argv[1:], "default_enabled": False},
+        }}
+        spec = self.integrations["perplexity"]
+        with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("process launched")):
+            artifact, = render_mcp(spec, "app", profile, catalog, ["local-test", "context7"])
+            empty, = render_mcp(spec, "app", profile, catalog, [])
+        self.assertEqual(artifact.relative_path.as_posix(), "perplexity/mcp/app-setup.md")
+        self.assertEqual(artifact.kind, "mcp-setup")
+        content = artifact.content.decode()
+        remote, local = [json.loads(block.split("```")[0]) for block in content.split("```json\n")[1:]]
+        self.assertEqual(remote, {"Name": "context7", "MCP server URL": URL})
+        self.assertEqual(local["Server Name"], "local-test")
+        self.assertEqual(shlex.split(local["Command"]), argv)
+        self.assertIn("macOS", content)
+        self.assertIn("PerplexityXPC", content)
+        self.assertIn(b"No MCP servers were selected", empty.content)
+        with self.assertRaisesRegex(WeaverError, "not permitted"):
+            render_mcp(spec, "app", self.profile, catalog, ["local-test"])
+        long_name = "s" * 65
+        with self.assertRaisesRegex(WeaverError, "at most 64 characters"):
+            render_mcp(spec, "app", dict(self.profile, allowed_mcp=[long_name]),
+                       {"servers": {long_name: self.catalog["servers"]["context7"]}}, [long_name])
 
     def test_native_skill_paths_and_hermes_trust_are_explicit(self):
         for identifier, surface, instruction, skill_dir in (
@@ -156,7 +262,7 @@ class ExpandedAdapterTests(unittest.TestCase):
                 artifacts = render_instruction_bundle(self.integrations[identifier], surface,
                                                       self.profile, ["security-review"], ROOT)
                 self.assertEqual(artifacts[0].kind, "handoff")
-                self.assertEqual(artifacts[1].kind, "read-file")
+                self.assertEqual(artifacts[1].kind, "read-file" if identifier == "chatgpt" else "skill-import")
                 self.assertFalse(any(item.kind == "skill" for item in artifacts))
                 if identifier == "chatgpt":
                     self.assertIn("Hosted Work does not read local .codex", artifacts[0].content.decode())
@@ -174,8 +280,20 @@ class ExpandedAdapterTests(unittest.TestCase):
                                 ("qwen-code", "desktop"): "2026-11-13",
                                 ("qwen-code", "vscode"): "2026-11-13",
                             }.get((identifier, surface.id), "2026-10-26")
-                            if (identifier, surface.id) == ("jetbrains-air", "ide") and capability in {"mcp", "skills"}:
+                            if identifier == "jetbrains-air" and (
+                                capability == "provider" or (surface.id == "ide" and capability in {"mcp", "skills"})
+                            ):
                                 expected_date = "2026-11-14"
+                            if (identifier == "chatgpt" and capability in {"mcp", "skills"}) or (
+                                identifier, surface.id, capability
+                            ) in {
+                                ("lm-studio", "bionic", "mcp"), ("perplexity", "app", "mcp"),
+                                ("perplexity", "agent-api", "skills"), ("perplexity", "orchestrator", "mcp"),
+                                ("perplexity", "orchestrator", "skills"),
+                                ("lm-studio", "desktop", "skills"), ("lm-studio", "api", "skills"),
+                                ("lm-studio", "desktop", "provider"),
+                            }:
+                                expected_date = "2026-11-15"
                             self.assertEqual(evidence.checked_on, expected_date)
 
 

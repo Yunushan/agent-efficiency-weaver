@@ -17,6 +17,7 @@ from agentweaver.models import (
     load_model_providers,
     model_inventory,
     read_model_snapshot,
+    read_openrouter_provider_endpoints,
     render_model_setup,
 )
 
@@ -26,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class ModelCatalogTests(unittest.TestCase):
     def test_all_provider_routes_reference_registry_surfaces(self) -> None:
         providers = load_model_providers(ROOT)
-        self.assertEqual(set(providers), {"openrouter", "openai", "anthropic", "google", "lm-studio",
+        self.assertEqual(set(providers), {"openrouter", "kilo-gateway", "openai", "anthropic", "google", "lm-studio",
                                           "perplexity-agent", "perplexity-orchestrator"})
         for item in providers.values():
             get_integration(item["integration_id"], ROOT).surface(item["surface"])
@@ -62,6 +63,136 @@ class SnapshotTests(unittest.TestCase):
             path = Path(directory) / "models.json"
             path.write_text(json.dumps(value), encoding="utf-8")
             return read_model_snapshot(path, provider, ROOT)
+
+    def test_openrouter_provider_endpoint_metadata_is_scoped_to_one_model(self) -> None:
+        model = "fixture/model"
+        entry = {"model_id": model, "tag": "fixture/fp4/us/fast", "provider_name": "Fixture",
+                 "context_length": 8192, "max_completion_tokens": 1024, "max_prompt_tokens": None,
+                 "status": -2, "supported_parameters": ["reasoning", "tools"]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "endpoints.json"
+            path.write_text(json.dumps({"data": {"id": model, "endpoints": [entry]}}), encoding="utf-8")
+            snapshot = read_openrouter_provider_endpoints(path)
+            for changes in ({"model_id": "fixture/other"}, {"tag": "../escape"}, {"status": False},
+                            {"supported_parameters": ["reasoning", "reasoning"]}, {"context_length": -1},
+                            {"headers": {"Authorization": "fixture"}}):
+                with self.subTest(changes=changes), self.assertRaises(WeaverError):
+                    path.write_text(json.dumps({"data": {"id": model, "endpoints": [entry | changes]}}), encoding="utf-8")
+                    read_openrouter_provider_endpoints(path)
+        self.assertEqual(snapshot["model_id"], model)
+        self.assertEqual(snapshot["endpoint_count"], 1)
+        self.assertEqual(snapshot["provider_endpoints"][0], {
+            "tag": entry["tag"], "provider_name": "Fixture", "context_length": 8192,
+            "max_completion_tokens": 1024, "status": -2, "supported_parameters": ["reasoning", "tools"],
+        })
+        self.assertEqual(snapshot["availability"], "unknown")
+        self.assertFalse(snapshot["inference_tested"])
+
+    def test_openrouter_provider_options_stage_parameter_filter_on_the_two_gateway_routes(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        model = "fixture/reasoner"
+        provider_id = "openrouter"
+        with tempfile.TemporaryDirectory() as directory:
+            model_list = Path(directory) / "models.json"
+            endpoints = Path(directory) / "provider-endpoints.json"
+            model_list.write_text(json.dumps({"data": [{"id": model, "supported_parameters": ["reasoning"],
+                                                        "reasoning": {"supported_efforts": ["high"]}}]}), encoding="utf-8")
+            endpoints.write_text(json.dumps({"data": {"id": model, "endpoints": [
+                {"model_id": model, "tag": "fixture/us", "provider_name": "Fixture", "supported_parameters": ["reasoning"]},
+                {"model_id": model, "tag": "fixture/eu", "provider_name": "Fixture", "supported_parameters": []},
+            ]}}), encoding="utf-8")
+            common = ("--root", str(ROOT), "--provider", provider_id, "--openrouter-provider-endpoints", str(endpoints))
+            code, output, error = invoke("models", *common)
+            self.assertEqual((code, error), (0, ""))
+            self.assertEqual(json.loads(output)["endpoint_count"], 2)
+            launch = ("model", *common, "--agent", "openrouter", "--surface", "gateway", "--catalog", str(model_list),
+                      "--model", model, "--reasoning-effort", "high", "--dry-run")
+            for protocol in ("openrouter-chat", "openai-responses"):
+                with self.subTest(protocol=protocol):
+                    code, output, error = invoke(*launch, "--protocol", protocol, "--openrouter-provider-tag", "fixture/us")
+                    self.assertEqual((code, error), (0, ""))
+                    selection, = (item for item in json.loads(output)["artifacts"] if item["kind"] == "model-selection")
+                    self.assertEqual(json.loads(selection["content"]), {
+                        "model": model, "reasoning": {"effort": "high"},
+                        "provider": {"only": ["fixture/us"], "require_parameters": True},
+                    })
+            for tag, error_text in (("fixture/eu", "does not advertise the reasoning"),
+                                    ("fixture", "requested exact provider tag")):
+                code, _, error = invoke(*launch, "--openrouter-provider-tag", tag)
+                self.assertEqual(code, 2)
+                self.assertIn(error_text, error)
+            for arguments, expected in (((), "requires a tag"),
+                                        (("--openrouter-provider-tag", "fixture/us", "--protocol", "openrouter-messages"),
+                                         "requires gateway Chat Completions or Responses")):
+                code, _, error = invoke(*launch, *arguments)
+                self.assertEqual(code, 2)
+                self.assertIn(expected, error)
+            code, _, error = invoke("model", *common, "--agent", "openrouter", "--model", "fixture/other",
+                                    "--openrouter-provider-tag", "fixture/us", "--dry-run")
+            self.assertEqual(code, 2)
+            self.assertIn("is for a different model", error)
+
+    def test_openrouter_cli_stages_a_history_item_without_replacing_baseline_effort(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        model = "openai/gpt-6.1-sol"
+        cases = (
+            ("openrouter-chat", "chat/completions", {"reasoning": {"effort": "high"}},
+             {"role": "system", "content": "", "configuration_update": {"reasoning": {"effort": "low"}}}),
+            ("openai-responses", "responses", {"reasoning": {"effort": "high"}},
+             {"type": "configuration_update", "reasoning": {"effort": "low"}}),
+            ("openrouter-messages", "messages", {"output_config": {"effort": "high"}},
+             {"role": "system", "content": [], "output_config": {"effort": "low"}}),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "models.json"
+            catalog.write_text(json.dumps({"data": [{"id": model,
+                "endpoints": [f"/api/v1/{case[1]}" for case in cases],
+                "reasoning": {"supported_efforts": ["low", "high"]},
+            }]}), encoding="utf-8")
+            for protocol, _, baseline, history_item in cases:
+                with self.subTest(protocol=protocol):
+                    code, output, error = invoke(
+                        "model", "--root", str(ROOT), "--agent", "openrouter", "--provider", "openrouter",
+                        "--model", model, "--catalog", str(catalog), "--protocol", protocol,
+                        "--reasoning-effort", "high", "--openrouter-turn-effort", "low", "--dry-run",
+                    )
+                    self.assertEqual((code, error), (0, ""))
+                    artifacts = {item["kind"]: item for item in json.loads(output)["artifacts"]}
+                    self.assertEqual(json.loads(artifacts["model-selection"]["content"]), {"model": model, **baseline})
+                    self.assertEqual(json.loads(artifacts["conversation-update"]["content"]), history_item)
+                    self.assertIn("immediately before the user turn", artifacts["model-setup"]["content"])
+
+    def test_openrouter_turn_effort_requires_known_model_endpoint_and_effort(self) -> None:
+        spec = get_integration("openrouter", ROOT)
+        model = "anthropic/claude-opus-5"
+        entry = {"id": model, "endpoints": ["/api/v1/chat/completions", "/api/v1/responses", "/api/v1/messages"],
+                 "reasoning": {"supported_efforts": ["none", "low", "high"]}}
+        catalog = self.read("openrouter", {"data": [entry]})
+        common = {"root": ROOT, "provider_id": "openrouter", "model_id": model, "snapshot": catalog,
+                  "openrouter_turn_effort": "low"}
+        for changes, error in (
+            ({"model_id": "anthropic/claude-opus-5.5"}, "support for this exact model"),
+            ({"model_id": "openai/gpt-6-astra-pro"}, "support for this exact model"),
+            ({"snapshot": None}, "catalog that lists the model and endpoint"),
+            ({"snapshot": self.read("openrouter", {"data": [entry | {"endpoints": []}]})},
+             "does not advertise"),
+            ({"openrouter_turn_effort": "xhigh"}, "effort is unsupported"),
+            ({"openrouter_turn_effort": "none"}, "Claude does not accept none"),
+            ({"mode": "pro"}, "cannot be combined with pro mode"),
+            ({"protocol": "openrouter-batch"}, "requires OpenRouter gateway"),
+            ({"provider_id": "openai"}, "requires OpenRouter gateway"),
+        ):
+            with self.subTest(changes=changes), self.assertRaisesRegex(WeaverError, error):
+                render_model_setup(spec, "gateway", **(common | changes))
+        artifacts = render_model_setup(
+            spec, "gateway", protocol="openrouter-messages", **(common | {"openrouter_turn_effort": "minimal"}),
+        )
+        update, = [item for item in artifacts if item.kind == "conversation-update"]
+        self.assertEqual(json.loads(update.content), {
+            "role": "system", "content": [], "output_config": {"effort": "low"},
+        })
 
     def test_openrouter_conditional_pricing_keeps_order_conditions_and_exact_decimals(self) -> None:
         pricing = {"prompt": "0.000004", "completion": "0.00002", "input_cache_write_1h": "0.000008", "discount": 0.1,
@@ -311,6 +442,30 @@ class SnapshotTests(unittest.TestCase):
         with self.assertRaises(WeaverError):
             check_model(ROOT, "openrouter", "v/a", unknown, effort="low")
 
+    def test_lmstudio_native_chat_stages_only_explicit_context_length(self) -> None:
+        snapshot = self.read("lm-studio", {"models": [{
+            "key": "fixture/local", "type": "llm", "max_context_length": 32768,
+            "loaded_instances": [{"id": "local-run", "config": {"context_length": 8192}}],
+            "capabilities": {"reasoning": {"allowed_options": ["off", "on"], "default": "on"}},
+        }]})
+        spec = get_integration("lm-studio", ROOT)
+        options = dict(root=ROOT, provider_id="lm-studio", model_id="local-run", snapshot=snapshot,
+                       reasoning_enabled=False)
+        for model_id, explicit in (("local-run", None), ("local-run", 8192), ("fixture/local", 1024)):
+            with self.subTest(model_id=model_id, explicit=explicit):
+                artifacts = render_model_setup(spec, "api", **(options | {"model_id": model_id}), context_size=explicit)
+                selection = {"model": model_id, "reasoning": "off"}
+                if explicit is not None:
+                    selection["context_length"] = explicit
+                    self.assertIn(b"POST /api/v1/chat", next(item.content for item in artifacts if item.kind == "model-setup"))
+                self.assertEqual(json.loads(next(item.content for item in artifacts if item.kind == "model-selection")),
+                                 selection)
+        with self.assertRaisesRegex(WeaverError, "differs from the captured LM Studio instance"):
+            render_model_setup(spec, "api", **options, context_size=1024)
+        for protocol in ("openai-chat", "openai-responses", "anthropic-messages"):
+            with self.subTest(protocol=protocol), self.assertRaisesRegex(WeaverError, "requires native chat"):
+                render_model_setup(spec, "api", **options, protocol=protocol, context_size=1024)
+
     def test_lmstudio_native_reasoning_is_model_specific(self) -> None:
         snapshot = self.read("lm-studio", {"models": [{"key": "vendor/local-model", "max_context_length": 8192,
             "capabilities": {"reasoning": {"allowed_options": ["off", "on", "high"], "default": "on"}}}]})
@@ -379,6 +534,47 @@ class SnapshotTests(unittest.TestCase):
             with self.assertRaisesRegex(WeaverError, "chat LLM"):
                 check_model(ROOT, "lm-studio", key, snapshot)
         self.assertTrue(check_model(ROOT, "lm-studio", "fixture/old", snapshot)["visible_in_snapshot"])
+
+    def test_lmstudio_chat_alias_uses_parent_reasoning_and_captured_loaded_context(self) -> None:
+        row = {"key": "fixture/local", "type": "llm", "max_context_length": 32768,
+               "loaded_instances": [{"id": "local-run", "config": {"context_length": 8192}}],
+               "capabilities": {"reasoning": {"allowed_options": ["off", "on"], "default": "on"}}}
+        snapshot = self.read("lm-studio", {"models": [row]})
+        for protocol, payload in [
+            ("lmstudio-chat", {"reasoning": "off"}),
+            ("openai-responses", {"reasoning": {"effort": "none"}}),
+            ("openai-chat", {"reasoning_effort": "none"}),
+            ("anthropic-messages", {"thinking": {"type": "disabled"}}),
+        ]:
+            with self.subTest(protocol=protocol):
+                checked = check_model(ROOT, "lm-studio", "local-run", snapshot, protocol=protocol, reasoning_enabled=False)
+                self.assertEqual(checked["reasoning_payload"], payload)
+                self.assertEqual(checked["model_id"], "local-run")
+                self.assertEqual(checked["context_size"], 8192)
+                self.assertEqual(checked["lm_studio_loaded_instance"], {"model_key": "fixture/local", "context_length": 8192})
+                self.assertTrue(checked["visible_in_snapshot"])
+                self.assertEqual(checked["availability"], "unknown")
+        self.assertEqual(check_model(ROOT, "lm-studio", "local-run", snapshot, context_size=4096)["context_size"], 4096)
+        no_context = self.read("lm-studio", {"models": [row | {"loaded_instances": [{"id": "local-run", "config": {}}]}]})
+        self.assertIsNone(check_model(ROOT, "lm-studio", "local-run", no_context)["context_size"])
+        artifacts = render_model_setup(get_integration("lm-studio", ROOT), "api", root=ROOT,
+                                       provider_id="lm-studio", model_id="local-run", snapshot=snapshot,
+                                       reasoning_enabled=True)
+        self.assertEqual(json.loads(next(item.content for item in artifacts if item.kind == "model-selection")),
+                         {"model": "local-run", "reasoning": "on"})
+        self.assertIn(b"loaded instance of `fixture/local`", next(item.content for item in artifacts if item.kind == "model-setup"))
+        with self.assertRaises(WeaverError):
+            check_model(ROOT, "lm-studio", "local-run", snapshot, effort="high")
+        without_instance = self.read("lm-studio", {"models": [row | {"loaded_instances": []}]})
+        with self.assertRaises(WeaverError):
+            check_model(ROOT, "lm-studio", "local-run", without_instance, reasoning_enabled=False)
+        for other in ({"key": "local-run"}, row | {"key": "fixture/other"}):
+            collision = self.read("lm-studio", {"models": [row, other]})
+            with self.assertRaisesRegex(WeaverError, "Ambiguous LM Studio"):
+                check_model(ROOT, "lm-studio", "local-run", collision)
+        embedding = self.read("lm-studio", {"models": [row | {"type": "embedding", "capabilities": {}}]})
+        with self.assertRaisesRegex(WeaverError, "chat LLM"):
+            check_model(ROOT, "lm-studio", "local-run", embedding)
 
     def test_lmstudio_nonchat_staging_requires_matching_type_and_decision_instance(self) -> None:
         snapshot = self.read("lm-studio", {"models": [
@@ -533,6 +729,140 @@ class ModelValidationTests(unittest.TestCase):
 
 
 class ModelRenderingTests(unittest.TestCase):
+    def test_perplexity_agent_fallback_checks_each_model_and_stages_an_ordered_request(self) -> None:
+        spec = get_integration("perplexity", ROOT)
+        primary, fallback, other = "perplexity/kimi-k3", "openai/fixture", "anthropic/fixture"
+        snapshot = {"provider_id": "perplexity-agent", "models": [
+            {"id": primary}, {"id": fallback, "reasoning": {"efforts": ["high"]}}, {"id": other},
+        ]}
+        options = dict(root=ROOT, provider_id="perplexity-agent", model_id=primary, snapshot=snapshot)
+        artifacts = render_model_setup(spec, "agent-api", **options, effort="high", perplexity_fallbacks=[fallback])
+        fields, = [item for item in artifacts if item.kind == "model-selection"]
+        self.assertEqual(json.loads(fields.content), {
+            "models": [primary, fallback], "reasoning": {"effort": "high"},
+        })
+        self.assertIn(b"POST /v1/agent", artifacts[0].content)
+        artifacts = render_model_setup(spec, "agent-api", **options, perplexity_fallbacks=[other, fallback],
+                                       perplexity_max_output_tokens=8192)
+        fields, = [item for item in artifacts if item.kind == "model-selection"]
+        self.assertEqual(json.loads(fields.content), {"models": [primary, other, fallback], "max_output_tokens": 8192})
+        for invalid in ([], [primary], [fallback, fallback], ["missing"], [fallback] * 5):
+            with self.subTest(invalid=invalid), self.assertRaises(WeaverError):
+                render_model_setup(spec, "agent-api", **options, perplexity_fallbacks=invalid)
+        with self.assertRaisesRegex(WeaverError, "unsupported or unknown"):
+            render_model_setup(spec, "agent-api", **options, effort="max", perplexity_fallbacks=[fallback])
+        for invalid_budget in (0, 2**31):
+            with self.subTest(invalid_budget=invalid_budget), self.assertRaisesRegex(WeaverError, "positive 32-bit integer"):
+                render_model_setup(spec, "agent-api", **options, perplexity_max_output_tokens=invalid_budget)
+
+    def test_perplexity_documented_model_efforts_and_optional_output_budget(self) -> None:
+        spec = get_integration("perplexity", ROOT)
+        options = dict(root=ROOT, provider_id="perplexity-agent")
+        combinations = {
+            "openai/gpt-6-luna": ("none", "minimal", "medium"),
+            "openai/gpt-5.6-luna": ("none",),
+            "openai/gpt-6.1-terra": ("medium",),
+            "anthropic/claude-opus-5-5": ("high",),
+            "openai/gpt-6.1-sol": ("high",),
+        }
+        for name, efforts in combinations.items():
+            for effort in efforts:
+                with self.subTest(name=name, effort=effort):
+                    artifacts = render_model_setup(spec, "agent-api", **options, model_id=name, effort=effort)
+                    fields, = [item for item in artifacts if item.kind == "model-selection"]
+                    self.assertEqual(json.loads(fields.content), {"model": name, "reasoning": {"effort": effort}})
+        models = ["anthropic/claude-opus-5-5", "openai/gpt-6.1-sol"]
+        artifacts = render_model_setup(spec, "agent-api", **options, model_id=models[0],
+                                       perplexity_fallbacks=models[1:], effort="high")
+        fields, = [item for item in artifacts if item.kind == "model-selection"]
+        self.assertEqual(json.loads(fields.content), {"models": models, "reasoning": {"effort": "high"}})
+        snapshot = {"provider_id": "perplexity-agent", "models": [{"id": models[0]}]}
+        with self.assertRaisesRegex(WeaverError, "must list every model"):
+            render_model_setup(spec, "agent-api", **options, model_id=models[0],
+                               perplexity_fallbacks=models[1:], snapshot=snapshot)
+        with self.assertRaisesRegex(WeaverError, "requires documented models"):
+            render_model_setup(spec, "agent-api", **options, model_id=models[0],
+                               perplexity_fallbacks=["unlisted/fixture"])
+
+    def test_perplexity_max_effort_keeps_rest_payload_and_explains_python_sdk_workaround(self) -> None:
+        artifacts = render_model_setup(get_integration("perplexity", ROOT), "agent-api", root=ROOT,
+                                       provider_id="perplexity-agent", model_id="perplexity/kimi-k3", effort="max")
+        fields, = [item for item in artifacts if item.kind == "model-selection"]
+        handoff, = [item.content.decode("utf-8") for item in artifacts if item.kind == "model-setup"]
+        self.assertEqual(json.loads(fields.content), {"model": "perplexity/kimi-k3", "reasoning": {"effort": "max"}})
+        self.assertIn('extra_body={"reasoning": {"effort": "max"}}', handoff)
+        self.assertIn("Perplexity Python SDK 0.46.1", handoff)
+        self.assertIn("omit its typed `reasoning` argument", handoff)
+
+    def test_perplexity_agent_responses_alias_preserves_provider_controls(self) -> None:
+        spec = get_integration("perplexity", ROOT)
+        options = dict(root=ROOT, provider_id="perplexity-agent", protocol="openai-responses")
+        cases = (
+            ({"model_id": "perplexity/kimi-k3", "effort": "max"},
+             {"model": "perplexity/kimi-k3", "reasoning": {"effort": "max"}}),
+            ({"model_id": "openai/gpt-6-luna", "effort": "minimal"},
+             {"model": "openai/gpt-6-luna", "reasoning": {"effort": "minimal"}}),
+            ({"model_id": "anthropic/claude-opus-5-5", "effort": "high",
+              "perplexity_fallbacks": ["openai/gpt-6.1-sol"], "perplexity_max_steps": 4},
+             {"models": ["anthropic/claude-opus-5-5", "openai/gpt-6.1-sol"],
+              "reasoning": {"effort": "high"}, "max_steps": 4}),
+            ({"model_id": None, "perplexity_effort_preset": "ultra@7"},
+             {"effort": "ultra@7"}),
+        )
+        for args, expected in cases:
+            with self.subTest(args=args):
+                handoff, selection = render_model_setup(spec, "agent-api", **options, **args)
+                self.assertEqual(json.loads(selection.content), expected)
+                self.assertIn(b"POST /v1/responses", handoff.content)
+                self.assertIn(b"https://api.perplexity.ai/v1", handoff.content)
+                self.assertIn(b"`extra_body`", handoff.content)
+        with self.assertRaisesRegex(WeaverError, "unsupported or unknown"):
+            render_model_setup(spec, "agent-api", **options, model_id="openai/gpt-6-luna", effort="max")
+
+    def test_perplexity_service_tiers_require_route_and_exact_model_coverage(self) -> None:
+        spec = get_integration("perplexity", ROOT)
+        supported = ("openai/gpt-6.1-sol", "openai/gpt-6-astra", "openai/gpt-6-sol", "openai/gpt-6-luna",
+                     "openai/gpt-5.6-sol", "openai/gpt-5.6-terra", "openai/gpt-5.6-luna", "openai/gpt-5.5")
+        default_only = "perplexity/kimi-k3"
+        unknown = "openai/unlisted"
+        options = dict(root=ROOT, provider_id="perplexity-agent",
+                       snapshot={"provider_id": "perplexity-agent",
+                                 "models": [{"id": model} for model in (*supported, default_only, unknown)]})
+        for model in supported:
+            with self.subTest(model=model):
+                artifacts = render_model_setup(spec, "agent-api", model_id=model,
+                                               perplexity_service_tier="flex", **options)
+                selection, = [item for item in artifacts if item.kind == "model-selection"]
+                self.assertEqual(json.loads(selection.content), {"model": model, "service_tier": "flex"})
+        for tier, expected in (("fast", "priority"), ("priority", "priority"), ("default", "default"),
+                                ("auto", "auto"), (None, None)):
+            with self.subTest(tier=tier):
+                artifacts = render_model_setup(spec, "agent-api", model_id=supported[0],
+                                               perplexity_fallbacks=[supported[1]],
+                                               perplexity_service_tier=tier, **options)
+                selection, = [item for item in artifacts if item.kind == "model-selection"]
+                payload = {"models": list(supported[:2])}
+                if expected is not None:
+                    payload["service_tier"] = expected
+                self.assertEqual(json.loads(selection.content), payload)
+        for model in (default_only, unknown):
+            with self.subTest(model=model), self.assertRaisesRegex(WeaverError, "every selected model"):
+                render_model_setup(spec, "agent-api", model_id=supported[0], perplexity_fallbacks=[model],
+                                   perplexity_service_tier="priority", **options)
+            with self.subTest(model=model), self.assertRaisesRegex(WeaverError, "every selected model"):
+                render_model_setup(spec, "agent-api", model_id=model, perplexity_service_tier="priority", **options)
+        artifacts = render_model_setup(spec, "agent-api", model_id=default_only, effort="max",
+                                       perplexity_service_tier="auto", **options)
+        selection, = [item for item in artifacts if item.kind == "model-selection"]
+        self.assertEqual(json.loads(selection.content), {
+            "model": default_only, "reasoning": {"effort": "max"}, "service_tier": "auto",
+        })
+        with self.assertRaisesRegex(WeaverError, "Unsupported Perplexity Agent API service tier"):
+            render_model_setup(spec, "agent-api", model_id=supported[0], perplexity_service_tier="slow", **options)
+        with self.assertRaisesRegex(WeaverError, "require the Perplexity Agent API route"):
+            render_model_setup(spec, "orchestrator", root=ROOT, provider_id="perplexity-orchestrator",
+                               model_id=supported[0], perplexity_service_tier="default")
+
     def test_zed_openrouter_default_and_subagent_settings_use_raw_model_id(self) -> None:
         spec = get_integration("zed", ROOT)
         options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
@@ -588,6 +918,252 @@ class ModelRenderingTests(unittest.TestCase):
                 "agent": {"subagent_model": {"provider": "openrouter", "model": "openrouter/auto"}},
             })
 
+    def test_zed_profile_stages_only_the_named_profile_and_validates_selection(self) -> None:
+        spec = get_integration("zed", ROOT)
+        options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
+                       snapshot={"provider_id": "openrouter", "models": [
+                           {"id": "fixture/reasoner", "supported_parameters": ["reasoning"],
+                            "reasoning": {"efforts": ["none", "high"], "toggle": True}},
+                       ]})
+        for effort, thinking in ((None, {}), ("none", {"effort": "none", "enable_thinking": False}),
+                                 ("high", {"effort": "high", "enable_thinking": True})):
+            with self.subTest(effort=effort):
+                rendered = render_model_setup(spec, "ide", **options, effort=effort, zed_profile="weaver-review")
+                fragment, = (item for item in rendered if item.kind == "model-config")
+                self.assertEqual(fragment.relative_path.as_posix(), "zed/model/agent-profile.fragment.json")
+                self.assertEqual(json.loads(fragment.content), {"agent": {"profiles": {"weaver-review": {
+                    "name": "weaver-review",
+                    "tools": {"find_path": True, "grep": True, "list_directory": True, "read_file": True},
+                    "enable_all_context_servers": False,
+                    "context_servers": {},
+                    "default_model": {"provider": "openrouter", "model": "fixture/reasoner", **thinking},
+                }}}})
+        for profile_id in ("", "ask", "minimal", "write", "../review", "A", "a" * 65):
+            with self.subTest(profile=profile_id), self.assertRaisesRegex(WeaverError, "Zed profile ID"):
+                render_model_setup(spec, "ide", **options, zed_profile=profile_id)
+        with self.assertRaisesRegex(WeaverError, "Zed profile settings"):
+            render_model_setup(spec, "ide", **options, zed_profile="weaver-review", zed_subagent=True)
+
+    def test_zed_named_profile_is_explicit_and_target_bound_in_cli(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        args = ("model", "--root", str(ROOT), "--provider", "openrouter", "--model", "openrouter/auto",
+                "--zed-profile", "weaver-review", "--dry-run")
+        code, output, error = invoke(*args, "--agent", "zed", "--surface", "ide")
+        self.assertEqual((code, error), (0, ""))
+        fragment, = [item for item in json.loads(output)["artifacts"] if item["kind"] == "model-config"]
+        self.assertIn("weaver-review", json.loads(fragment["content"])["agent"]["profiles"])
+        code, _, error = invoke(*args, "--agent", "openrouter", "--surface", "gateway")
+        self.assertEqual(code, 2)
+        self.assertIn("require a supported native Zed IDE model", error)
+
+    def test_zed_lmstudio_uses_native_model_ids_from_v0_catalog(self) -> None:
+        provider = "lm-studio"
+        spec = get_integration("zed", ROOT)
+        raw = {"object": "list", "data": [
+            {"id": "fixture/vision", "object": "model", "type": "vlm", "max_context_length": 8192},
+            {"id": "fixture/language", "object": "model", "type": "llm", "max_context_length": 4096},
+            {"id": "fixture/embedding", "object": "model", "type": "embeddings", "max_context_length": 2048},
+        ]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lmstudio-models-v0.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            snapshot = read_model_snapshot(path, provider, ROOT)
+            raw["data"][0].pop("type")
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaisesRegex(WeaverError, "typed LM Studio v0 model"):
+                read_model_snapshot(path, provider, ROOT)
+        self.assertIn("LM Studio v0 model-list shape", snapshot["provenance"]["discovery_scope"])
+        self.assertEqual(snapshot["completeness"], "unknown")
+        self.assertEqual(snapshot["models"][0]["context_length"], 8192)
+        self.assertEqual(snapshot["models"][0]["reasoning"]["state"], "unknown")
+        expected = {"provider": "lmstudio", "model": "fixture/vision"}
+        for field, options in (("default_model", {}), ("subagent_model", {"zed_subagent": True}),
+                               ("profiles", {"zed_profile": "weaver-local"})):
+            with self.subTest(field=field):
+                rendered = render_model_setup(spec, "ide", root=ROOT, provider_id=provider,
+                                              model_id="fixture/vision", snapshot=snapshot, **options)
+                artifact, = [item for item in rendered if item.kind == "model-config"]
+                settings = json.loads(artifact.content)["agent"]
+                if field == "profiles":
+                    self.assertEqual(settings[field]["weaver-local"]["default_model"], expected)
+                else:
+                    self.assertEqual(settings, {field: expected})
+                self.assertIn(b"Provider API base: `http://localhost:1234/api/v0`", rendered[0].content)
+                self.assertIn(b"LMSTUDIO_API_KEY", rendered[0].content)
+                self.assertEqual(json.loads(rendered[-1].content), {"model": "fixture/vision"})
+        with self.assertRaisesRegex(WeaverError, "not declared as a chat LLM"):
+            render_model_setup(spec, "ide", root=ROOT, provider_id=provider,
+                               model_id="fixture/embedding", snapshot=snapshot)
+        with self.assertRaisesRegex(WeaverError, "does not list"):
+            render_model_setup(spec, "ide", root=ROOT, provider_id=provider,
+                               model_id="fixture/missing", snapshot=snapshot)
+
+    def test_zed_lmstudio_preserves_other_protocol_handoffs_and_rejects_native_tuning(self) -> None:
+        spec = get_integration("zed", ROOT)
+        options = dict(root=ROOT, provider_id="lm-studio", model_id="fixture/llm")
+        for requested in ({"effort": "high"}, {"reasoning_enabled": False},
+                          {"budget_tokens": 1024}, {"mode": "pro"}, {"context_size": 4096}):
+            with self.subTest(requested=requested), self.assertRaisesRegex(WeaverError, "built-in LM Studio provider"):
+                render_model_setup(spec, "ide", **options, **requested)
+        other = render_model_setup(spec, "ide", **options, protocol="openai-responses")
+        self.assertFalse(any(item.kind == "model-config" for item in other))
+        self.assertIn(b"http://localhost:1234/v1", other[0].content)
+
+    def test_zed_native_openai_stages_built_in_responses_reasoning(self) -> None:
+        spec = get_integration("zed", ROOT)
+        cases = [
+            ("gpt-5", {"effort": "minimal"}, {"enable_thinking": True, "effort": "minimal"}),
+            ("gpt-6.1-sol", {"effort": "max"}, {"enable_thinking": True, "effort": "max"}),
+            ("gpt-6-luna", {"effort": "none"}, {"enable_thinking": False}),
+            ("gpt-5.5", {"reasoning_enabled": False}, {"enable_thinking": False}),
+            ("gpt-6-sol", {"reasoning_enabled": True}, {"enable_thinking": True}),
+            ("configured-alias", {}, {}),
+        ]
+        for model, options, fields in cases:
+            with self.subTest(model=model, options=options):
+                artifacts = render_model_setup(spec, "ide", root=ROOT, provider_id="openai", model_id=model,
+                                               zed_subagent=True, **options)
+                fragment, = [item for item in artifacts if item.kind == "model-config"]
+                self.assertEqual(json.loads(fragment.content),
+                                 {"agent": {"subagent_model": {"provider": "openai", "model": model, **fields}}})
+        for model, options in (("gpt-6.1-sol", {"reasoning_enabled": False}),
+                               ("gpt-5.5", {"effort": "max"}), ("gpt-4", {"effort": "low"}),
+                               ("configured-alias", {"effort": "high"})):
+            with self.subTest(model=model), self.assertRaisesRegex(WeaverError, "built-in OpenAI model"):
+                render_model_setup(spec, "ide", root=ROOT, provider_id="openai", model_id=model, **options)
+
+    def test_zed_native_anthropic_reasoning_uses_adaptive_model_capabilities(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        spec = get_integration("zed", ROOT)
+        supported = {"supported": True}
+        model = "claude-opus-5"
+        row = {"id": model, "capabilities": {
+            "effort": {"high": supported, "xhigh": supported},
+            "thinking": {"supported": True, "types": {"adaptive": supported, "disabled": supported}},
+        }}
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "claude.json"
+            catalog.write_text(json.dumps({"data": [row]}), encoding="utf-8")
+            code, output, error = invoke("model", "--root", str(ROOT), "--agent", "zed", "--surface", "ide",
+                                         "--provider", "anthropic", "--model", model, "--catalog", str(catalog),
+                                         "--reasoning-effort", "xhigh", "--zed-profile", "claude-review", "--dry-run")
+            self.assertEqual((code, error), (0, ""))
+            fragment, = [item for item in json.loads(output)["artifacts"] if item["kind"] == "model-config"]
+            self.assertEqual(json.loads(fragment["content"])["agent"]["profiles"]["claude-review"]["default_model"], {
+                "provider": "anthropic", "model": model, "enable_thinking": True, "effort": "xhigh",
+            })
+            no_adaptive = row | {"capabilities": {"effort": {"high": supported}}}
+            catalog.write_text(json.dumps({"data": [no_adaptive]}), encoding="utf-8")
+            with self.assertRaisesRegex(WeaverError, "requires adaptive thinking"):
+                render_model_setup(spec, "ide", root=ROOT, provider_id="anthropic", model_id=model, effort="high",
+                                   snapshot=read_model_snapshot(catalog, "anthropic", ROOT))
+        with self.assertRaisesRegex(WeaverError, "saved Anthropic catalog"):
+            render_model_setup(spec, "ide", root=ROOT, provider_id="anthropic", model_id=model, effort="high")
+
+    def test_zed_speed_stages_settings_and_provider_request_fields(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        base = ("model", "--root", str(ROOT), "--agent", "zed", "--surface", "ide", "--dry-run")
+        cases = (
+            ("openai", "gpt-6.1-sol", "fast", ("--zed-subagent", "--reasoning-effort", "max"),
+             {"service_tier": "priority", "reasoning": {"effort": "max"}}),
+            ("openai", "gpt-5.5", "standard", (), {}),
+            ("anthropic", "claude-opus-5", "fast", ("--zed-profile", "opus-review"), {"speed": "fast"}),
+            ("anthropic", "claude-opus-4-8", "standard", (), {"speed": "standard"}),
+        )
+        for provider, model, speed, options, wire in cases:
+            with self.subTest(provider=provider, model=model, speed=speed):
+                code, output, error = invoke(*base, "--provider", provider, "--model", model, "--zed-speed", speed, *options)
+                self.assertEqual((code, error), (0, ""))
+                fragments = {item["kind"]: json.loads(item["content"]) for item in json.loads(output)["artifacts"]
+                             if item["kind"] in {"model-config", "model-selection"}}
+                config = fragments["model-config"]["agent"]
+                if "--zed-profile" in options:
+                    config = config["profiles"]["opus-review"]
+                selected = config["subagent_model" if "--zed-subagent" in options else "default_model"]
+                self.assertEqual(selected["speed"], speed)
+                self.assertEqual(fragments["model-selection"], {"model": model, **wire})
+        for provider, model in (("openai", "gpt-5.5-pro"), ("anthropic", "claude-sonnet-4-6"),
+                                ("openrouter", "openrouter/auto"), ("google", "gemini-3.8-flash")):
+            with self.subTest(provider=provider, model=model):
+                code, _, _ = invoke(*base, "--provider", provider, "--model", model, "--zed-speed", "fast")
+                self.assertEqual(code, 2)
+        with self.assertRaisesRegex(WeaverError, "catalog does not list"):
+            render_model_setup(get_integration("zed", ROOT), "ide", root=ROOT, provider_id="openai",
+                               model_id="gpt-6.1-sol", zed_speed="fast",
+                               snapshot={"provider_id": "openai", "models": [{"id": "gpt-5.5"}]})
+
+    def test_zed_gemini_thinking_uses_versioned_catalog_ids_and_zed_levels(self) -> None:
+        from tests.test_cli_exports import invoke
+
+        def row(model, **fields):
+            return {"name": "models/" + model, "thinking": True, "inputTokenLimit": 1048576,
+                    "outputTokenLimit": 65536, "supportedGenerationMethods": ["generateContent"], **fields}
+
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = Path(directory) / "gemini.json"
+            models = ("gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-pro",
+                      "gemini-2.5-flash-lite", "gemini-4-hydrogen", "gemini-3.8-flash-latest")
+            catalog.write_text(json.dumps({"models": [row(model) for model in models] +
+                                           [row("gemini-3-no-content") | {"supportedGenerationMethods": ["embedContent"]}]}),
+                               encoding="utf-8")
+            args = ("model", "--root", str(ROOT), "--agent", "zed", "--surface", "ide", "--provider", "google",
+                    "--catalog", str(catalog), "--dry-run", "--zed-subagent")
+            examples = [
+                ("models/gemini-3.8-flash", ("--reasoning-effort", "medium"),
+                 {"enable_thinking": True, "effort": "medium"}, {"thinkingLevel": "MEDIUM", "includeThoughts": True}),
+                ("gemini-3.5-flash", ("--reasoning-effort", "minimal"),
+                 {"enable_thinking": True, "effort": "minimal"}, {"thinkingLevel": "MINIMAL", "includeThoughts": True}),
+                ("gemini-3.8-flash", ("--reasoning", "off"), {"enable_thinking": False}, {"thinkingLevel": "LOW"}),
+                ("gemini-2.5-flash", ("--reasoning", "off"), {"enable_thinking": False}, {"thinkingBudget": 0}),
+                ("gemini-2.5-pro", ("--reasoning", "off"), {"enable_thinking": False}, {}),
+            ]
+            for model, flags, settings, wire in examples:
+                with self.subTest(model=model, flags=flags):
+                    code, output, errors = invoke(*args, "--model", model, *flags)
+                    self.assertEqual((code, errors), (0, ""))
+                    fragments = {item["kind"]: json.loads(item["content"]) for item in json.loads(output)["artifacts"]
+                                 if item["kind"] in ("model-config", "model-selection")}
+                    bare = model.removeprefix("models/")
+                    self.assertEqual(fragments["model-config"]["agent"]["subagent_model"],
+                                     {"provider": "google", "model": bare, **settings})
+                    self.assertEqual(fragments["model-selection"],
+                                     {"model": "models/" + bare, **({"generationConfig": {"thinkingConfig": wire}} if wire else {})})
+            for model, flags in (
+                ("gemini-4-hydrogen", ("--reasoning-effort", "xhigh")),
+                ("gemini-3.8-flash", ("--reasoning-effort", "minimal")),
+                ("gemini-3.8-flash", ("--reasoning-budget", "1024")),
+                ("gemini-2.5-flash", ("--reasoning-effort", "low")),
+                ("gemini-2.5-flash-lite", ("--reasoning-budget", "511")),
+                ("gemini-2.5-pro", ("--reasoning-budget", "32769")),
+                ("gemini-3.8-flash-latest", ()), ("gemini-3-no-content", ()),
+            ):
+                with self.subTest(model=model, flags=flags):
+                    self.assertEqual(invoke(*args, "--model", model, *flags)[0], 2)
+
+    def test_zed_gemini_budget_stages_a_separate_provider_model(self) -> None:
+        spec = get_integration("zed", ROOT)
+        model = "gemini-2.5-flash-lite"
+        snapshot = {"provider_id": "google", "models": [{
+            "id": f"models/{model}", "display_name": "Gemini 2.5 Flash-Lite", "google_thinking": False,
+            "input_limit": 1048576, "output_limit": 65536, "supported_methods": ["generateContent"],
+        }]}
+        options = dict(root=ROOT, provider_id="google", model_id=model, snapshot=snapshot,
+                       zed_profile="gemini-review", budget_tokens=1024)
+        artifacts = render_model_setup(spec, "ide", **options, context_size=8192)
+        provider, = [item for item in artifacts if item.kind == "provider-config"]
+        self.assertEqual(json.loads(provider.content)["language_models"]["google"]["available_models"], [{
+            "name": model, "display_name": "Gemini 2.5 Flash-Lite", "max_tokens": 8192,
+            "mode": {"type": "thinking", "budget_tokens": 1024},
+        }])
+        with self.assertRaisesRegex(WeaverError, "input limit"):
+            render_model_setup(spec, "ide", **options, context_size=1048577)
+        snapshot["models"][0]["output_limit"] = 1024
+        with self.assertRaisesRegex(WeaverError, "below the model output limit"):
+            render_model_setup(spec, "ide", **options)
+
     def test_cline_desktop_reasoning_handoff_uses_picker_labels(self) -> None:
         spec = get_integration("cline", ROOT)
         options = dict(root=ROOT, provider_id="openrouter", model_id="fixture/reasoner",
@@ -615,6 +1191,8 @@ class ModelRenderingTests(unittest.TestCase):
             argv = next(item for item in artifacts if item.kind == "session-arguments")
             self.assertEqual(json.loads(argv.content),
                              ["--provider", "openrouter", "--model", "fixture/reasoner", "--auto-approve", "false", *tail])
+            handoff = next(item for item in artifacts if item.kind == "model-setup")
+            self.assertIn(b"Keep --auto-approve false to require approval for tool calls.", handoff.content)
         artifacts = render_model_setup(spec, "cli", effort="max", **opts)
         self.assertFalse(any(item.kind == "session-arguments" for item in artifacts))
 
@@ -757,6 +1335,47 @@ class ModelRenderingTests(unittest.TestCase):
                 self.assertFalse(any(item.kind == "model-config" for item in artifacts))
                 selected = json.loads(next(item.content for item in artifacts if item.kind == "model-selection"))
                 self.assertEqual(selected["model"], "publisher/local-model")
+
+    def test_cline_lmstudio_stages_the_provider_that_preserves_the_requested_reasoning(self) -> None:
+        spec = get_integration("cline", ROOT)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lm-studio.json"
+            path.write_text(json.dumps({"models": [{
+                "key": "fixture/local", "type": "llm",
+                "capabilities": {"reasoning": {"allowed_options": ["off", "on"], "default": "on"}},
+                "loaded_instances": [{"id": "local-reader", "config": {"context_length": 8192}}],
+            }]}), encoding="utf-8")
+            snapshot = read_model_snapshot(path, "lm-studio", ROOT)
+        options = dict(root=ROOT, provider_id="lm-studio", model_id="local-reader",
+                       protocol="openai-chat", snapshot=snapshot)
+        for extras, expected_provider, expected_effort in (
+            ({}, "lmstudio", []),
+            ({"reasoning_enabled": False}, "openai-compatible", ["--thinking", "none"]),
+        ):
+            with self.subTest(extras=extras):
+                artifacts = render_model_setup(spec, "cli", **options, **extras)
+                args, = [row for row in artifacts if row.kind == "session-arguments"]
+                self.assertEqual(args.relative_path.as_posix(), "cline/model/session-arguments.json")
+                self.assertEqual(json.loads(args.content), [
+                    "--provider", expected_provider, "--model", "local-reader", "--auto-approve", "false",
+                    *expected_effort,
+                ])
+                self.assertIn(f"Cline's {expected_provider} provider".encode(), artifacts[0].content)
+                self.assertFalse(any(row.kind == "model-config" for row in artifacts))
+        manual = render_model_setup(spec, "cli", **{**options, "snapshot": None})
+        self.assertFalse(any(row.kind == "session-arguments" for row in manual))
+        desktop = render_model_setup(spec, "desktop", **options)
+        self.assertFalse(any(row.kind == "session-arguments" for row in desktop))
+
+    def test_air_desktop_lmstudio_handoff_uses_an_acp_connected_agent(self) -> None:
+        artifacts = render_model_setup(get_integration("jetbrains-air", ROOT), "desktop", root=ROOT,
+                                       provider_id="lm-studio", model_id="publisher/local-model",
+                                       protocol="openai-chat")
+        self.assertEqual({item.kind for item in artifacts}, {"model-setup", "model-selection"})
+        handoff = next(item.content.decode() for item in artifacts if item.kind == "model-setup")
+        self.assertIn("LM Studio in an ACP-compatible agent", handoff)
+        self.assertIn("controls it exposes over ACP", handoff)
+        self.assertNotIn("AI > Air > Accounts", handoff)
 
     def test_codex_lmstudio_stages_named_responses_profile_with_explicit_effort(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -901,20 +1520,114 @@ class ModelRenderingTests(unittest.TestCase):
                                      "https://api.perplexity.ai/orchestrator/v1/messages")
                     self.assertIn(b"https://docs.perplexity.ai/api-reference/gateway-messages-post", artifacts[0].content)
 
-    def test_orchestrator_reasoning_keeps_three_distinct_wire_shapes(self) -> None:
+    def test_orchestrator_reasoning_respects_each_gateway_protocol(self) -> None:
         snapshot = {"provider_id": "perplexity-orchestrator", "models": [{"id": "fixture-model", "reasoning": {
-            "state": "declared", "efforts": ["high"], "budget_tokens": {"minimum": 1}}}]}
+            "state": "declared", "efforts": ["high"], "budget_tokens": {"minimum": 1},
+            "toggle": True, "modes": ["pro"]}}]}
         for protocol, expected in (("openai-chat", {"reasoning_effort": "high"}),
-                                   ("openai-responses", {"reasoning": {"effort": "high"}}),
-                                   ("anthropic-messages", {"output_config": {"effort": "high"}})):
+                                   ("openai-responses", {"reasoning": {"effort": "high"}})):
             with self.subTest(protocol=protocol):
                 checked = check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot,
                                       protocol=protocol, effort="high")
                 self.assertEqual(checked["reasoning_payload"], expected)
                 self.assertFalse(checked["inference_tested"])
+        for settings in ({"effort": "high"}, {"budget_tokens": 1024}, {"reasoning_enabled": True}, {"mode": "pro"}):
+            with self.subTest(settings=settings), self.assertRaisesRegex(WeaverError, "only disabled thinking"):
+                check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot,
+                            protocol="anthropic-messages", **settings)
+        with self.assertRaisesRegex(WeaverError, "does not document a reasoning mode"):
+            check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot, protocol="openai-responses", mode="pro")
         checked = check_model(ROOT, "perplexity-orchestrator", "fixture-model", snapshot,
-                              protocol="anthropic-messages", budget_tokens=1024)
-        self.assertEqual(checked["reasoning_payload"], {"thinking": {"type": "enabled", "budget_tokens": 1024}})
+                              protocol="anthropic-messages", reasoning_enabled=False)
+        self.assertEqual(checked["reasoning_payload"], {"thinking": {"type": "disabled"}})
+
+    def test_orchestrator_openai_routes_validate_their_distinct_effort_values(self) -> None:
+        provider = "perplexity-orchestrator"
+        efforts = ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
+        snapshot = {"provider_id": provider, "models": [{"id": "fixture-model", "reasoning": {
+            "efforts": efforts, "toggle": True, "on_value": "max", "off_value": "none",
+        }}]}
+        for effort in efforts:
+            with self.subTest(effort=effort):
+                chat = check_model(ROOT, provider, "fixture-model", snapshot, effort=effort, protocol="openai-chat")
+                self.assertEqual(chat["reasoning_payload"], {"reasoning_effort": effort})
+                if effort in {"minimal", "max"}:
+                    with self.assertRaisesRegex(WeaverError, "Orchestrator Responses request schema"):
+                        check_model(ROOT, provider, "fixture-model", snapshot, effort=effort, protocol="openai-responses")
+                else:
+                    response = check_model(ROOT, provider, "fixture-model", snapshot, effort=effort,
+                                           protocol="openai-responses")
+                    self.assertEqual(response["reasoning_payload"], {"reasoning": {"effort": effort}})
+        with self.assertRaisesRegex(WeaverError, "Orchestrator Responses request schema"):
+            check_model(ROOT, provider, "fixture-model", snapshot, reasoning_enabled=True, protocol="openai-responses")
+        response = check_model(ROOT, provider, "fixture-model", snapshot,
+                               reasoning_enabled=False, protocol="openai-responses")
+        self.assertEqual(response["reasoning_payload"], {"reasoning": {"effort": "none"}})
+
+    def test_orchestrator_saved_model_detail_proves_only_partial_visibility(self) -> None:
+        provider = "perplexity-orchestrator"
+        model = "perplexity/kimi-k3"
+        price = {"input": 3, "output": 15, "cache_read": 0.3, "unit": "usd_per_1m_tokens"}
+        detail = {"id": model, "object": "model", "owned_by": "perplexity", "created": 0, "pricing": price}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "orchestrator-model.json"
+            path.write_text(json.dumps(detail), encoding="utf-8")
+            snapshot = read_model_snapshot(path, provider, ROOT)
+            with self.assertRaisesRegex(WeaverError, "requires data array"):
+                read_model_snapshot(path, "openai", ROOT)
+        self.assertEqual(snapshot["model_count"], 1)
+        self.assertEqual(snapshot["models"][0]["pricing"], price)
+        self.assertEqual(snapshot["completeness"], "partial")
+        self.assertFalse(snapshot["pagination"]["has_unresolved_pages"])
+        checked = check_model(ROOT, provider, model, snapshot)
+        self.assertTrue(checked["visible_in_snapshot"])
+        self.assertEqual(checked["catalog_completeness"], "partial")
+        self.assertEqual(checked["reasoning_capability"]["state"], "unknown")
+        self.assertEqual(checked["availability"], "unknown")
+        with self.assertRaisesRegex(WeaverError, "does not list the requested model"):
+            check_model(ROOT, provider, "perplexity/glm-5.3", snapshot)
+        artifacts = render_model_setup(get_integration("perplexity", ROOT), "orchestrator", root=ROOT,
+                                       provider_id=provider, model_id=model, snapshot=snapshot,
+                                       protocol="openai-responses")
+        self.assertIn(b"partial catalog evidence", artifacts[0].content)
+        self.assertIn(b"omit `previous_response_id`", artifacts[0].content)
+
+    def test_orchestrator_allowlist_and_messages_handoff_work_from_saved_catalog(self) -> None:
+        catalog = load_model_providers(ROOT)["perplexity-orchestrator"]
+        models = [
+            "perplexity/kimi-k3", "perplexity/glm-5.3", "perplexity/glm-5.3-flash", "perplexity/deepseek-v4-pro-0813",
+        ]
+        self.assertEqual([model["id"] for model in catalog["known_models"]], models)
+        self.assertTrue(all(model["reasoning"] is None for model in catalog["known_models"]))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "orchestrator.json"
+            path.write_text(json.dumps({"object": "list", "data": [{
+                "id": models[0], "object": "model", "created": 0, "owned_by": "perplexity",
+                "pricing": {"input": 3, "output": 15, "cache_read": 0.3, "unit": "usd_per_1m_tokens"},
+            }]}), encoding="utf-8")
+            snapshot = read_model_snapshot(path, catalog["id"], ROOT)
+        self.assertEqual(snapshot["models"][0]["pricing"]["unit"], "usd_per_1m_tokens")
+        self.assertEqual(snapshot["models"][0]["reasoning"]["state"], "unknown")
+        with self.assertRaisesRegex(WeaverError, "does not list the requested model"):
+            check_model(ROOT, catalog["id"], models[1], snapshot)
+        with self.assertRaisesRegex(WeaverError, "effort is unsupported or unknown"):
+            check_model(ROOT, catalog["id"], models[0], snapshot, protocol="openai-chat", effort="high")
+        for model in models:
+            for protocol in catalog["protocols"]:
+                with self.subTest(model=model, protocol=protocol):
+                    checked = check_model(ROOT, catalog["id"], model, protocol=protocol)
+                    self.assertIsNone(checked["visible_in_snapshot"])
+                    self.assertEqual(checked["availability"], "unknown")
+                    self.assertEqual(checked["reasoning_payload"], {})
+        spec = get_integration("perplexity", ROOT)
+        artifacts = render_model_setup(spec, "orchestrator", root=ROOT, provider_id=catalog["id"], model_id=models[0],
+                                       snapshot=snapshot, protocol="anthropic-messages", reasoning_enabled=False)
+        self.assertIn(b"private preview", artifacts[0].content)
+        body = json.loads(next(item.content for item in artifacts if item.kind == "model-selection"))
+        self.assertEqual(body, {"model": models[0], "thinking": {"type": "disabled"}})
+        responses = render_model_setup(spec, "orchestrator", root=ROOT, provider_id=catalog["id"], model_id=models[0],
+                                       snapshot=snapshot, protocol="openai-responses")
+        self.assertIn(b"Responses is stateless", responses[0].content)
 
     def test_qwen_anthropic_and_gemini_model_fragments_use_provider_specific_auth_and_effort(self) -> None:
         qwen = get_integration("qwen-code", ROOT)

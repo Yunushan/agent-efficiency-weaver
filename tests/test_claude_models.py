@@ -106,6 +106,44 @@ class ClaudeModelTests(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn('model: "sonnet[1m]"', json.loads(out)["artifacts"][0]["content"])
 
+    def test_stages_ultracode_separately_from_effort(self):
+        self.rows[0]["supportedEffortLevels"].append("xhigh")
+        self.write(self.rows)
+        common = ("model", "--root", str(ROOT), "--agent", "claude-code", "--dry-run")
+        with_catalog = (*common, "--claude-catalog", str(self.snapshot))
+        for surface in ("cli", "desktop", "vscode"):
+            for selector, toggle, expected in (
+                ("default", "on", {"ultracode": True, "effortLevel": "high"}),
+                ("opus", "off", {"model": "opus", "ultracode": False, "effortLevel": "high"}),
+            ):
+                with self.subTest(surface=surface, toggle=toggle):
+                    code, out, err = invoke(*with_catalog, "--surface", surface, "--model", selector,
+                                            "--reasoning-effort", "high", "--claude-ultracode", toggle)
+                    self.assertEqual(code, 0, err)
+                    settings = json.loads(out)["artifacts"][0]
+                    self.assertEqual(settings["path"], "claude-code/.claude/settings.json")
+                    self.assertEqual(json.loads(settings["content"]), expected)
+        code, out, err = invoke(*with_catalog, "--model", "default", "--reasoning-effort", "max",
+                                "--claude-ultracode", "on")
+        self.assertEqual(code, 0, err)
+        args = json.loads(json.loads(out)["artifacts"][0]["content"])
+        self.assertEqual(args[:5], ["--model", "default", "--effort", "max", "--settings"])
+        self.assertEqual(json.loads(args[5]), {"ultracode": True})
+
+        code, out, err = invoke(*with_catalog, "--model", "default", "--claude-ultracode", "on")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(json.loads(out)["artifacts"][0]["content"]), {"ultracode": True})
+
+        code, out, err = invoke(*with_catalog, "--model", "unknown", "--claude-ultracode", "off")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(json.loads(out)["artifacts"][0]["content"]),
+                         {"model": "unknown", "ultracode": False})
+        for selector in ("unknown", "limited", "opus"):
+            code, _, err = invoke(*with_catalog, "--model", selector, "--claude-ultracode", "on")
+            self.assertEqual(code, 2)
+            self.assertIn("xhigh", err)
+        self.assertEqual(invoke(*common, "--model", "opus", "--claude-ultracode", "on")[0], 2)
+
     def test_desktop_project_mcp_and_provider_handoff_use_code_tab_routes(self):
         common = ("--root", str(ROOT), "--agent", "claude-code", "--surface", "desktop", "--dry-run")
         code, out, err = invoke("render", *common, "--profile", "efficient", "--enable", "context7")

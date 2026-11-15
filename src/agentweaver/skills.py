@@ -1,13 +1,20 @@
+import hashlib
 import json
 import os
 import re
 import stat
+import sys
 import unicodedata
+from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path, PurePosixPath
+from pprint import pformat
+from urllib.parse import unquote
 
+from . import __version__
 from .artifacts import RenderedArtifact
-from .config import WeaverError, safe_name, safe_text, validate_profile
+from .config import WeaverError, safe_name, safe_text, select_servers, validate_profile
 from .integrations import IntegrationSpec, SurfaceSpec
 
 SKILLS_DIRECTORY = ".agents/skills"
@@ -16,14 +23,27 @@ CANONICAL_SKILL_COUNT = 6
 CODEX_LIMIT_BYTES = 32 * 1024
 ABACUS_LIMIT_CHARACTERS = 40000
 _FIELD_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):(?:[ \t]+(.*))?$")
+_PLUGIN_SCHEMAS = "https://agent-plugins.org/schemas/1.0.0"
+_DEFAULT_CHATGPT_PLUGIN_NAME = "weaver-workflows"
+_CHATGPT_PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+_WINDOWS_DEVICE_NAME = re.compile(r"(?:aux|con|nul|prn|com[0-9]|lpt[0-9])")
+_CHATGPT_PLUGIN_APP_ID = re.compile(r"(?:asdk_app_|connector_|templated_apps_)[A-Za-z0-9_-]+")
 _MANUAL_SKILL_IMPORTS = {
     ("lm-studio", "bionic"): (
-        "Add each staged SKILL.md file in Bionic Settings > Skills. "
+        "In Bionic, open Settings > Skills > Add Skill > Install a skill. "
+        "Choose Install manually if prompted, then Select a file and review and install each staged SKILL.md. "
         "Skills from other apps require a separate visibility choice in Settings > Skills."
     ),
     ("perplexity", "app"): (
         "In Perplexity Computer, open Plugins > Add custom > Skill > Upload skill and upload "
         "each staged SKILL.md file. On accounts without Plugins, use Customize > Skills > Create skill."
+    ),
+    ("perplexity", "agent-api"): (
+        "From imports/skills, run `python -m zipfile -c NAME.zip NAME` separately for each selected "
+        "Skill directory. Upload each ZIP to the intended Project in the Perplexity API Portal. "
+        "Use the resulting project-owned ID in the Agent API request's skills array with type "
+        "custom. Set version to the reviewed revision to make the reference reproducible. "
+        "Upload and execution require separate authorization."
     ),
 }
 
@@ -328,11 +348,281 @@ def _validated_skill_selection(root: Path, skills: list[str]) -> list[_Skill]:
     return _select_skills(skills, available)
 
 
-def stage_hermes_profile_skills(root: Path, skills: list[str], prefix: PurePosixPath) -> list[RenderedArtifact]:
+def stage_portable_skills(root: Path, skills: list[str], prefix: PurePosixPath) -> list[RenderedArtifact]:
     return [
         RenderedArtifact(prefix / "skills" / skill.name / SKILL_FILE, skill.content, "skill")
         for skill in _validated_skill_selection(root, skills)
     ]
+
+
+def portable_skill_texts(root: Path, skills: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+    descriptions: dict[str, str] = {}
+    instructions: dict[str, str] = {}
+    for skill in _validated_skill_selection(root, skills):
+        body = _skill_body(skill)
+        if not body.strip():
+            raise WeaverError("Portable Skill tools require non-empty instructions")
+        descriptions[skill.name] = skill.description
+        instructions[skill.name] = body
+    return descriptions, instructions
+
+
+def _plugin_json(path: PurePosixPath, document: dict, kind: str) -> RenderedArtifact:
+    return RenderedArtifact(path, (json.dumps(document, indent=2) + "\n").encode(), kind)
+
+
+def render_lmstudio_skill_mcp(
+    spec: IntegrationSpec, surface: str, root: Path, profile: dict, skills: list[str], output_dir: Path,
+) -> list[RenderedArtifact]:
+    from .adapters import lmstudio_stdio_fragments
+    from .skill_mcp import SERVER_NAME, TOOL_NAME
+
+    if spec.id != "lm-studio" or surface not in {"desktop", "api"}:
+        raise WeaverError("LM Studio Skill MCP staging requires classic Desktop or the native API")
+    if not skills:
+        raise WeaverError("Select at least one Skill to stage the Skill MCP server")
+    if _profile_facts(profile).max_mcp_servers == 0:
+        raise WeaverError("The profile has no MCP server capacity")
+    prefix = PurePosixPath("lm-studio", "skills-mcp")
+    server_path = prefix / "skill-server.py"
+    descriptions, instructions = portable_skill_texts(root, skills)
+    selected = {name: (description, instructions[name]) for name, description in descriptions.items()}
+    contents = files("agentweaver").joinpath("skill_mcp.py").read_text(encoding="utf-8")
+    embedded_skills = pformat(selected, width=92).replace("\n", "\n    ")
+    contents += ("\n\nif __name__ == \"__main__\":\n"
+                 "    import sys\n"
+                 f"\n    SKILLS = {embedded_skills}\n"
+                 "\n    serve(sys.stdin.buffer, sys.stdout.buffer, SKILLS)\n")
+    configuration, request = lmstudio_stdio_fragments(
+        SERVER_NAME, str(Path(sys.executable).absolute()),
+        ["-I", str(output_dir.absolute().joinpath(*server_path.parts))], [TOOL_NAME],
+    )
+    artifacts = [
+        RenderedArtifact(server_path, contents.encode("utf-8"), "skill-mcp-server"),
+        _plugin_json(prefix / "mcp.fragment.json", configuration, "mcp-fragment"),
+    ]
+    notes = [
+        "# LM Studio local Skill tool", "",
+        "Review `skill-server.py` and the selected Skill instructions embedded in it.",
+        "Keep the staged directory at its original location and use the Python executable recorded in the fragment.",
+        "Merge only the `weaver-skills` entry from `mcp.fragment.json` into LM Studio's `mcp.json` when you want this tool.",
+        "Choose a tool-capable local model. The tool advertises the selected Skills and returns the instructions for an exact name.",
+        "The standalone process uses stdio. Its only result is the reviewed text of a selected Skill.",
+        "Choose whether to expose those instructions before sharing a conversation with any remote model.",
+        "[LM Studio MCP settings](https://lmstudio.ai/docs/app/mcp)",
+    ]
+    if surface == "api":
+        artifacts.append(_plugin_json(prefix / "chat-integration.json", request, "mcp-request"))
+        notes.extend([
+            "",
+            "Merge `chat-integration.json` into a request to `POST /api/v1/chat` on the intended LM Studio host.",
+            "The server must permit calls to preconfigured MCP entries. Supply the model, input, and any server token separately.",
+            "[Preconfigured API MCP servers](https://lmstudio.ai/docs/developer/core/mcp#mcp-servers-from-mcp-json)",
+        ])
+    artifacts.append(RenderedArtifact(prefix / "SETUP.md", ("\n".join(notes) + "\n").encode("utf-8"), "handoff"))
+    return artifacts
+
+
+def _portable_plugin_package(
+    package: PurePosixPath, manifest: dict, servers: Mapping[str, Mapping[str, str | list[str]]], skills: list[_Skill],
+) -> list[RenderedArtifact]:
+    artifacts = [_plugin_json(package / "plugin.json",
+                              {"$schema": f"{_PLUGIN_SCHEMAS}/plugin.schema.json", **manifest}, "plugin-manifest")]
+    if servers:
+        artifacts.append(_plugin_json(package / "mcp.json",
+                                     {"$schema": f"{_PLUGIN_SCHEMAS}/mcp.schema.json", "mcpServers": servers},
+                                     "plugin-mcp"))
+    artifacts.extend(RenderedArtifact(package / "skills" / skill.name / SKILL_FILE, skill.content, "skill")
+                     for skill in skills)
+    return artifacts
+
+
+def _package_zip_command(package: PurePosixPath, artifacts: list[RenderedArtifact]) -> str:
+    files = [item.relative_path.relative_to(package).as_posix() for item in artifacts]
+    script = ("from zipfile import ZipFile; "
+              f"archive=ZipFile('../{package.name}.zip','x'); "
+              f"[archive.write(path, path) for path in {files!r}]; archive.close()")
+    return f'python -c "{script}"'
+
+
+def render_perplexity_plugin(
+    spec: IntegrationSpec, surface: str, root: Path, profile: dict, catalog: dict,
+    skills: list[str], http: list[str], sse: list[str],
+) -> list[RenderedArtifact]:
+    target = spec.surface(surface)
+    if (spec.id, target.id) != ("perplexity", "app") or any(
+        target.capabilities[capability].state != "manual" for capability in ("skills", "mcp")
+    ):
+        raise WeaverError("Portable plugin staging requires the Perplexity app surface")
+    selected = select_servers(profile, catalog, [*http, *sse])
+    if not skills and not selected:
+        raise WeaverError("Select at least one plugin Skill or MCP server")
+    if len(selected) > 15:
+        raise WeaverError("Perplexity plugin packages support up to 15 MCP servers")
+    sse_ids = set(sse)
+    servers = {}
+    for name, url in selected.items():
+        if not isinstance(url, str):
+            raise WeaverError("Perplexity plugin packages accept remote HTTPS MCP connectors")
+        if re.search(r"\$\{|\{\{|\{env:", unquote(url), flags=re.IGNORECASE):
+            raise WeaverError("Perplexity plugin connectors require literal HTTPS URLs")
+        servers[name] = {"type": "sse" if name in sse_ids else "streamable-http", "url": url}
+    base = PurePosixPath(spec.id, "plugins")
+    package = base / "weaver-workflows"
+    manifest = {"name": package.name,
+                "description": "Selected Agent Efficiency Weaver Skills and MCP connectors"}
+    artifacts = _portable_plugin_package(package, manifest, servers, _validated_skill_selection(root, skills))
+    if sum(len(item.content) for item in artifacts) > 20_000_000:
+        raise WeaverError("Perplexity plugin package exceeds 20 MB uncompressed")
+    handoff = (
+        "# Perplexity plugin handoff\n\n"
+        "Review the files in weaver-workflows. From inside that directory, create the upload ZIP.\n\n"
+        f"```sh\n{_package_zip_command(package, artifacts)}\n```\n\n"
+        "If the ZIP already exists, move it aside before packaging the reviewed files.\n\n"
+        "In Perplexity, open Plugins > Add custom > Upload plugin or skill. Review the imported Skills and "
+        "confirm every intended connector appears before connecting it. Perplexity checks access separately. "
+        "Connectors inherit the account and organization policies. Supply any authentication through Perplexity.\n\n"
+        "Weaver stages the package offline. You control the upload, connector setup and any later prompts.\n"
+    )
+    artifacts.append(RenderedArtifact(base / "PLUGIN-HANDOFF.md", handoff.encode(), "handoff"))
+    return artifacts
+
+
+def _chatgpt_app_references(selectors: list[str]) -> dict:
+    references: dict = {}
+    seen = set()
+    for selector in selectors:
+        alias, _, reference = selector.partition(":")
+        app_id = reference.removeprefix("plugin_")
+        if not safe_name(alias) or not _CHATGPT_PLUGIN_APP_ID.fullmatch(app_id):
+            raise WeaverError("ChatGPT app references require NAME:ID with an existing app ID or its plugin_ form")
+        if alias.casefold() in seen:
+            raise WeaverError("Duplicate ChatGPT plugin app name")
+        seen.add(alias.casefold())
+        references[alias] = {"id": app_id, "required": True}
+    return dict(sorted(references.items()))
+
+
+def render_chatgpt_plugin(
+    spec: IntegrationSpec, surface: str, root: Path, profile: dict, catalog: dict,
+    skills: list[str], enabled: list[str], *, workspace_marketplace: bool = False,
+    app_selectors: list[str] | None = None, plugin_name: str | None = None,
+) -> list[RenderedArtifact]:
+    target = spec.surface(surface)
+    if spec.id != "chatgpt" or surface not in {"desktop", "web", "work-local", "work-cloud"} or any(
+        target.capabilities[capability].state != "manual" for capability in ("skills", "mcp")
+    ):
+        raise WeaverError("ChatGPT plugin staging requires a registered ChatGPT or Work surface")
+    if plugin_name is None:
+        plugin_name = _DEFAULT_CHATGPT_PLUGIN_NAME
+    if (len(plugin_name) > 64 or not _CHATGPT_PLUGIN_NAME.fullmatch(plugin_name)
+            or _WINDOWS_DEVICE_NAME.fullmatch(plugin_name)):
+        raise WeaverError("ChatGPT plugin name must be a portable lowercase ID of up to 64 letters, digits, and hyphens")
+    selected = select_servers(profile, catalog, enabled)
+    local = surface in {"desktop", "work-local"}
+    apps = _chatgpt_app_references(app_selectors or [])
+    if apps and not (local or workspace_marketplace):
+        raise WeaverError("Hosted ChatGPT app references require --chatgpt-workspace-marketplace")
+    if not (skills or selected or apps):
+        raise WeaverError("Select at least one ChatGPT plugin Skill, MCP server, or existing app")
+    servers: dict[str, dict[str, str | list[str]]] = {}
+    requires_local_executor = False
+    for name, entry in selected.items():
+        if isinstance(entry, str):
+            if re.search(r"\$\{|\{\{|\{env:", unquote(entry), flags=re.IGNORECASE):
+                raise WeaverError("ChatGPT plugin MCP URLs must be literal HTTPS URLs")
+            servers[name] = {"type": "streamable-http", "url": entry}
+        else:
+            if not local:
+                raise WeaverError("ChatGPT plugin stdio servers require the Desktop or Work Local surface")
+            command = entry["command"]
+            if ("\\" in command or ":" in command or command in {".", ".."}
+                    or ("/" in command and (not command.startswith("./")
+                        or set(command[2:].split("/")) & {"", ".", ".."}))):
+                raise WeaverError("ChatGPT plugin stdio requires a bare executable name or a safe ./ package path")
+            requires_local_executor = True
+            servers[name] = {"type": "stdio", "command": command, "args": entry["args"]}
+    chosen_skills = _validated_skill_selection(root, skills)
+    selection = {"servers": servers, "apps": apps, "workspace_marketplace": workspace_marketplace,
+                 "skills": {skill.name: hashlib.sha256(skill.content).hexdigest() for skill in chosen_skills}}
+    if plugin_name != _DEFAULT_CHATGPT_PLUGIN_NAME:
+        selection["plugin_name"] = plugin_name
+    selection_hash = hashlib.sha256(json.dumps(selection, sort_keys=True).encode()).hexdigest()[:16]
+    base = PurePosixPath(spec.id, "plugin-staging", surface, selection_hash)
+    package = base / "plugins" / plugin_name
+    manifest: dict = {"name": package.name, "version": __version__,
+                      "description": "Selected Agent Efficiency Weaver Skills and MCP connectors"}
+    openai: dict = {}
+    if requires_local_executor:
+        openai["requires_local_executor"] = True
+    if apps:
+        openai["apps"] = "./.app.json"
+    if openai:
+        manifest["extensions"] = {"com.openai": openai}
+    artifacts = _portable_plugin_package(package, manifest, servers, chosen_skills)
+    if apps:
+        artifacts.append(_plugin_json(package / ".app.json", {"apps": apps}, "plugin-apps"))
+    if local or workspace_marketplace:
+        marketplace = {"name": "weaver-workspace" if workspace_marketplace else "weaver-local",
+                       "interface": {"displayName": "Weaver Workflows"},
+                       "plugins": [{"name": package.name, "source": {"source": "local",
+                                                                    "path": f"./plugins/{package.name}"},
+                                    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                                    "category": "Productivity"}]}
+        artifacts.append(_plugin_json(base / ".agents/plugins/marketplace.json", marketplace, "plugin-marketplace"))
+    handoff = [
+        "# ChatGPT plugin handoff", "",
+        f"Target surface: `chatgpt/{surface}`.", "",
+        "Review the selected Skills and MCP entries before using the package.",
+    ]
+    if local:
+        handoff.extend([
+            "", "For local discovery, review the staged marketplace entry in `.agents/plugins/marketplace.json`. "
+            f"Place the selected package in a fresh `plugins/{plugin_name}` directory in the destination repo "
+            "and merge the entry into its marketplace. Preserve other entries. Restart the desktop app, open the "
+            "repo's marketplace, and review the plugin before choosing whether to install it.",
+        ])
+    if workspace_marketplace:
+        handoff.extend([
+            "", "For workspace import, place the reviewed marketplace and plugin directory in the intended "
+            "GitHub repository. A workspace admin opens Admin > Plugins > Add > Import marketplace and "
+            "selects the directory containing .agents/plugins/marketplace.json. Choose the reviewed commit "
+            "when updates should be pinned. Review the saved import report and choose access in the admin UI. "
+            "Workspace installation and authentication policies are configured there.", "",
+            "[Workspace GitHub plugin import](https://learn.chatgpt.com/docs/enterprise/plugin-management)",
+        ])
+        if servers:
+            handoff.append("Direct MCP declarations can cause GitHub-imported plugins to be marked Desktop only.")
+    if apps:
+        handoff.extend([
+            "", "Review the required app references in .app.json. Each ID refers to an app already registered "
+            "in the destination workspace. Verify role access and authentication for each app. "
+            "Use the marketplace workflow for this package.",
+        ])
+    else:
+        package_files = [item for item in artifacts if item.relative_path.is_relative_to(package)]
+        handoff.extend([
+            "", f"For the OpenAI Platform submission workflow, run this command inside `plugins/{plugin_name}` "
+            "to ZIP only the selected package files. Move aside any existing ZIP first.", "",
+            "```sh", _package_zip_command(package, package_files), "```", "",
+            "Use the documented submission type for the reviewed package. With MCP uses public HTTPS and "
+            "requires domain verification and separate authentication setup where applicable. Only one declared "
+            "MCP server can be connected per plugin through the submission portal.",
+        ])
+    handoff.append("")
+    if requires_local_executor:
+        handoff.extend([
+            "For local testing, make bare executable names available on PATH and place any ./ executable "
+            "under the plugin root. Add required runtime dependencies separately. Public desktop-only "
+            "submission requires prior approval and packaging the server and dependencies with the plugin.", "",
+            "[Desktop-only submissions](https://developers.openai.com/plugins/deploy/desktop-only)",
+        ])
+    handoff.extend([
+        "[Package your plugin](https://developers.openai.com/plugins/build/plugins)",
+        "[OpenAI Platform submission](https://developers.openai.com/plugins/deploy/submission)", "",
+    ])
+    artifacts.append(RenderedArtifact(base / "PLUGIN-HANDOFF.md", "\n".join(handoff).encode(), "handoff"))
+    return artifacts
 
 
 def _instruction_target(spec: IntegrationSpec, surface: SurfaceSpec) -> str | None:
@@ -363,9 +653,61 @@ def _native_skills_path(spec: IntegrationSpec, surface: SurfaceSpec) -> str | No
 
 def _manual_skill_import(spec: IntegrationSpec, surface: SurfaceSpec) -> str | None:
     evidence = surface.capabilities["skills"]
-    if evidence.state != "manual" or not evidence.sources:
+    allowed_states = {"manual", "available"} if (spec.id, surface.id) == ("perplexity", "agent-api") else {"manual"}
+    if evidence.state not in allowed_states or not evidence.sources:
         return None
     return _MANUAL_SKILL_IMPORTS.get((spec.id, surface.id))
+
+
+def _skill_body(skill: _Skill) -> str:
+    return skill.content.decode("utf-8").partition("\n---\n")[2].removeprefix("\n")
+
+
+def _perplexity_inline_fragment(spec: IntegrationSpec, selected: list[_Skill]) -> RenderedArtifact:
+    if not 1 <= len(selected) <= 16:
+        raise WeaverError("Select one to sixteen Perplexity inline Skills")
+    entries = []
+    total_bytes = 0
+    for skill in selected:
+        if len(skill.name) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", skill.name):
+            raise WeaverError("Invalid Perplexity inline Skill name")
+        instructions = _skill_body(skill)
+        size = len(instructions.encode("utf-8"))
+        if not instructions.strip() or size > 65_536:
+            raise WeaverError("Perplexity inline Skill instructions must have content and fit within 65,536 UTF-8 bytes")
+        if len(skill.description.encode("utf-8")) > 1024:
+            raise WeaverError("Perplexity inline Skill description exceeds 1,024 UTF-8 bytes")
+        total_bytes += size
+        entries.append({"type": "inline", "name": skill.name, "description": skill.description,
+                        "instructions": instructions})
+    if total_bytes > 262_144:
+        raise WeaverError("Perplexity inline Skill instructions exceed 262,144 UTF-8 bytes for the request")
+    return RenderedArtifact(PurePosixPath(spec.id, "requests", "agent-api.skills.json"),
+                            (json.dumps({"skills": entries}, indent=2) + "\n").encode(), "skill-request")
+
+
+def _lmstudio_preset(facts: _ProfileFacts, thinking: str | None, budget: int | None) -> RenderedArtifact:
+    prompt = [
+        f"Apply the {facts.identifier} profile as advisory guidance.",
+        f"Read at most {facts.max_snippets} relevant retrieval snippets.",
+        "Keep production writes disabled.",
+    ]
+    if facts.avoid_full_repo_dumps:
+        prompt.append("Avoid full-repository dumps.")
+    fields: list[dict[str, object]] = [{"key": "llm.prediction.systemPrompt", "value": "\n".join(prompt)}]
+    if thinking is not None:
+        if thinking not in {"on", "off"}:
+            raise WeaverError("LM Studio preset thinking must be on or off")
+        fields.append({"key": "llm.prediction.reasoning.enableThinking", "value": thinking == "on"})
+    if budget is not None:
+        if type(budget) is not int or not 0 <= budget <= 2**53 - 1:
+            raise WeaverError("LM Studio preset reasoning budget must be a nonnegative JavaScript safe integer")
+        fields.append({"key": "llm.prediction.reasoning.budgetTokens", "value": {"checked": True, "value": budget}})
+    slug = f"weaver-{facts.identifier}"
+    payload = {"identifier": f"@local:{slug}", "name": f"Agent Efficiency Weaver ({facts.identifier})",
+               "operation": {"fields": fields}, "load": {"fields": []}}
+    return RenderedArtifact(PurePosixPath("lm-studio", "imports", "presets", f"{slug}.preset.json"),
+                            (json.dumps(payload, indent=2) + "\n").encode("utf-8"), "preset-import")
 
 
 def _instruction_text(
@@ -376,6 +718,7 @@ def _instruction_text(
     manual: bool,
     native_skills_path: str | None,
     manual_skill_import: str | None,
+    inline_skills: RenderedArtifact | None,
 ) -> str:
     allowed = ", ".join(facts.allowed_mcp) if facts.allowed_mcp else "none"
     lines = [
@@ -437,6 +780,8 @@ def _instruction_text(
             "controls. This handoff is not a Preset JSON file or an AGENTS.md discovery claim. "
             "Bionic is a separate app; its Skill import behavior is not assigned to LM Studio classic.",
         ])
+    if spec.id == "lm-studio" and surface.id in {"desktop", "api"}:
+        lines.append("For on-demand Skill text through the local MCP host, use `bundle --lmstudio-skill-mcp`.")
     if spec.id == "perplexity" and surface.id == "app":
         lines.extend([
             "", "Apply the advisory instructions in Perplexity Project settings. Project instructions "
@@ -446,8 +791,9 @@ def _instruction_text(
     if spec.id == "perplexity" and surface.id == "orchestrator":
         lines.extend([
             "", "Apply the advisory instructions through the selected Orchestrator request's prompt "
-            "or message fields. Local instruction-file discovery, native Skills, and MCP hosting "
-            "are not established for this gateway. Staged read files do not register API Skills.",
+            "or message fields. For on-demand loading, stage a model request with one or more "
+            "`--skill` selections and use the generated client-side Skill tool. Staged read files "
+            "can also be supplied manually as context.",
         ])
     if spec.id == "aider":
         read_paths = [
@@ -470,6 +816,21 @@ def _instruction_text(
     lines.extend(["", "## Skills"])
     if not selected:
         lines.append("Skills: none selected.")
+    elif (spec.id, surface.id) == ("antigravity", "sdk"):
+        lines.extend(["Skills are supplied through explicit SDK paths.",
+                      *[f"- {skill.name}: {skill.description}" for skill in selected]])
+    elif inline_skills is not None:
+        lines.extend([
+            f"Review the selected inline Skills in `{inline_skills.relative_path.as_posix()}` before adding "
+            "the skills array to a `POST /v1/agent` request.",
+            "Review the complete request for duplicate Skill names and existing Skill references. "
+            "Sending a request with any Skill enables Perplexity's request sandbox. "
+            "Inline Skills contain only descriptions and instructions.",
+            "With an explicit model or fallback chain and no effort preset, the API defaults to one step. "
+            "Use `model --perplexity-max-steps` to budget at least two steps for loading and using a Skill.",
+            "- https://docs.perplexity.ai/docs/agent-api/skills",
+            *[f"- {skill.name}: {skill.description}" for skill in selected],
+        ])
     elif native_skills_path is not None:
         lines.append(
             f"Skills: selected for native discovery under {native_skills_path} after manual project import. "
@@ -527,17 +888,29 @@ def render_instruction_bundle(
     profile: dict,
     skills: list[str],
     root: Path,
+    *,
+    lmstudio_preset: bool = False,
+    lmstudio_thinking: str | None = None,
+    lmstudio_budget: int | None = None,
+    perplexity_inline_skills: bool = False,
 ) -> list[RenderedArtifact]:
     if not isinstance(spec, IntegrationSpec):
         raise WeaverError("Integration specification required")
     if spec.kind not in {"agent", "hybrid"}:
         raise WeaverError("Provider gateways cannot render instruction bundles; use the provider command")
+    if lmstudio_preset and (spec.id, surface) != ("lm-studio", "desktop"):
+        raise WeaverError("LM Studio preset staging requires the classic Desktop target")
+    if not lmstudio_preset and (lmstudio_thinking is not None or lmstudio_budget is not None):
+        raise WeaverError("LM Studio preset reasoning controls require --lmstudio-preset")
     target = spec.surface(surface)
+    if perplexity_inline_skills and (
+        (spec.id, surface) != ("perplexity", "agent-api") or target.config_scope != "request"
+        or target.capabilities["skills"].state != "available" or not target.capabilities["skills"].sources
+    ):
+        raise WeaverError("Inline Skills require the Perplexity Agent API request surface")
     facts = _profile_facts(profile)
-    available, errors = _scan_skills(Path(root))
-    if errors:
-        raise WeaverError("Skill validation failed: " + "; ".join(sorted(errors)))
-    selected = _select_skills(skills, available)
+    selected = _validated_skill_selection(Path(root), skills)
+    inline_skills = _perplexity_inline_fragment(spec, selected) if perplexity_inline_skills else None
     instruction_evidence = target.capabilities["instructions"]
     if instruction_evidence.state in {"unsupported", "unknown"}:
         raise WeaverError(
@@ -546,13 +919,30 @@ def render_instruction_bundle(
         )
     if not instruction_evidence.sources:
         raise WeaverError("Instruction bundle requires documented source evidence")
+    if (spec.id, surface) == ("antigravity", "sdk"):
+        from .antigravity_sdk import SDK_PREFIX, render_sdk_context
+
+        skill_files = [RenderedArtifact(SDK_PREFIX / "context" / "skills" / skill.name / SKILL_FILE,
+                                        skill.content, "skill") for skill in selected]
+        guidance = _instruction_text(spec, target, facts, selected, False, None, None, None)
+        return render_sdk_context(guidance, skill_files)
     instruction_target = _instruction_target(spec, target)
     manual = instruction_evidence.state != "available" or instruction_target is None
     native_skills_path = _native_skills_path(spec, target)
     manual_skill_import = _manual_skill_import(spec, target)
     content = _instruction_text(
-        spec, target, facts, selected, manual, native_skills_path, manual_skill_import
+        spec, target, facts, selected, manual, native_skills_path, manual_skill_import, inline_skills,
     )
+    preset = None
+    if lmstudio_preset:
+        preset = _lmstudio_preset(facts, lmstudio_thinking, lmstudio_budget)
+        content += (
+            "\n## LM Studio Preset import\n"
+            f"Review `{preset.relative_path.as_posix()}`. Open the Presets dropdown in LM Studio, "
+            "choose Import, and select the file. Review the system prompt before applying it. "
+            "Choose the model separately and check whether it supports any configured thinking or budget setting. "
+            "The preset supplies advisory instructions and prediction settings.\n"
+        )
     _check_instruction_limit(spec, content)
     if manual or instruction_target is None:
         relative_path = PurePosixPath(spec.id, "handoff", "INSTRUCTIONS.md")
@@ -561,7 +951,11 @@ def render_instruction_bundle(
         relative_path = PurePosixPath(spec.id, instruction_target)
         kind = "instructions"
     artifacts = [RenderedArtifact(relative_path, content.encode("utf-8"), kind)]
-    if native_skills_path is None and manual_skill_import is not None:
+    if preset is not None:
+        artifacts.append(preset)
+    if inline_skills is not None:
+        artifacts.append(inline_skills)
+    elif native_skills_path is None and manual_skill_import is not None:
         for skill in selected:
             artifacts.append(
                 RenderedArtifact(

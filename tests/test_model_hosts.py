@@ -64,6 +64,91 @@ class ModelHostTests(unittest.TestCase):
             with self.subTest(unsupported=unsupported):
                 self.assertEqual(invoke(*args, *unsupported)[0], 2)
 
+    def test_antigravity_cli_stages_gemini_custom_model_settings_and_session_arguments(self) -> None:
+        args = ("model", "--root", str(ROOT), "--agent", "antigravity", "--surface", "cli", "--dry-run",
+                "--antigravity-custom-model", "fixture-high", "--model", "models/runtime-fixture")
+        code, output, errors = invoke(*args, "--reasoning", "on", "--reasoning-effort", "low",
+                                      "--context-size", "131072")
+        self.assertEqual(code, 0, errors)
+        staged = {item["kind"]: item for item in json.loads(output)["artifacts"]}
+        self.assertEqual(staged["model-config"]["path"], "antigravity/model/settings.fragment.json")
+        self.assertEqual(json.loads(staged["model-config"]["content"]), {
+            "modelProvider": "gemini", "customModelsConfig": {"customModels": {"fixture-high": {
+                "modelName": "models/runtime-fixture", "label": "fixture-high", "maxTokens": 131072,
+                "modelFeatures": {"supportsThinking": True},
+            }}},
+        })
+        self.assertEqual(json.loads(staged["session-arguments"]["content"]),
+                         ["--model", "fixture-high", "--effort", "low"])
+        self.assertIn("GOOGLE_GEMINI_BASE_URL", staged["model-setup"]["content"])
+        code, output, errors = invoke(*args, "--reasoning", "off")
+        self.assertEqual(code, 0, errors)
+        staged = {item["kind"]: json.loads(item["content"]) for item in json.loads(output)["artifacts"]
+                  if item["kind"] in {"model-config", "session-arguments"}}
+        model = staged["model-config"]["customModelsConfig"]["customModels"]["fixture-high"]
+        self.assertEqual(model["modelFeatures"], {"supportsThinking": False})
+        self.assertNotIn("maxTokens", model)
+        self.assertEqual(staged["session-arguments"], ["--model", "fixture-high"])
+        for unsupported in (
+            ("--surface", "ide"),
+            ("--model", "https://example.test/models/runtime-fixture"),
+            ("--antigravity-custom-model", "bad alias"),
+            ("--reasoning", "off", "--reasoning-effort", "high"),
+            ("--reasoning-effort", "xhigh"),
+            ("--context-size", "65536"),
+            ("--provider", "openrouter"),
+        ):
+            with self.subTest(unsupported=unsupported):
+                self.assertEqual(invoke(*args, *unsupported)[0], 2)
+
+    def test_antigravity_cli_stages_explicit_gemini_provider_for_a_builtin_model(self) -> None:
+        args = ("model", "--root", str(ROOT), "--agent", "antigravity", "--surface", "cli",
+                "--model", "gemini-3.8-flash-medium", "--reasoning-effort", "medium", "--dry-run")
+        with mock.patch.object(urllib.request, "urlopen", side_effect=AssertionError("network forbidden")):
+            code, output, errors = invoke(*args, "--provider", "google")
+        self.assertEqual(code, 0, errors)
+        staged = {item["kind"]: item for item in json.loads(output)["artifacts"]}
+        self.assertEqual(staged["model-config"]["path"], "antigravity/model/settings.fragment.json")
+        self.assertEqual(json.loads(staged["model-config"]["content"]), {"modelProvider": "gemini"})
+        self.assertEqual(json.loads(staged["session-arguments"]["content"]),
+                         ["--model", "gemini-3.8-flash-medium", "--effort", "medium"])
+        for value in ("GEMINI_API_KEY", "GOOGLE_GEMINI_BASE_URL", "agy models"):
+            self.assertIn(value, staged["model-setup"]["content"])
+        self.assertEqual(invoke(*args, "--provider", "openrouter")[0], 2)
+        self.assertEqual(invoke(*args, "--provider", "google", "--surface", "ide")[0], 2)
+
+    def test_antigravity_adc_stages_app_settings_and_cli_selection(self) -> None:
+        app = ("provider", "--root", str(ROOT), "--agent", "antigravity", "--provider", "google",
+               "--surface", "desktop", "--antigravity-adc", "--dry-run")
+        cli = ("model", "--root", str(ROOT), "--agent", "antigravity", "--provider", "google",
+               "--surface", "cli", "--antigravity-adc", "--model", "gemini-3.8-flash-medium",
+               "--reasoning-effort", "medium", "--dry-run")
+        with mock.patch.object(urllib.request, "urlopen", side_effect=AssertionError("network forbidden")):
+            for surface, command in (("desktop", app), ("cli", cli)):
+                with self.subTest(surface=surface):
+                    code, output, error = invoke(*command)
+                    self.assertEqual((code, error), (0, ""))
+                    artifacts = {item["kind"]: item for item in json.loads(output)["artifacts"]}
+                    self.assertEqual(artifacts["provider-environment"]["path"],
+                                     f"antigravity/{surface}/provider/launch-env.json")
+                    self.assertEqual(json.loads(artifacts["provider-environment"]["content"]), {"AGY_ADC_AUTH": "true"})
+                    self.assertNotIn("GEMINI_API_KEY", output)
+                    if surface == "desktop":
+                        self.assertEqual(json.loads(artifacts["provider-config"]["content"]),
+                                         {"userSettings": {"enableAdc": True}})
+                        self.assertNotIn("session-arguments", artifacts)
+                    else:
+                        self.assertEqual(json.loads(artifacts["session-arguments"]["content"]),
+                                         ["--model", "gemini-3.8-flash-medium", "--effort", "medium"])
+                        self.assertNotIn("model-config", artifacts)
+                        self.assertNotIn("provider-config", artifacts)
+            for command in ((*app, "--surface", "ide"), (*app, "--model", "fake-model"),
+                            (*cli, "--provider", "openrouter"), (*cli, "--surface", "desktop"),
+                            (*cli, "--antigravity-custom-model", "fixture")):
+                self.assertEqual(invoke(*command)[0], 2)
+            self.assertEqual(invoke("provider", "--root", str(ROOT), "--agent", "codex", "--provider", "openrouter",
+                                    "--dry-run")[0], 2)
+
     def catalog(self) -> dict:
         return json.loads((ROOT / "catalogs/model-hosts.json").read_text(encoding="utf-8"))
 
@@ -124,22 +209,31 @@ class ModelHostTests(unittest.TestCase):
                 with self.assertRaises(WeaverError):
                     self.load_modified(catalog)
 
-    def test_unknown_reasoning_is_explicit_without_exporter_or_effort_claim(self) -> None:
+    def test_manual_reasoning_keeps_documented_efforts_and_discovery_scope(self) -> None:
         hosts = {(host["product_id"], host["surface_id"]): host for host in load_model_hosts(ROOT)}
-        for pair in (("jetbrains-air", "desktop"),):
-            self.assertEqual(hosts[pair]["reasoning"]["state"], "unknown")
-            self.assertEqual(hosts[pair]["reasoning"]["controls"], [])
+        desktop = hosts[("jetbrains-air", "desktop")]["reasoning"]
+        self.assertEqual(desktop["state"], "manual")
+        control, = desktop["controls"]
+        self.assertEqual(control["values"], ["xhigh"])
+        self.assertIn("Fable, Opus and Sonnet 5", control["field"])
+        self.assertTrue(control["model_dependent"])
         self.assertTrue(all(host["selection"]["state"] == "manual" for host in hosts.values()))
         self.assertIsNone(hosts[("copilot", "vscode")]["reasoning"]["controls"][0]["values"])
         self.assertIsNone(hosts[("kiro", "ide")]["reasoning"]["controls"][0]["values"])
+        kiro_cli = hosts[("kiro", "cli")]
+        self.assertIn("_meta.kiro.modelId", kiro_cli["selection"]["fields"])
+        acp, = [control for control in kiro_cli["reasoning"]["controls"] if control["field"] == "_meta.kiro.effortLevel"]
+        self.assertTrue(acp["model_dependent"])
+        self.assertIsNone(acp["values"])
         self.assertEqual(hosts[("amp", "cli")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertEqual(hosts[("devin", "desktop-local")]["reasoning"]["controls"][0]["kind"], "variant")
         self.assertNotIn("/effort", hosts[("antigravity", "ide")]["selection"]["commands"])
         antigravity_cli = hosts[("antigravity", "cli")]
         self.assertIn("agy models", antigravity_cli["selection"]["commands"])
-        self.assertEqual(antigravity_cli["selection"]["fields"], ["--model"])
+        self.assertEqual(antigravity_cli["selection"]["fields"],
+                         ["--model", "modelProvider", "customModelsConfig.customModels", "GOOGLE_GEMINI_BASE_URL"])
         self.assertEqual([control["field"] for control in antigravity_cli["reasoning"]["controls"]],
-                         ["--effort", "/effort"])
+                         ["--effort", "/effort", "customModelsConfig.customModels.<alias>.modelFeatures.supportsThinking"])
         self.assertTrue(all(control["model_dependent"] for control in antigravity_cli["reasoning"]["controls"]))
         self.assertNotIn("/effort", hosts[("kiro", "ide")]["selection"]["commands"])
 
@@ -210,8 +304,15 @@ class ModelHostTests(unittest.TestCase):
         self.assertEqual(effort["kind"], "effort")
         self.assertIsNone(effort["values"])
         self.assertTrue(all("web" in control["field"] for control in (variant, effort)))
+        self.assertIn(
+            "Under Computer web Custom, choose Normal, Fast, or Ultrafast speed when offered for the selected model",
+            host["selection"]["ui_steps"],
+        )
+        self.assertEqual(host["selection"]["fields"], [])
         self.assertIn("Desktop retains the regular model picker", host["selection"]["mechanism"])
         self.assertIn("custom API credentials authenticate tools", host["selection"]["mechanism"])
+        self.assertIn("choose the model for each teammate", host["selection"]["mechanism"])
+        self.assertIn("Teammate-specific reasoning settings remain unknown", host["selection"]["mechanism"])
 
     def test_byok_picker_and_remote_model_are_not_arbitrary_provider_routes(self) -> None:
         hosts = {(host["product_id"], host["surface_id"]): host for host in load_model_hosts(ROOT)}
@@ -224,8 +325,10 @@ class ModelHostTests(unittest.TestCase):
                        "values": ["disabled", "off", "none", "low", "medium", "high", "xhigh", "max"]},
                       hosts[("qoder", "cli")]["reasoning"]["controls"])
         studio = hosts[("lm-studio", "desktop")]["selection"]
-        self.assertIn("fixed model choices", studio["mechanism"])
-        self.assertIn("not an arbitrary", hosts[("lm-studio", "bionic")]["selection"]["mechanism"])
+        self.assertIn("Each staged generator binds one exact provider model", studio["mechanism"])
+        self.assertIn("https://lmstudio.ai/docs/typescript/plugins/generator", studio["sources"])
+        self.assertIn("require an available device sharing its models through LM Link",
+                      hosts[("lm-studio", "bionic")]["selection"]["mechanism"])
 
     def test_openrouter_responses_accepts_declared_controls_without_inference_claim(self) -> None:
         snapshot = {"provider_id": "openrouter", "models": [{"id": "fixture/model", "reasoning": {

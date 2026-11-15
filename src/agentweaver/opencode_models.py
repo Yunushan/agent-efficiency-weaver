@@ -1,9 +1,11 @@
 """Validate model selections against saved OpenCode V2 and Kilo model lists."""
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .adapters import json_bytes
+from .artifacts import RenderedArtifact
 from .config import WeaverError
 from .models import _load_bounded_snapshot, _model_id, _read_snapshot_json, _scan, _text
 
@@ -78,9 +80,80 @@ def validate_opencode_selection(path: Path, model: str, variant: str | None) -> 
     return _validate_selection(path, model, variant, kilo=False)
 
 
+def render_opencode_run(path: Path, model: str, variant: str | None) -> list[RenderedArtifact]:
+    """Stage a one-run selector from a saved OpenCode V2 project catalog."""
+    selector, digest = validate_opencode_selection(path, model, variant)
+    prefix = PurePosixPath("opencode/model")
+    note = (
+        "# OpenCode V2 model setup\n\n"
+        "Use the staged argument array with the OpenCode V2 CLI and provide your prompt separately. "
+        "The arguments run a private OpenCode server for this invocation with the project's existing provider configuration.\n\n"
+        "Capture model choices from the intended project. A variant can change reasoning and other request options. "
+        "The saved catalog does not establish current provider access or inference.\n\n"
+        f"Saved OpenCode model catalog SHA-256: {digest}\n\n"
+        "- https://opencode.ai/docs/models/#variants\n"
+        "- https://opencode.ai/docs/cli/commands#run\n"
+    )
+    return [
+        RenderedArtifact(prefix / "session-arguments.json", json_bytes(["run", "--standalone", "--model", selector]),
+                         "session-arguments"),
+        RenderedArtifact(prefix / "model-setup.md", note.encode("utf-8"), "model-setup"),
+    ]
+
+
 def validate_kilo_selection(path: Path, model: str, variant: str | None) -> tuple[str, str]:
     """Check a Kilo model/variant pair and return the unchanged model selector and hash."""
     return _validate_selection(path, model, variant, kilo=True)
+
+
+def kilo_run_arguments(model: str, variant: str | None) -> list[str]:
+    argv = ["run", "--model", model]
+    if variant is not None:
+        argv.append(f"--variant={variant}")
+    return argv
+
+
+def render_kilo_run(path: Path, model: str, variant: str | None) -> list[RenderedArtifact]:
+    """Stage a Kilo run with an enabled text model and an optional catalog variant."""
+    selector, digest = validate_kilo_selection(path, model, variant)
+    argv = kilo_run_arguments(selector, variant)
+    prefix = PurePosixPath("kilo/model")
+    note = (
+        "# Kilo CLI model setup\n\n"
+        "Use the staged argument array with the Kilo CLI in the intended project and provide your prompt separately. "
+        "The run uses the project's existing provider and permissions configuration.\n\n"
+        "A selected variant can change the model's reasoning and other request options. "
+        "Use a fresh project catalog to confirm available choices. Account access and inference remain unverified.\n\n"
+        f"Saved Kilo model catalog SHA-256: {digest}\n\n"
+        "- https://kilo.ai/docs/code-with-ai/platforms/cli-reference#kilo-run\n"
+    )
+    return [
+        RenderedArtifact(prefix / "session-arguments.json", json_bytes(argv), "session-arguments"),
+        RenderedArtifact(prefix / "model-setup.md", note.encode("utf-8"), "model-setup"),
+    ]
+
+
+def render_kilo_desktop_selection(path: Path, model: str, variant: str | None) -> list[RenderedArtifact]:
+    """Stage a checked selection for the Desktop chat controls."""
+    selector, digest = validate_kilo_selection(path, model, variant)
+    selection = {"model": selector}
+    if variant is not None:
+        selection["variant"] = variant
+    prefix = PurePosixPath("kilo/model")
+    note = (
+        "# Kilo Desktop model selection\n\n"
+        "Open the intended workspace and choose the provider and model from the staged selection "
+        "in the chat model picker. If the selection names a variant, choose its matching effort "
+        "when available for that model. The choice applies to the chat.\n\n"
+        "The saved catalog checks the selector and any requested variant. "
+        "Confirm availability in the current account and chat.\n\n"
+        f"Saved Kilo model catalog SHA-256: {digest}\n\n"
+        "- https://kilo.ai/docs/desktop/quickstart\n"
+    )
+    return [
+        RenderedArtifact(prefix / "desktop-selection.json", json_bytes(selection), "model-selection"),
+        RenderedArtifact(prefix / "model-setup.md", note.encode("utf-8"), "model-setup"),
+    ]
 
 
 def _validate_selection(path: Path, model: str, variant: str | None, *, kilo: bool) -> tuple[str, str]:

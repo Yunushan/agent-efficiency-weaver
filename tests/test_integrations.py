@@ -117,6 +117,7 @@ OS_IDS = {"windows", "macos", "linux", "bsd", "solaris", "android", "ios"}
 ADAPTER_SURFACES = {
     ("kilo", "cli"),
     ("kilo", "ide"),
+    ("kilo", "desktop"),
     ("opencode", "cli"),
     ("cline", "ide"),
     ("copilot", "vscode"),
@@ -147,6 +148,7 @@ SKILL_SURFACES = INSTRUCTION_SURFACES
 PROVIDER_ROUTES = {
     ("kilo", "cli"): "manual",
     ("kilo", "ide"): "manual",
+    ("kilo", "desktop"): "manual",
     ("opencode", "cli"): "manual",
     ("cline", "ide"): "manual",
     ("copilot", "vscode"): "manual",
@@ -162,6 +164,7 @@ PROVIDER_ROUTES = {
     ("chatgpt", "desktop"): "manual",
     ("chatgpt", "work-local"): "manual",
     ("factory", "cli"): "manual",
+    ("jetbrains-air", "ide"): "manual",
     ("hermes", "cli"): "manual",
     ("qwen-code", "cli"): "manual",
     ("qwen-code", "desktop"): "manual",
@@ -178,17 +181,21 @@ PROVIDER_GAP_SOURCES = {
     ("kiro", "cli"): "https://kiro.dev/docs/models/",
     ("kiro", "ide"): "https://kiro.dev/docs/models/",
     ("antigravity", "ide"): "https://antigravity.google/docs/models",
-    ("antigravity", "cli"): "https://antigravity.google/docs/cli/install",
-    ("antigravity", "desktop"): "https://antigravity.google/docs/models",
     ("devin", "desktop-local"): "https://docs.devin.ai/desktop/models",
-    ("qoder", "cli"): "https://docs.qoder.com/cli/custom-models",
     ("chatgpt", "web"): "https://learn.chatgpt.com/docs/auth",
     ("chatgpt", "work-cloud"): "https://learn.chatgpt.com/docs/auth",
-    ("lm-studio", "desktop"): "https://lmstudio.ai/lmstudio/openai-compat-endpoint",
     ("lm-studio", "bionic"): "https://lmstudio.ai/docs/bionic",
     ("perplexity", "app"): "https://www.perplexity.ai/help-center/en/articles/20260917-effort-mode-in-perplexity-computer",
 }
 PROVIDER_GAPS = set(PROVIDER_GAP_SOURCES)
+OTHER_PROVIDER_ROUTES = {
+    ("antigravity", "cli"): ("available", "https://antigravity.google/docs/install/#using-a-gemini-api-key",
+                             "tests/test_model_hosts.py"),
+    ("antigravity", "desktop"): ("manual", "https://antigravity.google/docs/enterprise/#setting-up-application-default-credentials-adc",
+                                 "tests/test_model_hosts.py"),
+    ("qoder", "cli"): ("manual", "https://docs.qoder.com/cli/custom-models", "tests/test_cli_capabilities.py"),
+    ("lm-studio", "desktop"): ("manual", "https://lmstudio.ai/docs/typescript/plugins/generator", "tests/test_cli_exports.py"),
+}
 
 
 
@@ -213,7 +220,8 @@ class IntegrationRegistryTests(unittest.TestCase):
     def test_kinds_and_defaults(self):
         for identifier in EXPECTED_IDS:
             item = self.integrations[identifier]
-            self.assertEqual(item.kind, "provider" if identifier == "openrouter" else "agent")
+            expected_kind = {"openrouter": "provider", "kilo": "hybrid"}.get(identifier, "agent")
+            self.assertEqual(item.kind, expected_kind)
             self.assertEqual(item.default_surface, EXPECTED_DEFAULT_SURFACES[identifier])
         for item in self.integrations.values():
             self.assertIn(item.kind, {"agent", "provider", "hybrid"})
@@ -484,13 +492,15 @@ class IntegrationRegistryTests(unittest.TestCase):
                     continue
                 expected = (
                     ("tests/test_capability_expansion.py",) if (integration.id, surface.id) == ("qoder", "ide") else
-                    ("tests/test_cli_capabilities.py", "tests/test_stdio_adapters.py")
+                    ("tests/test_cli_capabilities.py", "tests/test_cli_exports.py", "tests/test_stdio_adapters.py")
                     if (integration.id, surface.id) == ("kiro", "cli") else
+                    ("tests/test_adapters.py", "tests/test_cli_exports.py", "tests/test_stdio_adapters.py")
+                    if (integration.id, surface.id) == ("kiro", "ide") else
                     ("tests/test_adapters.py", "tests/test_stdio_adapters.py")
                     if (integration.id, surface.id) in {("copilot", "vscode"), ("openhands", "cli")} else
                     ("tests/test_stdio_adapters.py",)
                     if (integration.id, surface.id) in {
-                        ("cursor", "cli"), ("antigravity", "cli"), ("antigravity", "desktop"),
+                        ("cursor", "cli"), ("antigravity", "cli"), ("antigravity", "desktop"), ("kilo", "desktop"),
                     } else
                     ("tests/test_adapters.py",)
                     if (integration.id, surface.id) in ADAPTER_SURFACES
@@ -536,7 +546,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         for integration in self.integrations.values():
             for surface in integration.surfaces:
                 key = (integration.id, surface.id)
-                if key not in set(PROVIDER_ROUTES) | PROVIDER_GAPS:
+                if key not in set(PROVIDER_ROUTES) | PROVIDER_GAPS | set(OTHER_PROVIDER_ROUTES):
                     continue
                 evidence = surface.capabilities["provider"]
                 if key in PROVIDER_ROUTES:
@@ -549,17 +559,29 @@ class IntegrationRegistryTests(unittest.TestCase):
                         tuple(documented["fixture_tests"]),
                         key,
                     )
+                elif key in OTHER_PROVIDER_ROUTES:
+                    state, source, fixture = OTHER_PROVIDER_ROUTES[key]
+                    self.assertEqual(evidence.state, state, key)
+                    self.assertIn(source, evidence.sources, key)
+                    self.assertEqual(evidence.checked_on, "2026-11-15", key)
+                    self.assertEqual(evidence.fixture_tests, (fixture,), key)
+                    with self.assertRaises(WeaverError):
+                        provider_evidence(integration.id, surface.id)
                 else:
                     self.assertIn(key, PROVIDER_GAPS, key)
                     self.assertEqual(evidence.state, "unknown", key)
                     self.assertIn(PROVIDER_GAP_SOURCES[key], evidence.sources, key)
-                    dates = {("kiro", "cli"): "2026-11-13", ("antigravity", "cli"): "2026-11-14",
-                             ("antigravity", "desktop"): "2026-11-14"}
+                    dates = {("kiro", "cli"): "2026-11-13"}
                     self.assertEqual(evidence.checked_on, dates.get(key, "2026-10-26"), key)
                     self.assertEqual(evidence.fixture_tests, (), key)
                     with self.assertRaises(WeaverError):
                         provider_evidence(integration.id, surface.id)
-                self.assertIsNone(evidence.version_constraint, key)
+                if key == ("jetbrains-air", "ide"):
+                    self.assertIn("compatible Anthropic or OpenAI API agents", evidence.version_constraint)
+                elif key == ("lm-studio", "desktop"):
+                    self.assertIn("text-only generator", evidence.version_constraint)
+                else:
+                    self.assertIsNone(evidence.version_constraint, key)
                 self.assertEqual(evidence.runtime_checks, (), key)
 
     def test_qoder_ide_has_documented_app_mcp_and_native_instruction_routes(self):
@@ -569,7 +591,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         cli = qoder.surface("cli")
         self.assertEqual(cli.native_path_hint, ".qoder/settings.json")
         self.assertEqual(cli.mcp_dialect, "mcpServers.type-http")
-        self.assertEqual(cli.capabilities["provider"].state, "unknown")
+        self.assertEqual(cli.capabilities["provider"].state, "manual")
         self.assertEqual(cli.capabilities["provider"].sources, (
             "https://docs.qoder.com/cli/custom-models", "https://docs.qoder.com/cli/model"))
 
@@ -579,7 +601,7 @@ class IntegrationRegistryTests(unittest.TestCase):
         self.assertEqual(ide.config_scope, "app")
         self.assertIsNone(ide.native_path_hint)
         self.assertEqual(ide.documented_location,
-                         "Qoder IDE Settings > MCP > My Servers > Add; JSON editor. Persistent configuration path unestablished.")
+                         "Qoder IDE Settings > MCP > My Servers > Add; JSON editor.")
         self.assertEqual(ide.instruction_mode, "rules")
         self.assertEqual(ide.instruction_paths, ("AGENTS.md", ".qoder/rules/"))
         self.assertEqual(ide.skills_path, ".qoder/skills")
